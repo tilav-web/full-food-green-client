@@ -20,6 +20,7 @@ import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { useTranslation } from "@/i18n/useTranslation"
 import { ProductDetailModal } from "@/components/user/ProductDetailModal"
+import { getImageUrl } from "@/lib/utils"
 import type { Banner, BannerItem, Product } from "@/types"
 
 export const PromoDetailPage: React.FC = () => {
@@ -200,7 +201,7 @@ export const PromoDetailPage: React.FC = () => {
 
         {banner.imageUrl && (
           <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-25 mix-blend-luminosity pointer-events-none">
-            <img src={banner.imageUrl} alt={banner.title} className="h-full w-full object-cover rounded-r-3xl" />
+            <img src={getImageUrl(banner.imageUrl)} alt={banner.title} className="h-full w-full object-cover rounded-r-3xl" />
           </div>
         )}
 
@@ -316,8 +317,11 @@ export const PromoDetailPage: React.FC = () => {
                 {/* Image Section */}
                 <div className="relative h-44 sm:h-auto sm:w-48 bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 overflow-hidden">
                   <img
-                    src={item.imageUrl || "/images/dishes/tovuqli-file.jpg"}
+                    src={getImageUrl(item.imageUrl)}
                     alt={item.name}
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                    }}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />

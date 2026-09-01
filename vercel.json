@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/uploads/:match*",
+      "destination": "https://api.full-food.hotel-familyhouse.uz/uploads/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}

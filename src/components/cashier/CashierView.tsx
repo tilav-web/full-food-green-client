@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTelegram } from "@/hooks/useTelegram"
 import { ProductSearchSelect } from "@/components/common/ProductSearchSelect"
+import { getImageUrl } from "@/lib/utils"
 import type { Order, Product, Category, OrderStatus } from "@/types"
 
 import { socket } from "@/api/socket"
@@ -273,9 +274,9 @@ export const CashierView: React.FC = () => {
 
   // Helper to find image for dish
   const getDishImage = (productId?: string) => {
-    if (!productId) return "/images/dishes/tovuqli-file.jpg"
+    if (!productId) return "/logo.jpg"
     const found = products.find((p) => p.id === productId)
-    return found?.imageUrl || "/images/dishes/tovuqli-file.jpg"
+    return getImageUrl(found?.imageUrl)
   }
 
   // Modals state derived from URL
@@ -942,8 +943,11 @@ export const CashierView: React.FC = () => {
                       {/* Visual Dish Image Header */}
                       <div className="relative h-28 sm:h-32 w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                         <img
-                          src={p.imageUrl || "/images/dishes/tovuqli-file.jpg"}
+                          src={getImageUrl(p.imageUrl)}
                           alt={p.name}
+                          onError={(e) => {
+                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />

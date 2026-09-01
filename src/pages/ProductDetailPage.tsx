@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
+import { getImageUrl } from "@/lib/utils"
 import type { Product } from "@/types"
 
 export const ProductDetailPage: React.FC = () => {
@@ -130,8 +131,11 @@ export const ProductDetailPage: React.FC = () => {
         {/* Big Food Image */}
         <div className="relative h-64 sm:h-72 w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
           <img
-            src={product.imageUrl || "/images/dishes/tovuqli-file.jpg"}
+            src={getImageUrl(product.imageUrl)}
             alt={product.name}
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+            }}
             className="w-full h-full object-cover"
           />
           {product.oldPrice && product.oldPrice > product.price && (

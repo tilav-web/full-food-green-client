@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react"
 import { apiClient } from "@/api/axios"
+import { getImageUrl } from "@/lib/utils"
 import type { Banner } from "@/types"
 
 interface PromoBannerProps {
@@ -181,10 +182,13 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
           <div className="absolute right-0 top-0 bottom-0 w-[55%] sm:w-[50%] opacity-35 mix-blend-luminosity pointer-events-none transition-transform duration-700 group-hover:scale-105">
             <img
               src={
-                currentBanner.imageUrl ||
+                getImageUrl(currentBanner.imageUrl) ||
                 "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=60"
               }
               alt={currentBanner.title}
+              onError={(e) => {
+                ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+              }}
               className="h-full w-full object-cover rounded-r-3xl"
             />
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black/80" />

@@ -49,6 +49,7 @@ import { ImageUploadField } from "@/components/common/ImageUploadField"
 import { useTelegram } from "@/hooks/useTelegram"
 import { useTranslation } from "@/i18n/useTranslation"
 import { generateSlug } from "@/utils/slugify"
+import { getImageUrl } from "@/lib/utils"
 import type { Product, Category, Unit, Banner, BannerItem, Combo } from "@/types"
 
 export type AdminPage =
@@ -868,7 +869,14 @@ export const AdminView: React.FC = () => {
                     {/* Image */}
                     <div className="relative h-28 w-full bg-neutral-100 dark:bg-neutral-800">
                       {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                        <img
+                          src={getImageUrl(p.imageUrl)}
+                          alt={p.name}
+                          onError={(e) => {
+                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                          }}
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-neutral-400">
                           <Package className="h-7 w-7 opacity-30" />
@@ -1016,7 +1024,14 @@ export const AdminView: React.FC = () => {
                       </span>
                       <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center overflow-hidden border border-emerald-100 dark:border-emerald-900 flex-shrink-0">
                         {c.imageUrl ? (
-                          <img src={c.imageUrl} alt={c.name} className="h-full w-full object-cover" />
+                          <img
+                            src={getImageUrl(c.imageUrl)}
+                            alt={c.name}
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                            }}
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           <Layers className="h-5 w-5 text-emerald-600" />
                         )}
@@ -1169,8 +1184,11 @@ export const AdminView: React.FC = () => {
                           >
                             {b.imageUrl && (
                               <img
-                                src={b.imageUrl}
+                                src={getImageUrl(b.imageUrl)}
                                 alt={b.title}
+                                onError={(e) => {
+                                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                                }}
                                 className="absolute inset-0 w-full h-full object-cover opacity-35"
                               />
                             )}
@@ -2886,8 +2904,11 @@ export const AdminView: React.FC = () => {
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="h-14 w-14 rounded-2xl bg-neutral-100 dark:bg-neutral-800 overflow-hidden flex-shrink-0 relative">
                           <img
-                            src={item.imageUrl || "/images/dishes/tovuqli-file.jpg"}
+                            src={getImageUrl(item.imageUrl)}
                             alt={item.name}
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                            }}
                             className="h-full w-full object-cover"
                           />
                           {item.badge && (

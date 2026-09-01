@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/i18n/useTranslation"
 import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
+import { getImageUrl } from "@/lib/utils"
 import type { Product, Combo } from "@/types"
 
 interface ProductDetailModalProps {
@@ -131,8 +132,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <div className="relative h-60 sm:h-72 w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden flex-shrink-0">
             {item.imageUrl ? (
               <img
-                src={item.imageUrl}
+                src={getImageUrl(item.imageUrl)}
                 alt={item.name}
+                onError={(e) => {
+                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                }}
                 className="h-full w-full object-cover"
               />
             ) : (

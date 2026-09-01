@@ -31,6 +31,7 @@ import { useAppStore, SavedLocationItem } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
 import { LocationPickerModal } from "./LocationPickerModal"
+import { getImageUrl } from "@/lib/utils"
 import type { OrderContainer } from "@/types"
 
 interface CartPageProps {
@@ -486,11 +487,11 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <img
-                          src={
-                            item.imageUrl ||
-                            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=60"
-                          }
+                          src={getImageUrl(item.imageUrl)}
                           alt={item.name}
+                          onError={(e) => {
+                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                          }}
                           className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
                         />
                         <div className="min-w-0 flex-1">
@@ -595,11 +596,11 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                                     : { scale: 1, rotate: 0 }
                                 }
                                 transition={{ duration: 0.35 }}
-                                src={
-                                  item.imageUrl ||
-                                  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=60"
-                                }
+                                src={getImageUrl(item.imageUrl)}
                                 alt={item.name}
+                                onError={(e) => {
+                                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                                }}
                                 className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
                               />
                               <div className="min-w-0 flex-1">
@@ -770,8 +771,11 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                                     >
                                       {it.imageUrl && (
                                         <img
-                                          src={it.imageUrl}
+                                          src={getImageUrl(it.imageUrl)}
                                           alt={it.name}
+                                          onError={(e) => {
+                                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                                          }}
                                           className="h-5 w-5 rounded-md object-cover"
                                         />
                                       )}

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react"
 import { Search, ChevronDown, Check, X, Package, UtensilsCrossed } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
+import { getImageUrl } from "@/lib/utils"
 import type { Product } from "@/types"
 
 interface ProductSearchSelectProps {
@@ -90,8 +91,11 @@ export const ProductSearchSelect: React.FC<ProductSearchSelectProps> = ({
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {selectedProduct.imageUrl ? (
               <img
-                src={selectedProduct.imageUrl}
+                src={getImageUrl(selectedProduct.imageUrl)}
                 alt=""
+                onError={(e) => {
+                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                }}
                 className="h-7 w-7 rounded-xl object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
               />
             ) : (
@@ -193,8 +197,11 @@ export const ProductSearchSelect: React.FC<ProductSearchSelectProps> = ({
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         {p.imageUrl ? (
                           <img
-                            src={p.imageUrl}
+                            src={getImageUrl(p.imageUrl)}
                             alt=""
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                            }}
                             className="h-8 w-8 rounded-lg object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
                           />
                         ) : (

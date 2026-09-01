@@ -7,6 +7,7 @@ import { useTranslation } from "@/i18n/useTranslation"
 import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { ProductDetailModal } from "./ProductDetailModal"
+import { getImageUrl } from "@/lib/utils"
 import type { Category, Product, Combo } from "@/types"
 
 interface MenuCatalogProps {
@@ -310,8 +311,11 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, 
               >
                 {/* Background Image */}
                 <img
-                  src={combo.imageUrl}
+                  src={getImageUrl(combo.imageUrl)}
                   alt={combo.name}
+                  onError={(e) => {
+                    ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                  }}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
 
@@ -380,8 +384,11 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, 
                 {/* Product Image Box */}
                 <div className="relative h-32 sm:h-36 w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                   <img
-                    src={product.imageUrl || "/images/dishes/tovuqli-file.jpg"}
+                    src={getImageUrl(product.imageUrl)}
                     alt={product.name}
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                    }}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                   />
