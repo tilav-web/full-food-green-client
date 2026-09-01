@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <circle cx="64" cy="64" r="60" fill="#f0fdf4" stroke="#10b981" stroke-width="4"/>
+  <!-- Cloche Top Handle -->
+  <circle cx="64" cy="26" r="7" fill="#eab308" />
+  <rect x="62" y="28" width="4" height="6" fill="#ca8a04" />
+  <!-- Cloche Dome -->
+  <path d="M26 80 C26 44 42 32 64 32 C86 32 102 44 102 80 Z" fill="#facc15" />
+  <!-- Leaf Accent -->
+  <path d="M84 18 C94 12 100 18 100 18 C100 18 100 28 88 28 C85 28 84 24 84 18 Z" fill="#10b981"/>
+  <!-- Dish Base Plate -->
+  <rect x="20" y="80" width="88" height="9" rx="4.5" fill="#059669" />
+  <!-- Center Text -->
+  <text x="64" y="64" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="13" fill="#166534" text-anchor="middle" font-style="italic">full food</text>
+</svg>

@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 220 25% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 10%;
+    --primary: 158 64% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 25% 95%;
+    --secondary-foreground: 158 64% 20%;
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 150 30% 92%;
+    --accent-foreground: 158 64% 20%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 158 64% 38%;
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 224 35% 8%; /* Deep sleek dark */
+    --foreground: 210 20% 98%;
+    --card: 224 30% 12%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 30% 12%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 158 64% 45%;
+    --primary-foreground: 224 35% 8%;
+    --secondary: 224 25% 16%;
+    --secondary-foreground: 210 20% 95%;
+    --muted: 224 25% 18%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 224 25% 20%;
+    --accent-foreground: 210 20% 95%;
+    --destructive: 0 62.8% 45%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 224 25% 18%;
+    --input: 224 25% 18%;
+    --ring: 158 64% 45%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.45);
+}
+
+/* Safe area insets for mobile */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
