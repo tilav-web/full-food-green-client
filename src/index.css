@@ -79,7 +79,29 @@
   background: rgba(16, 185, 129, 0.45);
 }
 
-/* Safe area insets for mobile */
+/* Safe area insets for iOS, Android & Telegram Mini App */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --tg-safe-area-inset-top: 0px;
+  --tg-safe-area-inset-bottom: 0px;
+  --tg-content-safe-area-inset-top: 0px;
+  --tg-content-safe-area-inset-bottom: 0px;
+}
+
+.safe-area-top {
+  padding-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-safe-area-inset-top, 0px),
+    var(--tg-content-safe-area-inset-top, 0px)
+  );
+}
+
 .safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 12px);
+  padding-bottom: max(
+    env(safe-area-inset-bottom, 0px),
+    var(--tg-safe-area-inset-bottom, 0px),
+    var(--tg-content-safe-area-inset-bottom, 0px),
+    16px
+  );
 }

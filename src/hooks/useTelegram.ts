@@ -41,6 +41,29 @@ export function useTelegram() {
         }
       }
 
+      // Safe Area Inset synchronization for iOS Dynamic Island / Notch / Android Navigation Bar
+      const updateSafeArea = () => {
+        try {
+          const contentTop = webapp.contentSafeAreaInset?.top ?? webapp.safeAreaInset?.top ?? 0
+          const contentBottom = webapp.contentSafeAreaInset?.bottom ?? webapp.safeAreaInset?.bottom ?? 0
+
+          if (contentTop > 0) {
+            document.documentElement.style.setProperty("--tg-safe-area-inset-top", `${contentTop}px`)
+            document.documentElement.style.setProperty("--tg-content-safe-area-inset-top", `${contentTop}px`)
+          }
+          if (contentBottom > 0) {
+            document.documentElement.style.setProperty("--tg-safe-area-inset-bottom", `${contentBottom}px`)
+            document.documentElement.style.setProperty("--tg-content-safe-area-inset-bottom", `${contentBottom}px`)
+          }
+        } catch (err) {
+          console.warn("SafeArea inset error:", err)
+        }
+      }
+
+      updateSafeArea()
+      webapp.onEvent?.("safeAreaChanged", updateSafeArea)
+      webapp.onEvent?.("contentSafeAreaChanged", updateSafeArea)
+
       // 4. Style Telegram Header and Background with Emerald Brand colors
       try {
         const headerColor = theme === "dark" ? "#0a0a0a" : "#059669"

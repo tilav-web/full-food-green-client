@@ -214,7 +214,7 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border-t border-neutral-200 dark:border-neutral-800 z-40">
+      <div className="fixed bottom-0 left-0 right-0 p-4 safe-area-bottom bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border-t border-neutral-200 dark:border-neutral-800 z-40">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           {cartQuantity === 0 ? (
             <Button

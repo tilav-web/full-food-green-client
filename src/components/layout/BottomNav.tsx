@@ -74,7 +74,7 @@ export const BottomNav: React.FC = () => {
     ]
 
     return (
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border-t border-emerald-500/20 dark:border-neutral-800 px-3 py-1.5 shadow-2xl safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border-t border-emerald-500/20 dark:border-neutral-800 px-3 pt-2 pb-2 shadow-2xl safe-area-bottom">
         <div className="max-w-md mx-auto flex items-center justify-around">
           {cashierNavItems.map((item) => {
             const Icon = item.icon
@@ -159,7 +159,7 @@ export const BottomNav: React.FC = () => {
     ]
 
     return (
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border-t border-purple-500/20 dark:border-neutral-800 px-3 py-1.5 shadow-2xl safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border-t border-purple-500/20 dark:border-neutral-800 px-3 pt-2 pb-2 shadow-2xl safe-area-bottom">
         <div className="max-w-md mx-auto flex items-center justify-around">
           {adminNavItems.map((item) => {
             const Icon = item.icon
@@ -225,7 +225,7 @@ export const BottomNav: React.FC = () => {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border-t border-neutral-200/80 dark:border-neutral-800/80 px-4 py-1.5 shadow-2xl safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border-t border-neutral-200/80 dark:border-neutral-800/80 px-4 pt-2 pb-2 shadow-2xl safe-area-bottom">
       <div className="max-w-md mx-auto flex items-center justify-around">
         {customerNavItems.map((item) => {
           const Icon = item.icon

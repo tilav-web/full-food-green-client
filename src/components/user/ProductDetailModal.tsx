@@ -229,7 +229,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
 
           {/* Sticky Bottom Actions */}
-          <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-between gap-4">
+          <div className="p-4 safe-area-bottom border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-between gap-4">
             <div>
               {hasDiscount && oldTotal && (
                 <span className="line-through text-neutral-400 text-xs block leading-none mb-0.5">
