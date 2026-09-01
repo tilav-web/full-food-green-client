@@ -17,6 +17,7 @@ import {
   UtensilsCrossed,
   ExternalLink,
   FileText,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -239,10 +240,14 @@ export const CashierView: React.FC = () => {
   useEffect(() => {
     socket.emit("join_cashier")
 
-    const handleNewOrder = (_order: Order) => {
+    const handleNewOrder = (order: Order) => {
+      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+      // Kassir o'zi zal uchun yaratgan buyurtmalar uchun tovush chalinmasin!
+      if (order?.type === "DINE_IN") {
+        return
+      }
       triggerHaptic("heavy")
       playNotificationChime()
-      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
     }
 
     const handleOrderUpdated = (order: Order) => {
@@ -440,6 +445,8 @@ export const CashierView: React.FC = () => {
   // Filtered orders list
   const filteredOrders = useMemo(() => {
     if (orderFilter === "ALL") return orders
+    if (orderFilter === "BOT") return orders.filter((o) => o.type !== "DINE_IN")
+    if (orderFilter === "ZAL") return orders.filter((o) => o.type === "DINE_IN")
     if (orderFilter === "REVIEW") return orders.filter((o) => o.status === "PAYMENT_REVIEW")
     if (orderFilter === "PREPARING") return orders.filter((o) => o.status === "PREPARING")
     if (orderFilter === "DELIVERING") return orders.filter((o) => o.status === "DELIVERING")
@@ -544,6 +551,8 @@ export const CashierView: React.FC = () => {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {[
               { id: "ALL", label: "Barchasi", count: orders.length },
+              { id: "BOT", label: "📱 Telegram / Onlayn", count: orders.filter((o) => o.type !== "DINE_IN").length },
+              { id: "ZAL", label: "🍽️ Zal (Kassa)", count: orders.filter((o) => o.type === "DINE_IN").length },
               { id: "REVIEW", label: "Chek tekshirish", count: pendingReviewOrders.length, alert: true },
               { id: "PREPARING", label: "Oshxonada", count: orders.filter((o) => o.status === "PREPARING").length },
               { id: "DELIVERING", label: "Yetkazilmoqda", count: orders.filter((o) => o.status === "DELIVERING").length },
@@ -594,198 +603,282 @@ export const CashierView: React.FC = () => {
                         : "border-neutral-200 dark:border-neutral-800"
                     }`}
                   >
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <Badge className="bg-emerald-600 text-white font-bold text-xs">
-                            #{order.orderNumber}
-                          </Badge>
-                          {STATUS_CONFIG[order.status] && (
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_CONFIG[order.status].bg} ${STATUS_CONFIG[order.status].text} ${STATUS_CONFIG[order.status].border}`}
-                            >
-                              {STATUS_CONFIG[order.status].label}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-neutral-400 font-bold">
-                          {new Date(order.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
+                    {(() => {
+                      const isDineIn = order.type === "DINE_IN"
+                      const isPickup = order.type === "ONLINE_PICKUP"
 
-                      <div>
-                        <h4 className="font-black text-sm text-neutral-900 dark:text-white">
-                          {order.customerName}
-                        </h4>
-                        <p className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                          {order.customerPhone}
-                        </p>
-                        {order.address && (
-                          <p className="text-[11px] text-neutral-500 truncate mt-0.5">
-                            📍 {order.address}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Items with visual Food Images */}
-                      <div className="py-2 border-t border-neutral-100 dark:border-neutral-800 space-y-2">
-                        {order.items?.map((it, idx) => {
-                          const dishImage = getDishImage(it.productId)
-
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2.5 p-1.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60"
-                            >
-                              <div className="h-10 w-10 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
-                                <img
-                                  src={dishImage}
-                                  alt={it.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-bold text-xs text-neutral-900 dark:text-white truncate">
-                                  {it.quantity}x {it.name}
-                                </p>
-                                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-black">
-                                  {(it.unitPrice * it.quantity).toLocaleString()} so'm
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Container Packaging Breakdown if present */}
-                      {order.containersJson && (() => {
-                        try {
-                          const containers = typeof order.containersJson === "string"
-                            ? JSON.parse(order.containersJson)
-                            : order.containersJson
-
-                          if (Array.isArray(containers) && containers.length > 0) {
-                            return (
-                              <div className="p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[11px] font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-                                    👥 Kishilar bo'yicha taqsimot ({containers.length} to'plam)
+                      return (
+                        <>
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Badge className="bg-emerald-600 text-white font-bold text-xs">
+                                  #{order.orderNumber}
+                                </Badge>
+                                {isDineIn ? (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
+                                    🍽️ ZAL (KASSA)
                                   </span>
-                                  <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">
-                                    Alohida paketlash
-                                  </Badge>
-                                </div>
+                                ) : isPickup ? (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-700 flex items-center gap-1">
+                                    🚶 OLIB KETISH
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+                                    📱 TELEGRAM YETKAZISH
+                                  </span>
+                                )}
+                                {STATUS_CONFIG[order.status] && (
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_CONFIG[order.status].bg} ${STATUS_CONFIG[order.status].text} ${STATUS_CONFIG[order.status].border}`}
+                                  >
+                                    {STATUS_CONFIG[order.status].label}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-neutral-400 font-bold">
+                                {new Date(order.createdAt).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
 
-                                <div className="space-y-2 divide-y divide-emerald-200/50 dark:divide-emerald-900/50">
-                                  {containers.map((c: any, cIdx: number) => (
-                                    <div key={cIdx} className="pt-1.5 first:pt-0 space-y-1">
+                            <div>
+                              <h4 className="font-black text-sm text-neutral-900 dark:text-white">
+                                {isDineIn ? (order.customerName || "Zal mijozi") : order.customerName}
+                              </h4>
+                              {!isDineIn && order.customerPhone && order.customerPhone !== "+998 00 000 00 00" && (
+                                <p className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                                  {order.customerPhone}
+                                </p>
+                              )}
+                              {!isDineIn && order.address && (
+                                <p className="text-[11px] text-neutral-500 truncate mt-0.5">
+                                  📍 {order.address}
+                                </p>
+                              )}
+                              {order.notes && (
+                                <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5 bg-amber-50 dark:bg-amber-950/40 p-1.5 rounded-xl border border-amber-200/50">
+                                  💬 {order.notes}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Items with visual Food Images */}
+                            <div className="py-2 border-t border-neutral-100 dark:border-neutral-800 space-y-2">
+                              {order.items?.map((it, idx) => {
+                                const dishImage = getDishImage(it.productId)
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-2.5 p-1.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60"
+                                  >
+                                    <div className="h-10 w-10 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
+                                      <img
+                                        src={dishImage}
+                                        alt={it.name}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-bold text-xs text-neutral-900 dark:text-white truncate">
+                                        {it.quantity}x {it.name}
+                                      </p>
+                                      <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-black">
+                                        {(it.unitPrice * it.quantity).toLocaleString()} so'm
+                                      </span>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+
+                            {/* Container Packaging Breakdown if present */}
+                            {!isDineIn && order.containersJson && (() => {
+                              try {
+                                const containers = typeof order.containersJson === "string"
+                                  ? JSON.parse(order.containersJson)
+                                  : order.containersJson
+
+                                if (Array.isArray(containers) && containers.length > 0) {
+                                  return (
+                                    <div className="p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 space-y-2">
                                       <div className="flex items-center justify-between">
-                                        <span className="text-[11px] font-black text-emerald-950 dark:text-emerald-100">
-                                          👤 {c.name || `${cIdx + 1}-Kishi to'plami`}
+                                        <span className="text-[11px] font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                                          👥 Kishilar bo'yicha taqsimot ({containers.length} to'plam)
                                         </span>
-                                        {c.label && (
-                                          <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold bg-white dark:bg-neutral-900 px-1.5 py-0.5 rounded-md border border-emerald-200/50 dark:border-emerald-800">
-                                            {c.label}
-                                          </span>
-                                        )}
+                                        <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">
+                                          Alohida paketlash
+                                        </Badge>
                                       </div>
 
-                                      <div className="pl-2 space-y-0.5">
-                                        {c.items && c.items.length > 0 ? (
-                                          c.items.map((cItem: any, iIdx: number) => (
-                                            <div
-                                              key={iIdx}
-                                              className="flex items-center justify-between text-[11px] text-neutral-700 dark:text-neutral-300 font-medium"
-                                            >
-                                              <span>▫️ {cItem.name}</span>
-                                              <span className="font-bold text-emerald-800 dark:text-emerald-300">
-                                                {cItem.quantity} {cItem.unitName || "pors"}
+                                      <div className="space-y-2 divide-y divide-emerald-200/50 dark:divide-emerald-900/50">
+                                        {containers.map((c: any, cIdx: number) => (
+                                          <div key={cIdx} className="pt-1.5 first:pt-0 space-y-1">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[11px] font-black text-emerald-950 dark:text-emerald-100">
+                                                👤 {c.name || `${cIdx + 1}-Kishi to'plami`}
                                               </span>
+                                              {c.label && (
+                                                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold bg-white dark:bg-neutral-900 px-1.5 py-0.5 rounded-md border border-emerald-200/50 dark:border-emerald-800">
+                                                  {c.label}
+                                                </span>
+                                              )}
                                             </div>
-                                          ))
-                                        ) : (
-                                          <span className="text-[10px] text-neutral-400 italic">
-                                            Bo'sh to'plam
-                                          </span>
-                                        )}
+
+                                            <div className="pl-2 space-y-0.5">
+                                              {c.items && c.items.length > 0 ? (
+                                                c.items.map((cItem: any, iIdx: number) => (
+                                                  <div
+                                                    key={iIdx}
+                                                    className="flex items-center justify-between text-[11px] text-neutral-700 dark:text-neutral-300 font-medium"
+                                                  >
+                                                    <span>▫️ {cItem.name}</span>
+                                                    <span className="font-bold text-emerald-800 dark:text-emerald-300">
+                                                      {cItem.quantity} {cItem.unitName || "pors"}
+                                                    </span>
+                                                  </div>
+                                                ))
+                                              ) : (
+                                                <span className="text-[10px] text-neutral-400 italic">
+                                                  Bo'sh to'plam
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
                                       </div>
                                     </div>
-                                  ))}
-                                </div>
+                                  )
+                                }
+                              } catch (e) {
+                                return null
+                              }
+                              return null
+                            })()}
+                          </div>
+
+                          <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-neutral-500 font-bold">Jami summa:</span>
+                              <strong className="text-sm font-black text-neutral-900 dark:text-white">
+                                {Number(order.totalAmount || 0).toLocaleString()} so'm
+                              </strong>
+                            </div>
+
+                            {/* Underlined Receipt Link (Visible in all statuses if receipt was uploaded) */}
+                            {order.receiptImageUrl && (
+                              <div className="flex items-center justify-between py-1 px-0.5 text-xs bg-neutral-50 dark:bg-neutral-800/40 rounded-xl px-2">
+                                <span className="text-[11px] text-neutral-400 font-medium">To'lov hujjati:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = new URLSearchParams(searchParams)
+                                    next.set("receipt", order.id)
+                                    setSearchParams(next)
+                                  }}
+                                  className="inline-flex items-center gap-1 font-bold text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 underline underline-offset-4 decoration-emerald-500/70 hover:decoration-emerald-700 transition-all cursor-pointer"
+                                >
+                                  <Receipt className="h-3.5 w-3.5" />
+                                  <span>To'lov chekini ko'rish</span>
+                                </button>
                               </div>
-                            )
-                          }
-                        } catch (e) {
-                          return null
-                        }
-                        return null
-                      })()}
-                    </div>
+                            )}
 
-                    <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-neutral-500 font-bold">Jami summa:</span>
-                        <strong className="text-sm font-black text-neutral-900 dark:text-white">
-                          {Number(order.totalAmount || 0).toLocaleString()} so'm
-                        </strong>
-                      </div>
-
-                      {/* Action buttons */}
-                      {isPendingReview ? (
-                        <Button
-                          onClick={() => {
-                            const next = new URLSearchParams(searchParams)
-                            next.set("receipt", order.id)
-                            setSearchParams(next)
-                          }}
-                          className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black py-2.5 flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-98"
-                        >
-                          <Eye className="h-4 w-4" /> Chekni Tekshirish
-                        </Button>
-                      ) : order.status === "PREPARING" ? (
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => {
-                              const next = new URLSearchParams(searchParams)
-                              next.set("yandex", order.id)
-                              setSearchParams(next)
-                            }}
-                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs font-bold py-2.5 flex items-center justify-center gap-1"
-                          >
-                            <Car className="h-3.5 w-3.5" /> Yandex Chaqirish
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              updateStatusMutation.mutate({
-                                orderId: order.id,
-                                status: "COMPLETED",
-                              })
-                            }
-                            className="rounded-2xl text-xs font-bold"
-                          >
-                            Yakunlash
-                          </Button>
-                        </div>
-                      ) : order.status === "DELIVERING" ? (
-                        <Button
-                          onClick={() =>
-                            updateStatusMutation.mutate({
-                              orderId: order.id,
-                              status: "COMPLETED",
-                            })
-                          }
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold py-2.5"
-                        >
-                          Yetkazildi deb belgilash
-                        </Button>
-                      ) : (
-                        renderStatusBadge(order.status)
-                      )}
-                    </div>
+                            {/* Action buttons */}
+                            {isDineIn ? (
+                              order.status === "PREPARING" ? (
+                                <Button
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      orderId: order.id,
+                                      status: "COMPLETED",
+                                    })
+                                  }
+                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black py-2.5 flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98"
+                                >
+                                  <Check className="h-4 w-4" />
+                                  <span>Mijozga berildi (Yakunlash)</span>
+                                </Button>
+                              ) : order.status === "COMPLETED" ? (
+                                <div className="w-full text-center py-2 px-3 rounded-2xl border text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
+                                  ✅ Yakunlangan (Zalda iste'mol)
+                                </div>
+                              ) : (
+                                renderStatusBadge(order.status)
+                              )
+                            ) : isPendingReview ? (
+                              <Button
+                                onClick={() => {
+                                  const next = new URLSearchParams(searchParams)
+                                  next.set("receipt", order.id)
+                                  setSearchParams(next)
+                                }}
+                                className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black py-2.5 flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-98"
+                              >
+                                <Eye className="h-4 w-4" /> Chekni Tekshirish
+                              </Button>
+                            ) : order.status === "PREPARING" ? (
+                              isPickup ? (
+                                <Button
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      orderId: order.id,
+                                      status: "COMPLETED",
+                                    })
+                                  }
+                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black py-2.5 flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98"
+                                >
+                                  <Check className="h-4 w-4" />
+                                  <span>Mijoz olib ketdi (Yakunlash)</span>
+                                </Button>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <Button
+                                    onClick={() => {
+                                      const next = new URLSearchParams(searchParams)
+                                      next.set("yandex", order.id)
+                                      setSearchParams(next)
+                                    }}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs font-bold py-2.5 flex items-center justify-center gap-1 shadow-sm"
+                                  >
+                                    <Car className="h-3.5 w-3.5" /> Yandex Chaqirish
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                      updateStatusMutation.mutate({
+                                        orderId: order.id,
+                                        status: "COMPLETED",
+                                      })
+                                    }
+                                    className="rounded-2xl text-xs font-bold"
+                                  >
+                                    Yakunlash
+                                  </Button>
+                                </div>
+                              )
+                            ) : order.status === "DELIVERING" ? (
+                              <Button
+                                onClick={() =>
+                                  updateStatusMutation.mutate({
+                                    orderId: order.id,
+                                    status: "COMPLETED",
+                                  })
+                                }
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold py-2.5 shadow-md"
+                              >
+                                Yetkazildi deb belgilash
+                              </Button>
+                            ) : (
+                              renderStatusBadge(order.status)
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 )
               })
