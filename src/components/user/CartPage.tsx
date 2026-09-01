@@ -33,6 +33,7 @@ import { apiClient } from "@/api/axios"
 import { LocationPickerModal } from "./LocationPickerModal"
 import { getImageUrl } from "@/lib/utils"
 import type { OrderContainer } from "@/types"
+import { useQuery } from "@tanstack/react-query"
 
 interface CartPageProps {
   onGoToMenu: () => void
@@ -238,9 +239,21 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [copiedCard, setCopiedCard] = useState(false)
+  const { data: settings } = useQuery<Record<string, string> | any[]>({
+    queryKey: ["publicSettings"],
+    queryFn: async () => (await apiClient.get("/settings")).data,
+  })
 
-  const cardNumber = "8600 4912 3456 7890"
-  const cardHolder = "FULL FOOD MCHJ (Kapitalbank)"
+  const getSetting = (key: string, fallback: string) => {
+    if (!settings) return fallback
+    if (Array.isArray(settings)) {
+      return settings.find((s: any) => s.key === key)?.value || fallback
+    }
+    return (settings as Record<string, string>)[key] || fallback
+  }
+
+  const cardNumber = getSetting("card_number", "9860 1001 2517 4530")
+  const cardHolder = getSetting("card_holder", "SHAHRIZOD XALIMOV")
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const totalAmount = subtotal + (orderType === "ONLINE_DELIVERY" ? deliveryFee : 0)
@@ -490,7 +503,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                           src={getImageUrl(item.imageUrl)}
                           alt={item.name}
                           onError={(e) => {
-                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                            ; (e.currentTarget as HTMLImageElement).src = "/logo.jpg"
                           }}
                           className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
                         />
@@ -599,7 +612,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                                 src={getImageUrl(item.imageUrl)}
                                 alt={item.name}
                                 onError={(e) => {
-                                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                                  ; (e.currentTarget as HTMLImageElement).src = "/logo.jpg"
                                 }}
                                 className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
                               />
@@ -642,15 +655,15 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   {/* If all items are packed into containers */}
                   {cart.filter((item) => getUnallocatedCount(item.id, item.quantity) > 0).length ===
                     0 && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-200"
-                    >
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
-                      <span>{t.allDishesPacked}</span>
-                    </motion.div>
-                  )}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-200"
+                      >
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                        <span>{t.allDishesPacked}</span>
+                      </motion.div>
+                    )}
                 </div>
               )}
 
@@ -711,21 +724,19 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9, height: 0 }}
                           onClick={() => handleSelectContainer(container.id)}
-                          className={`p-3.5 rounded-2xl transition-all cursor-pointer space-y-2.5 ${
-                            isActive
-                              ? "border-2 border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-sm"
-                              : "border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-xs"
-                          }`}
+                          className={`p-3.5 rounded-2xl transition-all cursor-pointer space-y-2.5 ${isActive
+                            ? "border-2 border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-sm"
+                            : "border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-xs"
+                            }`}
                         >
                           {/* Container Card Header: Clean Icon & Index only */}
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                               <div
-                                className={`h-7 w-7 rounded-xl flex items-center justify-center text-xs font-black shadow-2xs ${
-                                  isActive
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
-                                }`}
+                                className={`h-7 w-7 rounded-xl flex items-center justify-center text-xs font-black shadow-2xs ${isActive
+                                  ? "bg-emerald-600 text-white"
+                                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
+                                  }`}
                               >
                                 📦
                               </div>
@@ -774,7 +785,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                                           src={getImageUrl(it.imageUrl)}
                                           alt={it.name}
                                           onError={(e) => {
-                                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                                            ; (e.currentTarget as HTMLImageElement).src = "/logo.jpg"
                                           }}
                                           className="h-5 w-5 rounded-md object-cover"
                                         />
@@ -901,22 +912,20 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setOrderType("ONLINE_DELIVERY")}
-                    className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
-                      orderType === "ONLINE_DELIVERY"
-                        ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
-                        : "border-neutral-200 dark:border-neutral-800 text-neutral-600"
-                    }`}
+                    className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${orderType === "ONLINE_DELIVERY"
+                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
+                      : "border-neutral-200 dark:border-neutral-800 text-neutral-600"
+                      }`}
                   >
                     <Car className="h-4 w-4 text-emerald-600" />
                     {t.deliveryYandex}
                   </button>
                   <button
                     onClick={() => setOrderType("ONLINE_PICKUP")}
-                    className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
-                      orderType === "ONLINE_PICKUP"
-                        ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
-                        : "border-neutral-200 dark:border-neutral-800 text-neutral-600"
-                    }`}
+                    className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${orderType === "ONLINE_PICKUP"
+                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
+                      : "border-neutral-200 dark:border-neutral-800 text-neutral-600"
+                      }`}
                   >
                     <MapPin className="h-4 w-4 text-emerald-600" />
                     {t.pickup}
@@ -952,18 +961,16 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                                 key={loc.id}
                                 type="button"
                                 onClick={() => handleSelectQuickSavedLocation(loc)}
-                                className={`p-2.5 rounded-2xl border text-left flex items-start gap-2 transition-all ${
-                                  isSelected
-                                    ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 shadow-xs"
-                                    : "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/60"
-                                }`}
+                                className={`p-2.5 rounded-2xl border text-left flex items-start gap-2 transition-all ${isSelected
+                                  ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 shadow-xs"
+                                  : "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/60"
+                                  }`}
                               >
                                 <div
-                                  className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                    isSelected
-                                      ? "bg-emerald-600 text-white"
-                                      : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
-                                  }`}
+                                  className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 ${isSelected
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
+                                    }`}
                                 >
                                   {loc.label === "Uy" ? (
                                     <Home className="h-3.5 w-3.5" />
@@ -975,11 +982,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <span
-                                    className={`font-black text-xs block ${
-                                      isSelected
-                                        ? "text-emerald-800 dark:text-emerald-300"
-                                        : "text-neutral-900 dark:text-white"
-                                    }`}
+                                    className={`font-black text-xs block ${isSelected
+                                      ? "text-emerald-800 dark:text-emerald-300"
+                                      : "text-neutral-900 dark:text-white"
+                                      }`}
                                   >
                                     {loc.label}
                                   </span>

@@ -32,7 +32,7 @@ export const OrderTracker: React.FC = () => {
   const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null)
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null)
 
-  const { data: orders = [], isLoading, refetch, isFetching } = useQuery<Order[]>({
+  const { data: rawOrders, isLoading, refetch, isFetching } = useQuery<Order[]>({
     queryKey: ["userOrders"],
     queryFn: async () => {
       const res = await apiClient.get("/orders")
@@ -41,18 +41,25 @@ export const OrderTracker: React.FC = () => {
     refetchInterval: 15000,
   })
 
+  const orders = Array.isArray(rawOrders) ? rawOrders : []
+
   // Fetch restaurant bank card settings for easy transfer
-  const { data: settings = [] } = useQuery({
+  const { data: settings } = useQuery<Record<string, string> | any[]>({
     queryKey: ["publicSettings"],
     queryFn: async () => (await apiClient.get("/settings")).data,
   })
 
-  const cardNumber =
-    settings.find((s: any) => s.key === "card_number")?.value || "8600 1234 5678 9012"
-  const cardHolder =
-    settings.find((s: any) => s.key === "card_holder")?.value || "FULL FOOD MCHJ"
-  const cardBank =
-    settings.find((s: any) => s.key === "card_bank")?.value || "Kapitalbank"
+  const getSetting = (key: string, fallback: string) => {
+    if (!settings) return fallback
+    if (Array.isArray(settings)) {
+      return settings.find((s: any) => s.key === key)?.value || fallback
+    }
+    return (settings as Record<string, string>)[key] || fallback
+  }
+
+  const cardNumber = getSetting("card_number", "9860 1001 2517 4530")
+  const cardHolder = getSetting("card_holder", "SHAHRIZOD XALIMOV")
+  const cardBank = getSetting("card_bank", "HUMO")
 
   // Real-time WebSocket connection for live order progress
   useEffect(() => {

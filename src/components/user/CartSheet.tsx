@@ -21,6 +21,7 @@ import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
 import { LocationPickerModal } from "./LocationPickerModal"
+import { useQuery } from "@tanstack/react-query"
 
 interface CartSheetProps {
   isOpen: boolean
@@ -54,8 +55,21 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
   const [isUploading, setIsUploading] = useState(false)
   const [copiedCard, setCopiedCard] = useState(false)
 
-  const cardNumber = "8600 4912 3456 7890"
-  const cardHolder = "FULL FOOD MCHJ (Kapitalbank)"
+  const { data: settings } = useQuery<Record<string, string> | any[]>({
+    queryKey: ["publicSettings"],
+    queryFn: async () => (await apiClient.get("/settings")).data,
+  })
+
+  const getSetting = (key: string, fallback: string) => {
+    if (!settings) return fallback
+    if (Array.isArray(settings)) {
+      return settings.find((s: any) => s.key === key)?.value || fallback
+    }
+    return (settings as Record<string, string>)[key] || fallback
+  }
+
+  const cardNumber = getSetting("card_number", "9860 1001 2517 4530")
+  const cardHolder = getSetting("card_holder", "SHAHRIZOD XALIMOV")
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const totalAmount = subtotal + (orderType === "ONLINE_DELIVERY" ? deliveryFee : 0)
@@ -285,22 +299,20 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setOrderType("ONLINE_DELIVERY")}
-                      className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
-                        orderType === "ONLINE_DELIVERY"
+                      className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${orderType === "ONLINE_DELIVERY"
                           ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
                           : "border-neutral-200 dark:border-neutral-800 text-neutral-600"
-                      }`}
+                        }`}
                     >
                       <Car className="h-4 w-4 text-emerald-600" />
                       {t.deliveryYandex}
                     </button>
                     <button
                       onClick={() => setOrderType("ONLINE_PICKUP")}
-                      className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
-                        orderType === "ONLINE_PICKUP"
+                      className={`py-2.5 px-3 rounded-2xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${orderType === "ONLINE_PICKUP"
                           ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
                           : "border-neutral-200 dark:border-neutral-800 text-neutral-600"
-                      }`}
+                        }`}
                     >
                       <MapPin className="h-4 w-4 text-emerald-600" />
                       {t.pickup}
