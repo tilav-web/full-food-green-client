@@ -196,6 +196,8 @@ export const useAppStore = create<AppState>()(
           theme: state.theme,
           lang: state.lang,
           savedLocations: state.savedLocations,
+          cart: state.cart,
+          currentActiveOrder: state.currentActiveOrder,
         }),
       }
     )
