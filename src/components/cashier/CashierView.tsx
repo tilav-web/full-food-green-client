@@ -15,6 +15,8 @@ import {
   Search,
   Layers,
   UtensilsCrossed,
+  ExternalLink,
+  FileText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1178,63 +1180,135 @@ export const CashierView: React.FC = () => {
       )}
 
       {/* RECEIPT REVIEW MODAL */}
-      {selectedReceiptOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 max-w-md w-full space-y-4 border border-neutral-200 dark:border-neutral-800 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-base">To'lov Cheki #{selectedReceiptOrder.orderNumber}</h3>
-              <button
-                onClick={() => {
-                  const next = new URLSearchParams(searchParams)
-                  next.delete("receipt")
-                  setSearchParams(next)
-                }}
-                className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      {selectedReceiptOrder && (() => {
+        const rawUrl = selectedReceiptOrder.receiptImageUrl || ""
+        const receiptFullUrl = rawUrl ? getImageUrl(rawUrl) : ""
+        const isPdf = rawUrl.toLowerCase().endsWith(".pdf") || rawUrl.toLowerCase().includes(".pdf")
 
-            <div className="relative h-64 w-full bg-neutral-100 dark:bg-neutral-800 rounded-2xl overflow-hidden flex items-center justify-center">
-              {selectedReceiptOrder.receiptImageUrl ? (
-                <img
-                  src={selectedReceiptOrder.receiptImageUrl}
-                  alt="Chek"
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <p className="text-xs text-neutral-400">Chek rasmi topilmadi</p>
-              )}
-            </div>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4">
+            <div className="bg-white dark:bg-neutral-900 rounded-3xl p-5 sm:p-6 max-w-lg w-full space-y-4 border border-neutral-200 dark:border-neutral-800 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-black text-base text-neutral-900 dark:text-white">
+                      To'lov Cheki #{selectedReceiptOrder.orderNumber}
+                    </h3>
+                    <Badge className="bg-amber-500 text-white font-bold text-[10px]">
+                      Kutmoqda
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                    {selectedReceiptOrder.customerName} • {selectedReceiptOrder.customerPhone} •{" "}
+                    <b className="text-emerald-600 dark:text-emerald-400">
+                      {(selectedReceiptOrder.totalAmount || 0).toLocaleString()} so'm
+                    </b>
+                  </p>
+                </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() =>
-                  reviewReceiptMutation.mutate({
-                    orderId: selectedReceiptOrder.id,
-                    approved: false,
-                  })
-                }
-                className="w-1/2 rounded-2xl text-xs font-bold text-red-600 border-red-200 hover:bg-red-50"
-              >
-                Rad etish
-              </Button>
-              <Button
-                onClick={() =>
-                  reviewReceiptMutation.mutate({
-                    orderId: selectedReceiptOrder.id,
-                    approved: true,
-                  })
-                }
-                className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-md"
-              >
-                Tasdiqlash
-              </Button>
+                <button
+                  onClick={() => {
+                    const next = new URLSearchParams(searchParams)
+                    next.delete("receipt")
+                    setSearchParams(next)
+                  }}
+                  className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Receipt Content Box */}
+              <div className="space-y-2">
+                {!receiptFullUrl ? (
+                  <div className="h-56 w-full bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center text-neutral-400 text-xs">
+                    Chek fayli topilmadi
+                  </div>
+                ) : isPdf ? (
+                  /* PDF File View */
+                  <div className="p-6 bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl border border-neutral-200 dark:border-neutral-700/80 text-center space-y-3">
+                    <div className="h-16 w-16 mx-auto rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 flex items-center justify-center shadow-inner">
+                      <FileText className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-neutral-900 dark:text-white">
+                        PDF Formatidagi Chek
+                      </p>
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        Mijoz to'lov chekini PDF hujjat shaklida yuklagan
+                      </p>
+                    </div>
+                    <a
+                      href={receiptFullUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition-all active:scale-98"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>PDF Chekni Yangi Oynada Ochish</span>
+                    </a>
+                  </div>
+                ) : (
+                  /* Image View */
+                  <div className="space-y-2">
+                    <div className="relative max-h-80 min-h-56 w-full bg-neutral-100 dark:bg-neutral-800 rounded-2xl overflow-hidden flex items-center justify-center border border-neutral-200 dark:border-neutral-700 group">
+                      <img
+                        src={receiptFullUrl}
+                        alt={`Chek #${selectedReceiptOrder.orderNumber}`}
+                        className="max-h-80 w-full object-contain cursor-pointer hover:scale-[1.01] transition-transform"
+                        onClick={() => window.open(receiptFullUrl, "_blank", "noopener,noreferrer")}
+                        onError={(e) => {
+                          console.error("Failed to load image from:", receiptFullUrl, e)
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-neutral-400 px-1">
+                      <span>Kattalashtirish uchun rasm ustiga bosing</span>
+                      <a
+                        href={receiptFullUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        <span>Alohida oynada ochish</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    reviewReceiptMutation.mutate({
+                      orderId: selectedReceiptOrder.id,
+                      approved: false,
+                    })
+                  }
+                  className="w-1/2 rounded-2xl text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 h-10"
+                >
+                  Rad etish
+                </Button>
+                <Button
+                  onClick={() =>
+                    reviewReceiptMutation.mutate({
+                      orderId: selectedReceiptOrder.id,
+                      approved: true,
+                    })
+                  }
+                  className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-md h-10"
+                >
+                  Tasdiqlash
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* YANDEX CONFIRM MODAL */}
       {yandexConfirmOrder && (
