@@ -207,12 +207,12 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   // Customer & Location state
   const defaultSaved = savedLocations[0]
   const [deliveryAddress, setDeliveryAddress] = useState(
-    defaultSaved ? defaultSaved.address : "Toshkent sh., Yunusobod 4-mavze, 12-uy"
+    defaultSaved ? defaultSaved.address : "Qarshi sh., Mustaqillik shoh ko'chasi"
   )
-  const [distanceKm, setDistanceKm] = useState(defaultSaved ? defaultSaved.distanceKm : 3.5)
+  const [distanceKm, setDistanceKm] = useState(defaultSaved ? defaultSaved.distanceKm : 1.5)
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
-    lat: defaultSaved ? defaultSaved.lat : 41.3645,
-    lng: defaultSaved ? defaultSaved.lng : 69.2882,
+    lat: defaultSaved ? defaultSaved.lat : 38.83825,
+    lng: defaultSaved ? defaultSaved.lng : 65.792222,
   })
 
   const calculateFee = (km: number) => {

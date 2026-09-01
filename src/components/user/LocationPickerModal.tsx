@@ -31,7 +31,7 @@ interface LocationPickerModalProps {
 }
 
 const YANDEX_API_KEY = "0faa0d3b-2049-4fbc-b77e-437de12c50a3"
-const RESTAURANT_COORDS = [41.311158, 69.279737] // Tashkent Center
+const RESTAURANT_COORDS = [38.83825, 65.792222] // Full Food Restaurant Location (38°50'17.7"N 65°47'32.0"E)
 
 export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   isOpen,
@@ -59,8 +59,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
   // Coords & Address
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
-    lat: currentLat || 41.311158,
-    lng: currentLng || 69.279737,
+    lat: currentLat || RESTAURANT_COORDS[0],
+    lng: currentLng || RESTAURANT_COORDS[1],
   })
   const [address, setAddress] = useState(currentAddress || "")
   const [distanceKm, setDistanceKm] = useState(currentDistance || 3.0)
