@@ -22,9 +22,12 @@ import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/i18n/useTranslation"
 import { useTelegram } from "@/hooks/useTelegram"
 import { getImageUrl } from "@/lib/utils"
+import { useAppStore } from "@/store/useAppStore"
+import { Link } from "react-router-dom"
 import type { Order } from "@/types"
 
 export const OrderTracker: React.FC = () => {
+  const { user, currentActiveOrder } = useAppStore()
   const { t } = useTranslation()
   const { triggerHaptic } = useTelegram()
   const queryClient = useQueryClient()
@@ -33,10 +36,28 @@ export const OrderTracker: React.FC = () => {
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null)
 
   const { data: rawOrders, isLoading, refetch, isFetching } = useQuery<Order[]>({
-    queryKey: ["userOrders"],
+    queryKey: ["userOrders", user?.id, user?.phone, currentActiveOrder?.id],
     queryFn: async () => {
-      const res = await apiClient.get("/orders")
-      return res.data
+      // 1. If user is logged in, fetch only this user's orders
+      if (user?.id || user?.phone) {
+        const res = await apiClient.get("/orders", {
+          params: { userId: user?.id, phone: user?.phone },
+        })
+        return res.data
+      }
+
+      // 2. If guest placed an active order in this browser session, track only that specific order
+      if (currentActiveOrder?.id) {
+        try {
+          const res = await apiClient.get(`/orders/${currentActiveOrder.id}`)
+          return res.data ? [res.data] : []
+        } catch {
+          return []
+        }
+      }
+
+      // 3. Unauthenticated guest with no active orders in this session: return empty list
+      return []
     },
     refetchInterval: 15000,
   })
@@ -160,12 +181,30 @@ export const OrderTracker: React.FC = () => {
       {isLoading ? (
         <div className="py-20 text-center text-neutral-400">...</div>
       ) : orders.length === 0 ? (
-        <div className="py-20 text-center text-neutral-400 space-y-2 border-2 border-dashed rounded-3xl p-6">
+        <div className="py-16 text-center text-neutral-400 space-y-3 border-2 border-dashed rounded-3xl p-6 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
           <Clock className="h-12 w-12 mx-auto opacity-30 text-emerald-600" />
           <p className="font-bold text-base text-neutral-700 dark:text-neutral-300">
-            {t.noOrders}
+            {t.noOrders || "Hozircha hech qanday buyurtma yo'q"}
           </p>
-          <p className="text-xs">{t.emptyCartDesc}</p>
+          <p className="text-xs max-w-xs mx-auto text-neutral-400">
+            {!user
+              ? "Buyurtmalaringizni kuzatish uchun profilingizga kiring yoki yangi taom buyurtma qiling."
+              : "Siz hali buyurtma bermagansiz. Mazali va sog'lom taomlarni ko'rish uchun menyuga o'ting."}
+          </p>
+          <div className="pt-2 flex items-center justify-center gap-2">
+            <Link to="/">
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold">
+                Menyuni ko'rish
+              </Button>
+            </Link>
+            {!user && (
+              <Link to="/profile">
+                <Button size="sm" variant="outline" className="rounded-xl text-xs font-bold">
+                  Profilga kirish
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">

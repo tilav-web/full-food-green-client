@@ -55,24 +55,7 @@ export const useAppStore = create<AppState>()(
         lang: "uz",
         cart: [],
         currentActiveOrder: null,
-        savedLocations: [
-          {
-            id: "loc_home",
-            label: "Uy",
-            address: "Qarshi sh., Mustaqillik shoh ko'chasi 24",
-            lat: 38.8415,
-            lng: 65.7985,
-            distanceKm: 1.2,
-          },
-          {
-            id: "loc_work",
-            label: "Ishxona",
-            address: "Qarshi sh., Islom Karimov ko'chasi 8",
-            lat: 38.8350,
-            lng: 65.7890,
-            distanceKm: 0.8,
-          },
-        ],
+        savedLocations: [],
 
         setUser: (user) => set({ user }),
 
@@ -199,6 +182,13 @@ export const useAppStore = create<AppState>()(
           cart: state.cart,
           currentActiveOrder: state.currentActiveOrder,
         }),
+        onRehydrateStorage: () => (state) => {
+          if (state && Array.isArray(state.savedLocations)) {
+            state.savedLocations = state.savedLocations.filter(
+              (l) => l.id !== "loc_home" && l.id !== "loc_work"
+            )
+          }
+        },
       }
     )
   )

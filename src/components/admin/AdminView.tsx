@@ -40,6 +40,8 @@ import {
   EyeOff,
   Percent,
   Tag,
+  KeyRound,
+  UserPlus,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -141,6 +143,20 @@ export const AdminView: React.FC = () => {
     queryKey: ["adminStaff"],
     queryFn: async () => (await apiClient.get("/users/staff")).data,
   })
+
+  // Staff & Admin Credentials Management State
+  const [showAddStaff, setShowAddStaff] = useState(false)
+  const [staffFullName, setStaffFullName] = useState("")
+  const [staffUsername, setStaffUsername] = useState("")
+  const [staffPhone, setStaffPhone] = useState("")
+  const [staffPassword, setStaffPassword] = useState("")
+
+  const [editingStaff, setEditingStaff] = useState<any | null>(null)
+  const [editStaffFullName, setEditStaffFullName] = useState("")
+  const [editStaffUsername, setEditStaffUsername] = useState("")
+  const [editStaffPhone, setEditStaffPhone] = useState("")
+  const [editStaffPassword, setEditStaffPassword] = useState("")
+  const [isUpdatingStaff, setIsUpdatingStaff] = useState(false)
 
   // Users Page Pagination, Search & Role Filter State
   const [userPage, setUserPage] = useState(1)
@@ -358,11 +374,6 @@ export const AdminView: React.FC = () => {
   const [unitModalName, setUnitModalName] = useState("")
   const [unitModalShort, setUnitModalShort] = useState("")
 
-  // Cashier creation state
-  const [showAddStaff, setShowAddStaff] = useState(false)
-  const [staffUsername, setStaffUsername] = useState("")
-  const [staffPassword, setStaffPassword] = useState("")
-  const [staffFullName, setStaffFullName] = useState("")
 
 
 
@@ -771,24 +782,97 @@ export const AdminView: React.FC = () => {
     }
   }
 
+  // Staff & Admin Credentials Management Handlers
+  const handleOpenEditStaff = (s: any) => {
+    setEditingStaff(s)
+    setEditStaffFullName(s.fullName || "")
+    setEditStaffUsername(s.username || "")
+    setEditStaffPhone(s.phone || "")
+    setEditStaffPassword("")
+  }
+
+  const handleSaveStaffCredentials = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingStaff) return
+    if (!editStaffFullName.trim()) {
+      alert("Iltimos, ism-sharifni kiriting")
+      return
+    }
+    if (!editStaffUsername.trim()) {
+      alert("Iltimos, login (username)ni kiriting")
+      return
+    }
+
+    try {
+      setIsUpdatingStaff(true)
+      const payload: any = {
+        fullName: editStaffFullName.trim(),
+        username: editStaffUsername.trim(),
+        phone: editStaffPhone.trim() || undefined,
+      }
+      if (editStaffPassword.trim()) {
+        if (editStaffPassword.trim().length < 4) {
+          alert("Parol kamida 4 ta belgidan iborat bo'lishi kerak")
+          setIsUpdatingStaff(false)
+          return
+        }
+        payload.password = editStaffPassword.trim()
+      }
+
+      await apiClient.patch(`/users/${editingStaff.id}/credentials`, payload)
+      triggerHaptic("success")
+      alert("Ma'lumotlar muvaffaqiyatli yangilandi!")
+      setEditingStaff(null)
+      refetchStaff()
+    } catch (err: any) {
+      console.error(err)
+      alert(err?.response?.data?.message || "Yangilashda xatolik yuz berdi")
+    } finally {
+      setIsUpdatingStaff(false)
+    }
+  }
+
+  const handleDeleteStaff = async (id: string, name: string) => {
+    if (!confirm(`Haqiqatan ham "${name}" xodimini o'chirmoqchimisiz?`)) return
+    try {
+      triggerHaptic("medium")
+      await apiClient.delete(`/users/${id}`)
+      refetchStaff()
+      alert("Xodim muvaffaqiyatli o'chirildi")
+    } catch (err) {
+      console.error(err)
+      alert("O'chirishda xatolik yuz berdi")
+    }
+  }
+
   // Handle Add Staff
   const handleAddStaffSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!staffFullName.trim() || !staffUsername.trim() || !staffPassword.trim()) {
+      alert("Iltimos, barcha majburiy maydonlarni to'ldiring")
+      return
+    }
+    if (staffPassword.trim().length < 4) {
+      alert("Parol kamida 4 ta belgidan iborat bo'lishi kerak")
+      return
+    }
     try {
       await apiClient.post("/users/cashier", {
-        username: staffUsername,
-        password: staffPassword,
-        fullName: staffFullName,
+        username: staffUsername.trim(),
+        password: staffPassword.trim(),
+        fullName: staffFullName.trim(),
+        phone: staffPhone.trim() || undefined,
       })
       refetchStaff()
       setShowAddStaff(false)
       setStaffUsername("")
       setStaffPassword("")
       setStaffFullName("")
+      setStaffPhone("")
       alert("Yangi kassir muvaffaqiyatli qo'shildi!")
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert("Kassir qo'shishda xatolik")
+      alert(err?.response?.data?.message || "Kassir qo'shishda xatolik")
     }
   }
 
@@ -1754,26 +1838,66 @@ export const AdminView: React.FC = () => {
           </div>
 
           <div className="space-y-2.5">
-            {staff.map((s: any) => (
-              <div
-                key={s.id}
-                className="p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between shadow-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center font-black text-sm">
-                    {s.fullName[0]?.toUpperCase()}
+            {staff.map((s: any) => {
+              const isAdmin = s.role === "ADMIN"
+              return (
+                <div
+                  key={s.id}
+                  className="p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between shadow-xs gap-2"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center font-black text-sm ${
+                        isAdmin
+                          ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 border border-emerald-200/50 dark:border-emerald-800/50"
+                          : "bg-purple-50 dark:bg-purple-950/60 text-purple-600 border border-purple-200/50 dark:border-purple-800/50"
+                      }`}
+                    >
+                      {isAdmin ? <ShieldCheck className="h-5 w-5" /> : (s.fullName?.[0]?.toUpperCase() || "K")}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">{s.fullName}</h4>
+                        <Badge
+                          className={`text-[9px] font-bold px-1.5 py-0 ${
+                            isAdmin ? "bg-emerald-600 text-white" : "bg-purple-600 text-white"
+                          }`}
+                        >
+                          {isAdmin ? "SUPER ADMIN" : "KASSIR"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-neutral-400 mt-0.5">
+                        <span className="font-mono">@{s.username}</span>
+                        {s.phone && <span>• {s.phone}</span>}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-xs text-neutral-900 dark:text-white">{s.fullName}</h4>
-                    <p className="text-[10px] font-mono text-neutral-400">@{s.username}</p>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenEditStaff(s)}
+                      className="rounded-xl text-xs font-bold h-8 px-2.5 gap-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60"
+                      title="Parol va loginni o'zgartirish"
+                    >
+                      <KeyRound className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Parol / Login</span>
+                    </Button>
+
+                    {!isAdmin && (
+                      <button
+                        onClick={() => handleDeleteStaff(s.id, s.fullName)}
+                        className="h-8 w-8 rounded-xl border border-neutral-200/80 dark:border-neutral-800 text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center justify-center transition-colors"
+                        title="Xodimni o'chirish"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                <Badge className="bg-purple-600 text-white text-[10px] font-bold">
-                  {s.role}
-                </Badge>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -3269,6 +3393,215 @@ export const AdminView: React.FC = () => {
                   className="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs"
                 >
                   {editingPromoItemId ? "Saqlash" : "Aksiyaga Qo'shish"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ========================================================================= */}
+      {/* MODAL: EDIT STAFF / ADMIN CREDENTIALS */}
+      {/* ========================================================================= */}
+      {editingStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl border border-neutral-200 dark:border-neutral-800 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`h-9 w-9 rounded-2xl flex items-center justify-center ${
+                  editingStaff.role === "ADMIN" 
+                    ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600" 
+                    : "bg-purple-100 dark:bg-purple-950/80 text-purple-600"
+                }`}>
+                  <KeyRound className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-neutral-900 dark:text-white">
+                    {editingStaff.role === "ADMIN" ? "Super Admin hisobini tahrirlash" : "Kassir hisobini tahrirlash"}
+                  </h4>
+                  <p className="text-[10px] text-neutral-400">Login va parolni yangilash</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingStaff(null)}
+                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-1 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStaffCredentials} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Ism-sharif (F.I.SH):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editStaffFullName}
+                  onChange={(e) => setEditStaffFullName(e.target.value)}
+                  className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500 bg-neutral-50 dark:bg-neutral-800"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Login (Username):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editStaffUsername}
+                  onChange={(e) => setEditStaffUsername(e.target.value)}
+                  className="w-full text-xs font-mono font-semibold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500 bg-neutral-50 dark:bg-neutral-800"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Telefon raqami (Ixtiyoriy):
+                </label>
+                <input
+                  type="text"
+                  value={editStaffPhone}
+                  onChange={(e) => setEditStaffPhone(e.target.value)}
+                  placeholder="+998 90 123 45 67"
+                  className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500 bg-neutral-50 dark:bg-neutral-800"
+                />
+              </div>
+
+              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-200">
+                  <KeyRound className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Yangi parol o'rnatish:</span>
+                </div>
+                <input
+                  type="text"
+                  value={editStaffPassword}
+                  onChange={(e) => setEditStaffPassword(e.target.value)}
+                  placeholder="Yangi parol (O'zgartirmaslik uchun bo'sh qoldiring)"
+                  className="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-amber-700 dark:text-amber-300">
+                  Parolni o'zgartirmoqchi bo'lmasangiz, bu qatorni bo'sh qoldiring.
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingStaff(null)}
+                  className="w-1/3 rounded-xl text-xs"
+                >
+                  Bekor qilish
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isUpdatingStaff}
+                  className="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md"
+                >
+                  {isUpdatingStaff ? "Saqlanmoqda..." : "Saqlash"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD NEW CASHIER */}
+      {/* ========================================================================= */}
+      {showAddStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl border border-neutral-200 dark:border-neutral-800 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 flex items-center justify-center">
+                  <UserPlus className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-neutral-900 dark:text-white">Yangi Kassir Qo'shish</h4>
+                  <p className="text-[10px] text-neutral-400">Planshet/kassa uchun xodim akkounti</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddStaff(false)}
+                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-1 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddStaffSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Xodim F.I.SH:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={staffFullName}
+                  onChange={(e) => setStaffFullName(e.target.value)}
+                  placeholder="Masalan: Malika Karimova"
+                  className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500 bg-neutral-50 dark:bg-neutral-800"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Login (Username):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={staffUsername}
+                  onChange={(e) => setStaffUsername(e.target.value)}
+                  placeholder="kassir1"
+                  className="w-full text-xs font-mono font-semibold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500 bg-neutral-50 dark:bg-neutral-800"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Telefon raqami (Ixtiyoriy):
+                </label>
+                <input
+                  type="text"
+                  value={staffPhone}
+                  onChange={(e) => setStaffPhone(e.target.value)}
+                  placeholder="+998 90 987 65 43"
+                  className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500 bg-neutral-50 dark:bg-neutral-800"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Parol:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={staffPassword}
+                  onChange={(e) => setStaffPassword(e.target.value)}
+                  placeholder="Kamida 4 ta belgi"
+                  className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500 bg-neutral-50 dark:bg-neutral-800"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddStaff(false)}
+                  className="w-1/3 rounded-xl text-xs"
+                >
+                  Bekor qilish
+                </Button>
+                <Button
+                  type="submit"
+                  className="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md"
+                >
+                  Kassirni Qo'shish
                 </Button>
               </div>
             </form>
