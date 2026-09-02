@@ -25,5 +25,17 @@
   "selectProduct": "Mahsulotni tanlang",
   "quantity": "Miqdori",
   "costPrice": "Keltirilgan narxi (Tannarxi)",
-  "submitKirim": "Kirimni saqlash"
+  "submitKirim": "Kirimni saqlash",
+  "posCartTitle": "Zal Savatchasi",
+  "posSaveOrder": "Buyurtmani Saqlash",
+  "posCustomerNamePlaceholder": "Mijoz nomi",
+  "posNoDishSelected": "Taom tanlanmagan",
+  "posColsWord": "Qator",
+  "posSearchDish": "Taom nomini qidirish...",
+  "clearFilter": "Filterni tozalash",
+  "noDishesFound": "Ushbu kategoriya yoki qidiruv bo'yicha taom topilmadi",
+  "cashPayment": "Naqd pul",
+  "terminalPayment": "Terminal",
+  "totalPayment": "Jami to'lov",
+  "dishesCountShort": "ta taom"
 }

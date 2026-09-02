@@ -19,9 +19,11 @@ import {
   FileText,
   Check,
   LayoutGrid,
+  ShoppingBag,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useTranslation } from "@/i18n/useTranslation"
 import { useTelegram } from "@/hooks/useTelegram"
 import { ProductSearchSelect } from "@/components/common/ProductSearchSelect"
 import { getImageUrl } from "@/lib/utils"
@@ -123,6 +125,7 @@ const renderStatusBadge = (status: string) => {
 }
 
 export const CashierView: React.FC = () => {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const { triggerHaptic } = useTelegram()
@@ -1035,8 +1038,9 @@ export const CashierView: React.FC = () => {
 
       {/* TAB 2: IN-STORE POS CASHIER WITH VISUAL FOOD CARDS & CATEGORY FILTERS */}
       {activeTab === "POS" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="flex flex-col lg:flex-row items-start gap-5 relative">
+          {/* Main Products Grid Column */}
+          <div className="w-full lg:w-[67%] xl:w-[70%] space-y-4 min-w-0">
             {/* Header + Quick Search & Grid Column Switcher */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1055,7 +1059,7 @@ export const CashierView: React.FC = () => {
                   <div className="flex items-center gap-1 pl-2 pr-1.5 text-neutral-400">
                     <LayoutGrid className="h-3.5 w-3.5" />
                     <span className="text-[10px] font-black uppercase tracking-wider hidden md:inline-block">
-                      Qator:
+                      {t.posColsWord || "Qator"}:
                     </span>
                   </div>
                   {([3, 4, 5] as const).map((cols) => (
@@ -1082,7 +1086,7 @@ export const CashierView: React.FC = () => {
                     type="text"
                     value={posSearchQuery}
                     onChange={(e) => setPosSearchQuery(e.target.value)}
-                    placeholder="Taom nomini qidirish..."
+                    placeholder={t.posSearchDish || "Taom nomini qidirish..."}
                     className="w-full pl-9 pr-8 py-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-bold text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   />
                   {posSearchQuery && (
@@ -1098,23 +1102,20 @@ export const CashierView: React.FC = () => {
             </div>
 
             {/* Category Filter Pills (Fast Touch-Friendly for Cashiers) */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <button
                 type="button"
-                onClick={() => {
-                  triggerHaptic("light")
-                  setPosSelectedCategory("ALL")
-                }}
-                className={`whitespace-nowrap px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 ${
+                onClick={() => setPosSelectedCategory("ALL")}
+                className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
                   posSelectedCategory === "ALL"
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-500/50"
-                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:bg-emerald-50/50 dark:hover:bg-neutral-800"
+                    ? "bg-emerald-600 text-white shadow-emerald-600/20 shadow-md"
+                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500"
                 }`}
               >
-                <Layers className="h-4 w-4" />
+                <Layers className="h-3.5 w-3.5" />
                 <span>Barchasi</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                     posSelectedCategory === "ALL"
                       ? "bg-white/25 text-white"
                       : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
@@ -1125,30 +1126,19 @@ export const CashierView: React.FC = () => {
               </button>
 
               {sortedCategories.map((c) => {
-                const count = products.filter(
-                  (p) => p.categoryId === c.id || (p.category && p.category.id === c.id)
-                ).length
+                const count = products.filter((p) => p.categoryId === c.id).length
                 const isSelected = posSelectedCategory === c.id
-
                 return (
                   <button
                     key={c.id}
                     type="button"
-                    onClick={() => {
-                      triggerHaptic("light")
-                      setPosSelectedCategory(c.id)
-                    }}
-                    className={`whitespace-nowrap px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 ${
+                    onClick={() => setPosSelectedCategory(c.id)}
+                    className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
                       isSelected
-                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-500/50"
-                        : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:bg-emerald-50/50 dark:hover:bg-neutral-800"
+                        ? "bg-emerald-600 text-white shadow-emerald-600/20 shadow-md"
+                        : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500"
                     }`}
                   >
-                    {c.imageUrl ? (
-                      <img src={c.imageUrl} alt={c.name} className="h-4 w-4 rounded-full object-cover" />
-                    ) : (
-                      <UtensilsCrossed className="h-3.5 w-3.5" />
-                    )}
                     <span>{c.name}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
@@ -1169,7 +1159,7 @@ export const CashierView: React.FC = () => {
               <div className="rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 p-10 text-center space-y-2 bg-white dark:bg-neutral-900">
                 <Package className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto" />
                 <p className="text-xs font-bold text-neutral-600 dark:text-neutral-400">
-                  Ushbu kategoriya yoki qidiruv bo'yicha taom topilmadi
+                  {t.noDishesFound || "Ushbu kategoriya yoki qidiruv bo'yicha taom topilmadi"}
                 </p>
                 <button
                   onClick={() => {
@@ -1178,17 +1168,17 @@ export const CashierView: React.FC = () => {
                   }}
                   className="text-xs text-emerald-600 font-bold underline"
                 >
-                  Filterni tozalash
+                  {t.clearFilter || "Filterni tozalash"}
                 </button>
               </div>
             ) : (
               <div
                 className={
                   posGridCols === 5
-                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5"
+                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5"
                     : posGridCols === 4
-                    ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
-                    : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3.5"
+                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
+                    : "grid grid-cols-2 sm:grid-cols-3 gap-3.5"
                 }
               >
                 {filteredPosProducts.map((p) => {
@@ -1212,18 +1202,18 @@ export const CashierView: React.FC = () => {
                       }}
                       className={`rounded-3xl bg-white dark:bg-neutral-900 border overflow-hidden cursor-pointer transition-all shadow-xs flex flex-col justify-between group active:scale-98 ${
                         qty > 0
-                          ? "border-emerald-600 ring-2 ring-emerald-500/30"
+                          ? "border-emerald-600 ring-2 ring-emerald-500/30 shadow-md"
                           : "border-neutral-200 dark:border-neutral-800 hover:border-emerald-500"
                       }`}
                     >
-                      {/* Visual Dish Image Header */}
+                      {/* Visual Dish Image Header: Large, prominent, clear */}
                       <div
                         className={`relative w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden ${
                           posGridCols === 5
-                            ? "h-24 sm:h-28"
+                            ? "h-28 sm:h-32"
                             : posGridCols === 4
-                            ? "h-26 sm:h-30"
-                            : "h-28 sm:h-32"
+                            ? "h-32 sm:h-36"
+                            : "h-36 sm:h-40"
                         }`}
                       >
                         <img
@@ -1242,25 +1232,25 @@ export const CashierView: React.FC = () => {
                         </div>
 
                         {qty > 0 && (
-                          <div className="absolute top-2 right-2 h-7 w-7 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shadow-lg animate-pulse">
+                          <div className="absolute top-2 right-2 h-8 w-8 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-neutral-900 animate-in zoom-in-50">
                             {qty}
                           </div>
                         )}
                       </div>
 
-                      {/* Dish Info */}
-                      <div className={`p-2.5 sm:p-3 ${posGridCols === 5 ? "space-y-0.5" : "space-y-1"}`}>
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate" title={p.name}>
+                      {/* Dish Info: Large BOLD name, NO individual price as requested! */}
+                      <div className="p-3 space-y-1">
+                        <h4
+                          className="font-black text-sm sm:text-base text-neutral-900 dark:text-white leading-tight line-clamp-2"
+                          title={p.name}
+                        >
                           {p.name}
                         </h4>
-                        <div className="flex items-center justify-between pt-0.5">
-                          <span className="text-[10px] text-neutral-400 font-bold">
-                            {p.unit?.name || "1 pors"}
+                        {p.unit?.name && (
+                          <span className="inline-block text-[11px] text-neutral-400 font-semibold">
+                            {p.unit.name}
                           </span>
-                          <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                            {p.price.toLocaleString()} so'm
-                          </span>
-                        </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -1269,126 +1259,166 @@ export const CashierView: React.FC = () => {
             )}
           </div>
 
-          {/* POS Cart Sidebar */}
-          <div className="p-4 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-sm text-neutral-900 dark:text-white">Zal Savatchasi</h3>
-              <input
-                type="text"
-                value={posCustomerName}
-                onChange={(e) => setPosCustomerName(e.target.value)}
-                placeholder="Mijoz nomi"
-                className="text-xs font-bold px-2.5 py-1.5 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-neutral-50 dark:bg-neutral-800 max-w-[130px]"
-              />
-            </div>
-
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {posCart.length === 0 ? (
-                <div className="text-center py-10 space-y-2">
-                  <Package className="h-10 w-10 mx-auto text-neutral-300 dark:text-neutral-700" />
-                  <p className="text-xs text-neutral-400 font-medium">Taom tanlanmagan</p>
+          {/* POS Cart Sidebar: Sticky on Desktop/Tablet right next to the menu! */}
+          <div className="w-full lg:w-[33%] xl:w-[30%] lg:sticky lg:top-4 z-20 space-y-4">
+            <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 text-emerald-600" />
+                  <h3 className="font-black text-sm text-neutral-900 dark:text-white">
+                    {t.posCartTitle || "Zal Savatchasi"}
+                  </h3>
+                  {posCart.length > 0 && (
+                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 text-[10px] font-black">
+                      {posCart.reduce((s, i) => s + i.quantity, 0)} {t.dishesCountShort || "ta"}
+                    </Badge>
+                  )}
                 </div>
-              ) : (
-                posCart.map((item) => {
-                  const dishImage = getDishImage(item.product.id)
-
-                  return (
-                    <div
-                      key={item.product.id}
-                      className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-neutral-50 dark:bg-neutral-800/70 border border-neutral-100 dark:border-neutral-800"
-                    >
-                      <div className="h-10 w-10 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
-                        <img
-                          src={dishImage}
-                          alt={item.product.name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-xs text-neutral-900 dark:text-white truncate">
-                          {item.product.name}
-                        </p>
-                        <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
-                          {(item.product.price * item.quantity).toLocaleString()} so'm
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() =>
-                            setPosCart((prev) =>
-                              prev
-                                .map((i) =>
-                                  i.product.id === item.product.id
-                                    ? { ...i, quantity: i.quantity - 1 }
-                                    : i
-                                )
-                                .filter((i) => i.quantity > 0)
-                            )
-                          }
-                          className="h-7 w-7 rounded-xl bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center font-bold text-xs"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
-                        <button
-                          onClick={() =>
-                            setPosCart((prev) =>
-                              prev.map((i) =>
-                                i.product.id === item.product.id
-                                  ? { ...i, quantity: i.quantity + 1 }
-                                  : i
-                              )
-                            )
-                          }
-                          className="h-7 w-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-
-            <div className="space-y-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-              <div className="flex items-center justify-between text-sm font-black">
-                <span>Jami to'lov:</span>
-                <span className="text-emerald-600 text-base">{posTotal.toLocaleString()} so'm</span>
+                <input
+                  type="text"
+                  value={posCustomerName}
+                  onChange={(e) => setPosCustomerName(e.target.value)}
+                  placeholder={t.posCustomerNamePlaceholder || "Mijoz nomi"}
+                  className="text-xs font-bold px-2.5 py-1.5 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-neutral-50 dark:bg-neutral-800 max-w-[130px] outline-none focus:ring-1 focus:ring-emerald-500"
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setPosPaymentMethod("CASH")}
-                  className={`py-2.5 rounded-2xl text-xs font-bold border transition-all ${
-                    posPaymentMethod === "CASH"
-                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
-                      : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
-                  }`}
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {posCart.length === 0 ? (
+                  <div className="text-center py-10 space-y-2">
+                    <Package className="h-10 w-10 mx-auto text-neutral-300 dark:text-neutral-700" />
+                    <p className="text-xs text-neutral-400 font-medium">
+                      {t.posNoDishSelected || "Taom tanlanmagan"}
+                    </p>
+                  </div>
+                ) : (
+                  posCart.map((item) => {
+                    const dishImage = getDishImage(item.product.id)
+
+                    return (
+                      <div
+                        key={item.product.id}
+                        className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-neutral-50 dark:bg-neutral-800/70 border border-neutral-100 dark:border-neutral-800"
+                      >
+                        <div className="h-10 w-10 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
+                          <img
+                            src={dishImage}
+                            alt={item.product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-xs text-neutral-900 dark:text-white truncate">
+                            {item.product.name}
+                          </p>
+                          <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
+                            {(item.product.price * item.quantity).toLocaleString()} so'm
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() =>
+                              setPosCart((prev) =>
+                                prev
+                                  .map((i) =>
+                                    i.product.id === item.product.id
+                                      ? { ...i, quantity: i.quantity - 1 }
+                                      : i
+                                  )
+                                  .filter((i) => i.quantity > 0)
+                              )
+                            }
+                            className="h-7 w-7 rounded-xl bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center font-bold text-xs active:scale-95"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
+                          <button
+                            onClick={() =>
+                              setPosCart((prev) =>
+                                prev.map((i) =>
+                                  i.product.id === item.product.id
+                                    ? { ...i, quantity: i.quantity + 1 }
+                                    : i
+                                )
+                              )
+                            }
+                            className="h-7 w-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs active:scale-95"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div className="space-y-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                <div className="flex items-center justify-between text-sm font-black">
+                  <span>{t.totalPayment || "Jami to'lov"}:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 text-lg">{posTotal.toLocaleString()} so'm</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setPosPaymentMethod("CASH")}
+                    className={`py-2.5 rounded-2xl text-xs font-bold border transition-all ${
+                      posPaymentMethod === "CASH"
+                        ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
+                        : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
+                    }`}
+                  >
+                    {t.cashPayment || "Naqd pul"}
+                  </button>
+                  <button
+                    onClick={() => setPosPaymentMethod("TERMINAL")}
+                    className={`py-2.5 rounded-2xl text-xs font-bold border transition-all ${
+                      posPaymentMethod === "TERMINAL"
+                        ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
+                        : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
+                    }`}
+                  >
+                    {t.terminalPayment || "Terminal"}
+                  </button>
+                </div>
+
+                <Button
+                  onClick={handlePosOrder}
+                  disabled={posCart.length === 0}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black py-3.5 shadow-lg shadow-emerald-600/20 active:scale-98"
                 >
-                  Naqd pul
-                </button>
-                <button
-                  onClick={() => setPosPaymentMethod("TERMINAL")}
-                  className={`py-2.5 rounded-2xl text-xs font-bold border transition-all ${
-                    posPaymentMethod === "TERMINAL"
-                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
-                      : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
-                  }`}
-                >
-                  Terminal
-                </button>
+                  {t.posSaveOrder || "Buyurtmani Saqlash"} ({posTotal.toLocaleString()} so'm)
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Floating Checkout Bar for Mobile/Tablet or anytime cashier is scrolled */}
+          {posCart.length > 0 && (
+            <div className="fixed bottom-16 sm:bottom-4 left-3 right-3 lg:hidden z-40 bg-neutral-950/95 dark:bg-emerald-950/95 text-white p-3.5 rounded-3xl shadow-2xl backdrop-blur-md flex items-center justify-between border border-white/10 animate-in slide-in-from-bottom duration-300">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+                  {posCart.reduce((s, i) => s + i.quantity, 0)}
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-300 font-bold">
+                    {posCart.length} {t.dishesCountShort || "ta taom"}
+                  </p>
+                  <strong className="text-sm font-black text-emerald-400">
+                    {posTotal.toLocaleString()} so'm
+                  </strong>
+                </div>
               </div>
 
               <Button
                 onClick={handlePosOrder}
-                disabled={posCart.length === 0}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black py-3 shadow-lg shadow-emerald-600/20 active:scale-98"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black px-4 py-2.5 shadow-lg shadow-emerald-600/30 active:scale-95"
               >
-                Buyurtmani Saqlash ({posTotal.toLocaleString()} so'm)
+                {t.posSaveOrder || "Buyurtmani Saqlash"}
               </Button>
             </div>
-          </div>
+          )}
         </div>
       )}
 

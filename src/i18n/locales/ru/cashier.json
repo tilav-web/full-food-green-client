@@ -25,5 +25,17 @@
   "selectProduct": "Выберите товар",
   "quantity": "Количество",
   "costPrice": "Себестоимость",
-  "submitKirim": "Сохранить приход"
+  "submitKirim": "Сохранить приход",
+  "posCartTitle": "Корзина Зала",
+  "posSaveOrder": "Сохранить заказ",
+  "posCustomerNamePlaceholder": "Имя клиента",
+  "posNoDishSelected": "Блюда не выбраны",
+  "posColsWord": "Ряд",
+  "posSearchDish": "Поиск блюда по названию...",
+  "clearFilter": "Очистить фильтр",
+  "noDishesFound": "В этой категории или по запросу блюда не найдены",
+  "cashPayment": "Наличные",
+  "terminalPayment": "Терминал",
+  "totalPayment": "Итого к оплате",
+  "dishesCountShort": "блюд"
 }
