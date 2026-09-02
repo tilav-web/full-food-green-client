@@ -87,5 +87,11 @@
   "paidToTaxi": "Alohida taksiga to'lanadi",
   "restaurantTotal": "Restoranga to'lov",
   "deliveryFeeNotice": "Yetkazib berish narxi taxminiy bo'lib, to'lov to'g'ridan-to'g'ri taksi haydovchisiga to'lanadi. Siz restoranga faqat ovqat va qadoqlash uchun to'laysiz.",
-  "deliveryFeeEstimated": "Yetkazish (Taksiga)"
+  "deliveryFeeEstimated": "Yetkazish (Taksiga)",
+  "containerFullTitle": "Ushbu qadoq to'ldi!",
+  "containerFullPrompt": "Ushbu qadoqqa boshqa taom sig'maydi. Iltimos, yangi qadoq oching yoki boshqa qadoqni tanlang.",
+  "createNewContainerBtn": "Yangi qadoq ochish",
+  "gotIt": "Tushunarli",
+  "unallocatedWarningTitle": "Qadoqlanmagan taomlar mavjud!",
+  "unallocatedWarningDesc": "Buyurtmani davom ettirish uchun barcha taomlarni qadoqlarga (idishlarga) taqsimlang! (Ichimliklar uchun qadoq talab qilinmaydi)"
 }

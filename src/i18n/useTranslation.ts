@@ -26,7 +26,7 @@ export function useTranslation(ns?: string | string[]) {
     localStorage.setItem("fullfood_lang", newLang)
   }
 
-  const lookupFallback = (key: string): string => {
+  const lookupFallback = (key: string, isPropAccess = false): string => {
     const targetLang = lang === "ru" || currentI18n.language?.startsWith("ru") ? "ru" : "uz"
     const langRes = (resources as any)[targetLang] || (resources as any).uz
     for (const nsKey of Object.keys(langRes)) {
@@ -34,7 +34,17 @@ export function useTranslation(ns?: string | string[]) {
         return langRes[nsKey][key]
       }
     }
-    return key
+    // Also check alternate language if missing
+    const altLang = targetLang === "ru" ? "uz" : "ru"
+    const altRes = (resources as any)[altLang]
+    if (altRes) {
+      for (const nsKey of Object.keys(altRes)) {
+        if (altRes[nsKey] && altRes[nsKey][key] !== undefined) {
+          return altRes[nsKey][key]
+        }
+      }
+    }
+    return isPropAccess ? "" : key
   }
 
   // Create a smart proxy object so `t.key` and `t("key")` both work effortlessly
@@ -45,7 +55,7 @@ export function useTranslation(ns?: string | string[]) {
       }
       const val = target(prop)
       if (val === prop || !val) {
-        return lookupFallback(prop)
+        return lookupFallback(prop, true)
       }
       return val
     },
@@ -53,7 +63,7 @@ export function useTranslation(ns?: string | string[]) {
       const key = argArray[0]
       const val = Reflect.apply(target, thisArg, argArray)
       if (val === key && typeof key === "string") {
-        return lookupFallback(key)
+        return lookupFallback(key, false)
       }
       return val
     },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ShoppingBag,
@@ -69,16 +69,64 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     queryFn: async () => (await apiClient.get("/products")).data,
   })
 
-  // Helper: Get dish packaging level (0-5)
-  const getItemPackagingLevel = (item: { id?: string; cartItemId?: string; productId?: string; packagingLevel?: number }): number => {
-    if (item.packagingLevel !== undefined && item.packagingLevel !== null) return item.packagingLevel
+  // Helper: Get dish packaging level (0-5). Drinks and beverages are strictly 0.
+  const getItemPackagingLevel = (item: {
+    id?: string
+    name?: string
+    cartItemId?: string
+    productId?: string
+    packagingLevel?: number
+  }): number => {
+    if (item.packagingLevel !== undefined && item.packagingLevel !== null) {
+      return Number(item.packagingLevel)
+    }
     const pId = item.productId || item.cartItemId || item.id
     if (pId) {
       const p = allProducts.find((prod) => prod.id === pId)
-      if (p && p.packagingLevel !== undefined && p.packagingLevel !== null) return p.packagingLevel
+      if (p) {
+        if (p.packagingLevel !== undefined && p.packagingLevel !== null) {
+          return Number(p.packagingLevel)
+        }
+        const catName = p.category?.name?.toLowerCase() || ""
+        const catSlug = p.category?.slug?.toLowerCase() || ""
+        if (catName.includes("ichimlik") || catSlug.includes("ichimlik") || p.categoryId === "drinks") {
+          return 0
+        }
+      }
+    }
+    // Check item name for drink keywords
+    const lowerName = ((item as any).name || "").toLowerCase()
+    if (
+      lowerName.includes("cappuccino") ||
+      lowerName.includes("latte") ||
+      lowerName.includes("americano") ||
+      lowerName.includes("espresso") ||
+      lowerName.includes("fanta") ||
+      lowerName.includes("cola") ||
+      lowerName.includes("sprite") ||
+      lowerName.includes("adrenalin") ||
+      lowerName.includes("flash") ||
+      lowerName.includes("red bull") ||
+      lowerName.includes("suv") ||
+      lowerName.includes("choy") ||
+      lowerName.includes("sharbat") ||
+      lowerName.includes("sok") ||
+      lowerName.includes("fuse tea") ||
+      lowerName.includes("ayron") ||
+      lowerName.includes("mojito") ||
+      lowerName.includes("pepsi") ||
+      lowerName.includes("kampot") ||
+      lowerName.includes("kefir")
+    ) {
+      return 0
     }
     return 2 // default 2 ball
   }
+
+  // Boolean helper: does cart contain any dishes that need containers?
+  const hasPackableDishes = useMemo(() => {
+    return cart.some((item) => getItemPackagingLevel(item) > 0)
+  }, [cart, allProducts])
 
   // Helper: Calculate unallocated portions for a cart item
   const getUnallocatedCount = (cartItemId: string, totalCartQty: number): number => {
@@ -352,7 +400,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
   const containerPrice = Number(getSetting("container_price", "2000")) || 2000
   const packedContainersCount = containers.filter((c) => c.items.length > 0).length
-  const packagingFee = packedContainersCount * containerPrice
+  const packagingFee = hasPackableDishes ? packedContainersCount * containerPrice : 0
 
   const cardNumber = getSetting("card_number", "9860 1001 2517 4530")
   const cardHolder = getSetting("card_holder", "SHAHRIZOD XALIMOV")
@@ -790,18 +838,39 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                         .map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 text-xs"
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 text-xs shadow-2xs"
                           >
-                            <span className="font-bold text-neutral-900 dark:text-white truncate max-w-[160px]">
-                              {item.name}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-black text-emerald-600 dark:text-emerald-400">
-                                {item.quantity}x
+                            <div className="min-w-0 flex-1 pr-2">
+                              <span className="font-bold text-neutral-900 dark:text-white truncate block">
+                                {item.name}
                               </span>
-                              <span className="text-neutral-400">
-                                ({(item.price * item.quantity).toLocaleString()} {t.currency || "so'm"})
+                              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">
+                                {(item.price * item.quantity).toLocaleString()} {t.currency || "so'm"}
                               </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => updateCartQuantity(item.id, -1)}
+                                className="h-6 w-6 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 flex items-center justify-center text-neutral-700 dark:text-neutral-300 text-xs active:scale-95"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateCartQuantity(item.id, 1)}
+                                className="h-6 w-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs active:scale-95 shadow-2xs"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeFromCart(item.id)}
+                                className="text-neutral-400 hover:text-red-500 p-1 ml-0.5"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -810,45 +879,47 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 </div>
               )}
 
-              {/* 2. QADOQLASHTIRISH TRIGGER CARD */}
-              <div className="rounded-3xl border border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs flex-shrink-0">
-                    <PackagePlus className="h-5 w-5" />
+              {/* 2. QADOQLASHTIRISH TRIGGER CARD (Faqat darajaga ega taomlar bo'lganda ko'rinadi) */}
+              {hasPackableDishes && (
+                <div className="rounded-3xl border border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs flex-shrink-0">
+                      <PackagePlus className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-neutral-900 dark:text-white">
+                        {t.packagingTitle || "Taomlarni Qadoqlash (Majburiy)"}
+                      </h4>
+                      <p className="text-[10px] text-neutral-500">
+                        {t.packagingSubtitle || "Har bir qadoqqa 2-3 xil taom sig'ishi mumkin. Taomlarni qadoqlarga taqsimlang."}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-neutral-900 dark:text-white">
-                      {t.packagingTitle || "Taomlarni Qadoqlash (Majburiy)"}
-                    </h4>
-                    <p className="text-[10px] text-neutral-500">
-                      {t.packagingSubtitle || "Har bir qadoqqa 2-3 xil taom sig'ishi mumkin. Taomlarni qadoqlarga taqsimlang."}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  {containers.length > 0 && (
-                    <button
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {containers.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleResetPackaging}
+                        className="text-[11px] font-bold text-neutral-400 hover:text-red-500 px-2 py-1 transition-colors"
+                      >
+                        {t.cancelPackaging || "Qayta boshlash"}
+                      </button>
+                    )}
+
+                    <Button
                       type="button"
-                      onClick={handleResetPackaging}
-                      className="text-[11px] font-bold text-neutral-400 hover:text-red-500 px-2 py-1 transition-colors"
+                      onClick={handleAddNewContainer}
+                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs px-4 py-2.5 shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 active:scale-98"
                     >
-                      {t.cancelPackaging || "Qayta boshlash"}
-                    </button>
-                  )}
-
-                  <Button
-                    type="button"
-                    onClick={handleAddNewContainer}
-                    className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs px-4 py-2.5 shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 active:scale-98"
-                  >
-                    <Plus className="h-4 w-4" />{" "}
-                    {containers.length === 0
-                      ? (t.createContainer || "+ Yangi qadoq ochish")
-                      : (t.createNewContainer || "Yana qadoq qo'shish")}
-                  </Button>
+                      <Plus className="h-4 w-4" />{" "}
+                      {containers.length === 0
+                        ? (t.createContainer || "+ Yangi qadoq ochish")
+                        : (t.createNewContainer || "Yana qadoq qo'shish")}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 3. CREATED CONTAINERS LIST (NO POINTS / CAPACITY NUMBERS SHOWN!) */}
               {containers.length > 0 && (
