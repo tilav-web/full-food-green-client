@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react"
 import { apiClient } from "@/api/axios"
 import { getImageUrl } from "@/lib/utils"
@@ -26,7 +25,7 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
 
   const banners = dbBanners
 
-  // Auto-Slide Timer (Rotates every 4.5 seconds like high-converting food ad banners)
+  // Auto-Slide Timer: Clean, regular slide without any flickering/fade
   useEffect(() => {
     if (banners.length <= 1 || isPaused) return
 
@@ -38,7 +37,7 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
   }, [banners.length, isPaused])
 
   const handleBannerClick = (banner: Banner) => {
-    // 1. External / Sponsor Ad Link (no internal page needed)
+    // 1. External / Sponsor Ad Link
     if (banner.actionType === "LINK" && banner.actionTarget) {
       const url = banner.actionTarget.trim()
       if (
@@ -76,19 +75,17 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
       return
     }
 
-    // 5. Default: Open dedicated Promotion Landing Page with clean SEO slug!
+    // 5. Default: Open dedicated Promotion Landing Page
     const targetSlug = banner.slug || banner.id
     navigate(`/promo/${targetSlug}`)
     if (onSelectTab) onSelectTab("MENU")
   }
 
-  const handleNext = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
+  const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % banners.length)
   }
 
-  const handlePrev = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
+  const handlePrev = () => {
     setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length)
   }
 
@@ -117,8 +114,6 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
 
   if (banners.length === 0) return null
 
-  const currentBanner = banners[currentIndex] || banners[0]
-
   return (
     <div
       className="relative w-full overflow-hidden select-none"
@@ -127,81 +122,90 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentBanner.id || currentIndex}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
+      {/* Pure horizontal sliding track without any unmounting, opacity or blinking */}
+      <div className="w-full overflow-hidden rounded-3xl">
+        <div
+          className="flex transition-transform duration-500 ease-out"
           style={{
-            transform: "translateZ(0)",
-            WebkitTransform: "translateZ(0)",
-            willChange: "transform, opacity",
+            transform: `translateX(-${currentIndex * 100}%)`,
+            willChange: "transform",
           }}
-          onClick={() => handleBannerClick(currentBanner)}
-          className={`w-full min-h-[175px] sm:min-h-[195px] rounded-3xl bg-gradient-to-br ${
-            currentBanner.gradient || "from-emerald-700 via-teal-800 to-emerald-950"
-          } p-5 sm:p-6 text-white shadow-xl relative overflow-hidden cursor-pointer border border-white/15 flex flex-col justify-between group transition-all`}
         >
-          {/* Subtle Background Glow Elements */}
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-300/15 rounded-full blur-2xl pointer-events-none" />
+          {banners.map((banner, idx) => {
+            const bannerImage = banner.imageUrl || banner.items?.[0]?.imageUrl
+            return (
+              <div
+                key={banner.id || idx}
+                className="w-full flex-shrink-0"
+                onClick={() => handleBannerClick(banner)}
+              >
+                <div
+                  className={`w-full min-h-[175px] sm:min-h-[195px] rounded-3xl bg-gradient-to-br ${
+                    banner.gradient || "from-emerald-700 via-teal-800 to-emerald-950"
+                  } p-5 sm:p-6 text-white shadow-xl relative overflow-hidden cursor-pointer border border-white/15 flex flex-col justify-between group`}
+                >
+                  {/* Subtle Background Glow Elements */}
+                  <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-300/15 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Background image preview - ONLY rendered if banner has a real imageUrl */}
-          {Boolean(currentBanner.imageUrl) && (
-            <div className="absolute right-0 top-0 bottom-0 w-[55%] sm:w-[50%] opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-105">
-              <img
-                src={getImageUrl(currentBanner.imageUrl)}
-                alt={currentBanner.title}
-                onError={(e) => {
-                  ;(e.currentTarget as HTMLImageElement).style.display = "none"
-                }}
-                className="h-full w-full object-cover rounded-r-3xl"
-              />
-              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black/80" />
-            </div>
-          )}
+                  {/* Background image preview */}
+                  {Boolean(bannerImage) && (
+                    <div className="absolute right-0 top-0 bottom-0 w-[55%] sm:w-[50%] opacity-40 pointer-events-none transition-transform duration-700 group-hover:scale-105">
+                      <img
+                        src={getImageUrl(bannerImage)}
+                        alt=""
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                        }}
+                        className="h-full w-full object-cover rounded-r-3xl"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/25 to-black/85" />
+                    </div>
+                  )}
 
-          {/* Top Row: Badge & Promo Counter Indicator */}
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black text-white border border-white/25 shadow-xs">
-              <Sparkles className="h-3 w-3 text-amber-300 animate-pulse" />
-              <span>{currentBanner.badge || "Aksiya"}</span>
-            </div>
+                  {/* Top Row: Badge & Promo Counter Indicator */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black text-white border border-white/25 shadow-xs">
+                      <Sparkles className="h-3 w-3 text-amber-300" />
+                      <span>{banner.badge || "Aksiya"}</span>
+                    </div>
 
-            <div className="flex items-center gap-1 text-[10px] font-bold text-white/80 bg-black/30 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10">
-              <Flame className="h-3 w-3 text-amber-400" />
-              <span>
-                {currentIndex + 1} / {banners.length}
-              </span>
-            </div>
-          </div>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-white/80 bg-black/30 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10">
+                      <Flame className="h-3 w-3 text-amber-400" />
+                      <span>
+                        {idx + 1} / {banners.length}
+                      </span>
+                    </div>
+                  </div>
 
-          {/* Center Info: Title and Description */}
-          <div className="relative z-10 space-y-1.5 max-w-[72%] sm:max-w-[70%] my-auto py-2">
-            <h3 className="text-lg sm:text-2xl font-black leading-tight tracking-tight drop-shadow-sm line-clamp-2">
-              {currentBanner.title}
-            </h3>
-            <p className="text-xs sm:text-sm text-white/85 line-clamp-2 leading-snug font-medium">
-              {currentBanner.description}
-            </p>
-          </div>
+                  {/* Center Info: Title and Description */}
+                  <div className="relative z-10 space-y-1.5 max-w-[72%] sm:max-w-[70%] my-auto py-2">
+                    <h3 className="text-lg sm:text-2xl font-black leading-tight tracking-tight drop-shadow-sm line-clamp-2">
+                      {banner.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-white/85 line-clamp-2 leading-snug font-medium">
+                      {banner.description}
+                    </p>
+                  </div>
 
-          {/* Bottom Row: Call To Action and Quality Guarantee */}
-          <div className="relative z-10 pt-2 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-black bg-white text-emerald-950 px-3.5 py-1.5 rounded-xl shadow-md transition-all group-hover:bg-emerald-50 group-hover:scale-105">
-              {currentBanner.actionText || "Aksiyani ko'rish"}
-              <ArrowRight className="h-3.5 w-3.5 text-emerald-700 transition-transform group-hover:translate-x-1" />
-            </span>
+                  {/* Bottom Row: Call To Action and Quality Guarantee */}
+                  <div className="relative z-10 pt-2 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-black bg-white text-emerald-950 px-3.5 py-1.5 rounded-xl shadow-md transition-all group-hover:bg-emerald-50">
+                      {banner.actionText || "Aksiyani ko'rish"}
+                      <ArrowRight className="h-3.5 w-3.5 text-emerald-700 transition-transform group-hover:translate-x-1" />
+                    </span>
 
-            <div className="flex items-center gap-1 text-[10px] font-bold text-white/80">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span>100% Parhezbop</span>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-white/80">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>100% Parhezbop</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
       {/* Slide Navigation Pagination Dots */}
       {banners.length > 1 && (
@@ -209,6 +213,7 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
           {banners.map((_, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 setCurrentIndex(idx)

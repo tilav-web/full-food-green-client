@@ -199,9 +199,17 @@ export const PromoDetailPage: React.FC = () => {
         <div className="absolute -top-10 -right-10 w-44 h-44 bg-amber-400/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none" />
 
-        {banner.imageUrl && (
-          <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-25 mix-blend-luminosity pointer-events-none">
-            <img src={getImageUrl(banner.imageUrl)} alt={banner.title} className="h-full w-full object-cover rounded-r-3xl" />
+        {Boolean(banner.imageUrl || banner.items?.[0]?.imageUrl) && (
+          <div className="absolute right-0 top-0 bottom-0 w-[55%] sm:w-[50%] opacity-40 pointer-events-none">
+            <img
+              src={getImageUrl(banner.imageUrl || banner.items?.[0]?.imageUrl)}
+              alt=""
+              onError={(e) => {
+                ;(e.currentTarget as HTMLImageElement).style.display = "none"
+              }}
+              className="h-full w-full object-cover rounded-r-3xl"
+            />
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/30 to-black/85" />
           </div>
         )}
 
