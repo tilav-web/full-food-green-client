@@ -1,6 +1,6 @@
 import React, { useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Minus, ShoppingBag, Package, Tag, Sparkles } from "lucide-react"
+import { X, Plus, Minus, ShoppingBag, Package, Tag, Sparkles, Flame } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/i18n/useTranslation"
@@ -147,7 +147,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
 
             <div className="absolute bottom-4 left-4 right-4 text-white space-y-1.5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {!isCombo && (item as Product).isPopular && (
+                  <Badge className="bg-gradient-to-r from-amber-500 to-rose-500 text-white font-black gap-1 shadow-md">
+                    <Flame className="h-3.5 w-3.5 fill-white" />
+                    {t.top10Badge || "Top 10"} {t.popularDishes || "Ommabop"}
+                  </Badge>
+                )}
+
                 {isCombo ? (
                   <Badge className="bg-amber-500 text-white font-bold gap-1">
                     <Sparkles className="h-3.5 w-3.5" />

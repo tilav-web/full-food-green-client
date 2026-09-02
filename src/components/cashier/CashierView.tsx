@@ -20,6 +20,7 @@ import {
   Check,
   LayoutGrid,
   ShoppingBag,
+  Flame,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -339,6 +340,7 @@ export const CashierView: React.FC = () => {
     return products.filter((p) => {
       const matchesCategory =
         posSelectedCategory === "ALL" ||
+        (posSelectedCategory === "POPULAR" && p.isPopular) ||
         p.categoryId === posSelectedCategory ||
         (p.category && (p.category.id === posSelectedCategory || p.category.name === posSelectedCategory))
 
@@ -1125,6 +1127,34 @@ export const CashierView: React.FC = () => {
                 </span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setPosSelectedCategory("POPULAR")}
+                className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
+                  posSelectedCategory === "POPULAR"
+                    ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-rose-500/25 shadow-md ring-2 ring-rose-400/40"
+                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:border-rose-400"
+                }`}
+              >
+                <Flame
+                  className={`h-3.5 w-3.5 ${
+                    posSelectedCategory === "POPULAR"
+                      ? "text-white fill-white"
+                      : "text-amber-500 fill-amber-500"
+                  }`}
+                />
+                <span>Ommabop</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    posSelectedCategory === "POPULAR"
+                      ? "bg-white/25 text-white"
+                      : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300"
+                  }`}
+                >
+                  Top 10
+                </span>
+              </button>
+
               {sortedCategories.map((c) => {
                 const count = products.filter((p) => p.categoryId === c.id).length
                 const isSelected = posSelectedCategory === c.id
@@ -1229,6 +1259,12 @@ export const CashierView: React.FC = () => {
                           <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-black/60 text-white backdrop-blur-md">
                             {p.calories} kkal
                           </span>
+                          {p.isPopular && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5">
+                              <Flame className="h-3 w-3 fill-white" />
+                              Top 10
+                            </span>
+                          )}
                         </div>
 
                         {qty > 0 && (

@@ -87,6 +87,8 @@ export interface Product {
   carbs: number
   imageUrl?: string
   isActive: boolean
+  isPopular?: boolean
+  soldCount?: number
   unitName: string
 }
 

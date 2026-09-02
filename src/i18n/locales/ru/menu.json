@@ -37,5 +37,10 @@
   "selectedInCart": "Выбрано в корзине",
   "goToCart": "Перейти в корзину",
   "viewPromo": "Смотреть акцию",
-  "diet100": "100% Диетическое"
+  "diet100": "100% Диетическое",
+  "popularDishes": "Популярные",
+  "top10Badge": "Топ 10",
+  "top10Filter": "Топ 10 Блюд",
+  "mostSoldTitle": "Самые продаваемые блюда",
+  "soldCountLabel": "продано"
 }

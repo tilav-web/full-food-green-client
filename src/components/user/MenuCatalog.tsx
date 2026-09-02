@@ -1,7 +1,7 @@
 import React, { useMemo } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Plus, Minus, Sparkles, Layers, ArrowRight, Tag, Search, X } from "lucide-react"
+import { Plus, Minus, Sparkles, Layers, ArrowRight, Tag, Search, X, Flame } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/i18n/useTranslation"
 import { useAppStore } from "@/store/useAppStore"
@@ -133,8 +133,32 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, 
     })
   }, [products, sortedCategories])
 
+  // Top 10 most popular products
+  const top10PopularProducts = useMemo(() => {
+    const popularFlagged = products.filter((p) => p.isPopular)
+    if (popularFlagged.length > 0) {
+      return [...popularFlagged].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0)).slice(0, 10)
+    }
+    // Fallback: take first 10 products
+    return [...products].slice(0, 10)
+  }, [products])
+
+  const top10PopularIds = useMemo(() => {
+    return new Set(top10PopularProducts.map((p) => p.id))
+  }, [top10PopularProducts])
+
   // Filter products by category and search
   const filteredProducts = useMemo(() => {
+    if (activeCategory === "popular") {
+      return top10PopularProducts.filter((p) => {
+        const matchesSearch =
+          !searchQuery ||
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        return matchesSearch
+      })
+    }
+
     const selectedCat = sortedCategories.find((c) => c.slug === activeCategory || c.id === activeCategory)
     const selectedCatId = selectedCat ? selectedCat.id : activeCategory
 
@@ -151,10 +175,14 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, 
         (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
       return matchesCategory && matchesSearch
     })
-  }, [sortedProducts, sortedCategories, activeCategory, searchQuery])
+  }, [sortedProducts, sortedCategories, activeCategory, searchQuery, top10PopularProducts])
 
   // Mixed Feed Generation
   const feedItems = useMemo(() => {
+    if (activeCategory === "popular") {
+      return filteredProducts.map((p) => ({ type: "product" as const, data: p }))
+    }
+
     if (activeCategory === "combos") {
       return combos.map((c) => ({ type: "combo" as const, data: c }))
     }
@@ -259,6 +287,33 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, 
         >
           <Layers className="h-3.5 w-3.5" />
           {t.allDishes}
+        </button>
+
+        <button
+          onClick={() => handleSelectCategory("popular")}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeCategory === "popular"
+              ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md shadow-rose-500/25 ring-2 ring-rose-400/40"
+              : "bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200/80 dark:bg-neutral-900 dark:text-neutral-300 dark:border-neutral-800"
+          }`}
+        >
+          <Flame
+            className={`h-3.5 w-3.5 ${
+              activeCategory === "popular"
+                ? "text-white fill-white"
+                : "text-amber-500 fill-amber-500"
+            }`}
+          />
+          <span>{t.popularDishes || "Ommabop"}</span>
+          <span
+            className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+              activeCategory === "popular"
+                ? "bg-white/25 text-white"
+                : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300"
+            }`}
+          >
+            Top 10
+          </span>
         </button>
 
         <button
@@ -395,9 +450,17 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, 
 
                   {/* Top Badges */}
                   <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-black/60 text-white backdrop-blur-md">
-                      {product.calories} kkal
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-black/60 text-white backdrop-blur-md">
+                        {product.calories} kkal
+                      </span>
+                      {top10PopularIds.has(product.id) && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5">
+                          <Flame className="h-3 w-3 fill-white" />
+                          {t.top10Badge || "Top 10"}
+                        </span>
+                      )}
+                    </div>
 
                     {hasDiscount && (
                       <span className="text-[10px] font-black px-1.5 py-0.5 rounded-lg bg-red-600 text-white shadow-xs">

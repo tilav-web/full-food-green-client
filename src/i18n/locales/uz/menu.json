@@ -37,5 +37,10 @@
   "selectedInCart": "Savatda tanlangan",
   "goToCart": "Savatga o'tish",
   "viewPromo": "Aksiyani ko'rish",
-  "diet100": "100% Parhezbop"
+  "diet100": "100% Parhezbop",
+  "popularDishes": "Ommabop",
+  "top10Badge": "Top 10",
+  "top10Filter": "Top 10 Taomlar",
+  "mostSoldTitle": "Eng ko'p sotilayotgan taomlar",
+  "soldCountLabel": "ta sotilgan"
 }
