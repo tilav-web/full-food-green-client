@@ -33,21 +33,17 @@ export const MainLayout: React.FC = () => {
 
       {/* Dynamic Page Content container: wide max-w-[1750px] for POS/Admin, max-w-4xl for Telegram Mini App */}
       <main
-        className={`flex-1 mx-auto w-full ${
+        className={`flex-1 mx-auto w-full pb-28 ${
           isWidePage
-            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2.5 pb-24 lg:pb-10"
-            : "max-w-4xl px-3 sm:px-6 lg:px-8 py-4 pb-24"
+            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2.5"
+            : "max-w-4xl px-3 sm:px-6 lg:px-8 py-4"
         }`}
       >
         <Outlet />
       </main>
 
-      {/* Persistent Bottom Navigation Bar for mobile (hidden on desktop for wide workstation pages) */}
-      {!isFullScreenStaff && (
-        <div className={isWidePage ? "lg:hidden" : ""}>
-          <BottomNav />
-        </div>
-      )}
+      {/* Persistent Bottom Navigation Bar for all pages across all devices */}
+      {!isFullScreenStaff && <BottomNav />}
 
       <footer className="hidden md:block border-t border-neutral-200 dark:border-neutral-800 py-6 text-center text-xs text-neutral-400 mb-16">
         <p>&copy; {new Date().getFullYear()} FullFood — Mazali va Sifatli Taomlar Restorani.</p>

@@ -1,17 +1,8 @@
 import React from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import {
   ShoppingBag,
   Leaf,
-  BarChart3,
-  UtensilsCrossed,
-  Layers,
-  Users,
-  UserCheck,
-  Store,
-  Receipt,
-  PackagePlus,
-  User as UserIcon,
   Moon,
   Sun,
 } from "lucide-react"
@@ -29,7 +20,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
   const { t } = useTranslation()
   const { triggerHaptic } = useTelegram()
   const navigate = useNavigate()
-  const location = useLocation()
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
   const isCustomer = !user || user.role === "USER"
@@ -46,33 +36,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
       navigate("/menu")
     }
   }
-
-  // Navigation Links for Desktop Top Navbar
-  const adminNavLinks = [
-    { path: "/admin?tab=STATS", label: "Statistika", icon: BarChart3, active: location.pathname.startsWith("/admin") && location.search.includes("tab=STATS") },
-    { path: "/admin?tab=PRODUCTS", label: "Taomlar", icon: UtensilsCrossed, active: location.pathname.startsWith("/admin") && location.search.includes("tab=PRODUCTS") },
-    { path: "/admin?tab=CATALOG", label: "Katalog", icon: Layers, active: location.pathname.startsWith("/admin") && location.search.includes("tab=CATALOG") },
-    { path: "/admin?tab=USERS", label: "Mijozlar", icon: UserCheck, active: location.pathname.startsWith("/admin") && location.search.includes("tab=USERS") },
-    { path: "/admin?tab=STAFF", label: "Xodimlar", icon: Users, active: location.pathname.startsWith("/admin") && location.search.includes("tab=STAFF") },
-    { path: "/cashier?tab=POS", label: "Zal POS", icon: Store, active: location.pathname.startsWith("/cashier") && location.search.includes("tab=POS") },
-    { path: "/cashier?tab=ORDERS", label: "Buyurtmalar", icon: Receipt, active: location.pathname.startsWith("/cashier") && (location.search.includes("tab=ORDERS") || !location.search) },
-    { path: "/profile", label: "Boshqaruv", icon: UserIcon, active: location.pathname.startsWith("/profile") },
-  ]
-
-  const cashierNavLinks = [
-    { path: "/cashier?tab=POS", label: "Zal POS", icon: Store, active: location.pathname.startsWith("/cashier") && location.search.includes("tab=POS") },
-    { path: "/cashier?tab=ORDERS", label: "Buyurtmalar", icon: Receipt, active: location.pathname.startsWith("/cashier") && (location.search.includes("tab=ORDERS") || !location.search) },
-    { path: "/cashier?tab=KIRIM", label: "Kirim Qabul", icon: PackagePlus, active: location.pathname.startsWith("/cashier") && location.search.includes("tab=KIRIM") },
-    { path: "/profile", label: "Profil", icon: UserIcon, active: location.pathname.startsWith("/profile") },
-  ]
-
-  const customerNavLinks = [
-    { path: "/menu", label: "Menyu", icon: UtensilsCrossed, active: location.pathname === "/menu" || location.pathname === "/" },
-    { path: "/orders", label: "Buyurtmalarim", icon: Receipt, active: location.pathname.startsWith("/orders") },
-    { path: "/profile", label: "Profil", icon: UserIcon, active: location.pathname.startsWith("/profile") },
-  ]
-
-  const currentNavLinks = isAdmin ? adminNavLinks : isCashier ? cashierNavLinks : customerNavLinks
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200/80 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md shadow-xs safe-area-top">
@@ -96,31 +59,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
             </p>
           </div>
         </div>
-
-        {/* Desktop Navigation Links (Center) */}
-        <nav className="hidden md:flex items-center gap-1 overflow-x-auto py-1 scrollbar-none">
-          {currentNavLinks.map((link) => {
-            const Icon = link.icon
-            return (
-              <button
-                key={link.path}
-                type="button"
-                onClick={() => {
-                  triggerHaptic("light")
-                  navigate(link.path)
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  link.active
-                    ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-black border border-emerald-200 dark:border-emerald-800 shadow-2xs"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span>{link.label}</span>
-              </button>
-            )
-          })}
-        </nav>
 
         {/* Right actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
