@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 import {
   ShoppingBag,
   Trash2,
@@ -401,8 +402,8 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   }
 
   const containerPrice = Number(getSetting("container_price", "2000")) || 2000
-  const packedContainersCount = containers.filter((c) => c.items.length > 0).length
-  const packagingFee = hasPackableDishes ? packedContainersCount * containerPrice : 0
+  // Single fixed container price rule: if order has ANY dish with level > 0, charge exactly 1 container fee
+  const packagingFee = hasPackableDishes ? containerPrice : 0
 
   const cardNumber = getSetting("card_number", "9860 1001 2517 4530")
   const cardHolder = getSetting("card_holder", "SHAHRIZOD XALIMOV")
@@ -441,7 +442,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       setIsWaitingAuth(true)
     } catch (err) {
       console.error(err)
-      alert("Telegram orqali tasdiqlashni ochishda xatolik")
+      toast.error("Telegram orqali tasdiqlashni ochishda xatolik")
     }
   }
 
@@ -498,7 +499,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
   const handleCreateOrder = async () => {
     if (!isUserVerified || !user?.phone) {
-      alert("Buyurtma berish uchun avval Telegram orqali telefon raqamingizni tasdiqlang!")
+      toast.warning("Buyurtma berish uchun avval Telegram orqali telefon raqamingizni tasdiqlang!")
       handleStartTelegramAuth()
       return
     }
@@ -544,6 +545,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       setCreatedOrder(res.data)
       setCurrentActiveOrder(res.data)
       clearCart()
+      toast.success("Buyurtmangiz muvaffaqiyatli qabul qilindi!")
       if (selectedPaymentMethod === "BALANCE") {
         setStep("SUCCESS")
       } else {
@@ -551,7 +553,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       }
     } catch (err: any) {
       console.error(err)
-      alert("Buyurtma yaratishda xatolik yuz berdi: " + (err.response?.data?.message || err.message))
+      toast.error("Buyurtma yaratishda xatolik yuz berdi: " + (err.response?.data?.message || err.message))
     } finally {
       setIsSubmitting(false)
     }
@@ -577,10 +579,11 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       })
 
       triggerHaptic("success")
+      toast.success("To'lov cheki muvaffaqiyatli yuklandi!")
       setStep("SUCCESS")
     } catch (err) {
       console.error(err)
-      alert("Chekni yuklashda xatolik yuz berdi")
+      toast.error("Chekni yuklashda xatolik yuz berdi")
     } finally {
       setIsUploading(false)
     }
@@ -1059,15 +1062,23 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   </span>
                 </div>
 
-                {packagingFee > 0 && (
+                {hasPackableDishes ? (
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                       <Package className="h-3.5 w-3.5" />
-                      {t.packagingFee || "Qadoqlash narxi"} ({packedContainersCount} {t.containerUnit || "ta qadoq"} x {containerPrice.toLocaleString()} {t.currency || "so'm"}):
+                      Qadoqlash narxi:
                     </span>
                     <span className="font-bold text-amber-700 dark:text-amber-400">
                       +{packagingFee.toLocaleString()} {t.currency || "so'm"}
                     </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                    <span className="flex items-center gap-1.5">
+                      <Package className="h-3.5 w-3.5 text-neutral-400" />
+                      Qadoqlash narxi:
+                    </span>
+                    <span className="font-bold text-emerald-600">0 {t.currency || "so'm"} (Qadoqsiz)</span>
                   </div>
                 )}
 
@@ -1081,15 +1092,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 <Button
                   onClick={() => {
                     triggerHaptic("medium")
-                    const hasUnallocatedFood = cart.some(
-                      (item) => getItemPackagingLevel(item) > 0 && getUnallocatedCount(item.id, item.quantity) > 0
-                    )
-                    const needsPackaging = cart.some((item) => getItemPackagingLevel(item) > 0)
-                    if (needsPackaging && (containers.length === 0 || hasUnallocatedFood)) {
-                      triggerHaptic("error")
-                      setShowUnallocatedModal(true)
-                      return
-                    }
                     setStep("LOCATION")
                   }}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold py-3 text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-98"
@@ -1465,13 +1467,21 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 </span>
               </div>
 
-              {packagingFee > 0 && (
+              {hasPackableDishes ? (
                 <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 font-semibold">
                   <span className="flex items-center gap-1.5">
                     <Package className="h-3.5 w-3.5" />
-                    {t.packagingFee || "Qadoqlash idishlari"}:
+                    Qadoqlash narxi:
                   </span>
                   <span className="font-bold">+{packagingFee.toLocaleString()} {t.currency}</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-neutral-400 font-medium text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5" />
+                    Qadoqlash narxi:
+                  </span>
+                  <span className="text-emerald-600 font-semibold">0 {t.currency} (Qadoqsiz)</span>
                 </div>
               )}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { apiClient } from "@/api/axios"
 import { socket } from "@/api/socket"
 import {
@@ -180,11 +181,11 @@ export const AdminView: React.FC = () => {
       })
       await refetchAppSettings()
       triggerHaptic("success")
-      alert((t as any).priceSavedSuccess || "Qadoqlash (idish) narxi muvaffaqiyatli saqlandi!")
+      toast.success((t as any).priceSavedSuccess || "Qadoqlash (idish) narxi muvaffaqiyatli saqlandi!")
     } catch (err) {
       console.error(err)
       triggerHaptic("error")
-      alert("Error saving settings")
+      toast.error("Sozlamalarni saqlashda xatolik yuz berdi")
     } finally {
       setIsSavingContainerPrice(false)
     }
@@ -462,7 +463,7 @@ export const AdminView: React.FC = () => {
       triggerHaptic("success")
     } catch (err) {
       console.error(err)
-      alert("Kategoriyani saqlashda xatolik yuz berdi")
+      toast.error("Kategoriyani saqlashda xatolik yuz berdi")
     }
   }
 
@@ -483,9 +484,10 @@ export const AdminView: React.FC = () => {
       await queryClient.invalidateQueries({ queryKey: ["categories"] })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       await queryClient.invalidateQueries({ queryKey: ["adminProducts"] })
+      toast.success("Kategoriya muvaffaqiyatli o'chirildi")
     } catch (err) {
       console.error(err)
-      alert("Kategoriyani o'chirishda xatolik")
+      toast.error("Kategoriyani o'chirishda xatolik")
     }
   }
 
@@ -495,9 +497,10 @@ export const AdminView: React.FC = () => {
       triggerHaptic("medium")
       await apiClient.delete(`/units/${id}`)
       await refetchUnits()
+      toast.success("Birlik muvaffaqiyatli o'chirildi")
     } catch (err) {
       console.error(err)
-      alert("Birlikni o'chirishda xatolik")
+      toast.error("Birlikni o'chirishda xatolik")
     }
   }
 
@@ -516,8 +519,9 @@ export const AdminView: React.FC = () => {
       setShowUnitDropdown(false)
       setQuickUnitName("")
       setQuickUnitShort("")
+      toast.success("Yangi birlik qo'shildi")
     } catch (err) {
-      alert("O'lchov birligi yaratishda xatolik")
+      toast.error("O'lchov birligi yaratishda xatolik")
     }
   }
 
@@ -525,7 +529,7 @@ export const AdminView: React.FC = () => {
   const handleAddProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newProductName.trim()) {
-      alert("Iltimos, taom nomini kiriting")
+      toast.warning("Iltimos, taom nomini kiriting")
       return
     }
 
@@ -556,9 +560,10 @@ export const AdminView: React.FC = () => {
       setShowAddProduct(false)
       setEditingProductId(null)
       resetProductForm()
+      toast.success(editingProductId ? "Taom yangilandi" : "Yangi taom saqlandi")
     } catch (err) {
       console.error(err)
-      alert("Taomni saqlashda xatolik")
+      toast.error("Taomni saqlashda xatolik yuz berdi")
     }
   }
 
@@ -607,8 +612,9 @@ export const AdminView: React.FC = () => {
     try {
       await apiClient.delete(`/products/${id}`)
       refetchProducts()
+      toast.success("Taom muvaffaqiyatli o'chirildi")
     } catch (err) {
-      alert("Taomni o'chirishda xatolik")
+      toast.error("Taomni o'chirishda xatolik")
     }
   }
 
@@ -644,7 +650,7 @@ export const AdminView: React.FC = () => {
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!bannerTitle.trim()) {
-      alert("Banner sarlavhasini kiriting")
+      toast.warning("Banner sarlavhasini kiriting")
       return
     }
     const computedSlug = generateSlug(bannerTitle)
@@ -819,7 +825,7 @@ export const AdminView: React.FC = () => {
     e.preventDefault()
     if (!selectedBannerForItems) return
     if (!promoItemName.trim()) {
-      alert("Iltimos, taom nomini kiriting")
+      toast.warning("Iltimos, taom nomini kiriting")
       return
     }
 
@@ -857,9 +863,10 @@ export const AdminView: React.FC = () => {
       setShowAddPromoItemModal(false)
       setEditingPromoItemId(null)
       triggerHaptic("success")
+      toast.success("Aksiya taomi saqlandi")
     } catch (err) {
       console.error(err)
-      alert("Aksiya mahsulotini saqlashda xatolik")
+      toast.error("Aksiya mahsulotini saqlashda xatolik")
     }
   }
 
@@ -879,9 +886,10 @@ export const AdminView: React.FC = () => {
       triggerHaptic("medium")
       await apiClient.delete(`/banners/${id}`)
       await refetchBanners()
+      toast.success("Banner o'chirildi")
     } catch (err) {
       console.error(err)
-      alert("O'chirishda xatolik")
+      toast.error("O'chirishda xatolik")
     }
   }
 
@@ -898,11 +906,11 @@ export const AdminView: React.FC = () => {
     e.preventDefault()
     if (!editingStaff) return
     if (!editStaffFullName.trim()) {
-      alert("Iltimos, ism-sharifni kiriting")
+      toast.warning("Iltimos, ism-sharifni kiriting")
       return
     }
     if (!editStaffUsername.trim()) {
-      alert("Iltimos, login (username)ni kiriting")
+      toast.warning("Iltimos, login (username)ni kiriting")
       return
     }
 
@@ -915,7 +923,7 @@ export const AdminView: React.FC = () => {
       }
       if (editStaffPassword.trim()) {
         if (editStaffPassword.trim().length < 4) {
-          alert("Parol kamida 4 ta belgidan iborat bo'lishi kerak")
+          toast.warning("Parol kamida 4 ta belgidan iborat bo'lishi kerak")
           setIsUpdatingStaff(false)
           return
         }
@@ -924,12 +932,12 @@ export const AdminView: React.FC = () => {
 
       await apiClient.patch(`/users/${editingStaff.id}/credentials`, payload)
       triggerHaptic("success")
-      alert("Ma'lumotlar muvaffaqiyatli yangilandi!")
+      toast.success("Ma'lumotlar muvaffaqiyatli yangilandi!")
       setEditingStaff(null)
       refetchStaff()
     } catch (err: any) {
       console.error(err)
-      alert(err?.response?.data?.message || "Yangilashda xatolik yuz berdi")
+      toast.error(err?.response?.data?.message || "Yangilashda xatolik yuz berdi")
     } finally {
       setIsUpdatingStaff(false)
     }
@@ -941,10 +949,10 @@ export const AdminView: React.FC = () => {
       triggerHaptic("medium")
       await apiClient.delete(`/users/${id}`)
       refetchStaff()
-      alert("Xodim muvaffaqiyatli o'chirildi")
+      toast.success("Xodim muvaffaqiyatli o'chirildi")
     } catch (err) {
       console.error(err)
-      alert("O'chirishda xatolik yuz berdi")
+      toast.error("O'chirishda xatolik yuz berdi")
     }
   }
 
@@ -2866,13 +2874,13 @@ export const AdminView: React.FC = () => {
                     {/* Keltirilgan narxi (Tannarx / COGS) */}
                     <div>
                       <label className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                        <span>Keltirilgan narxi (Tannarxi):</span>
+                        <span>Tannarxi:</span>
                       </label>
                       <div className="relative mt-1">
                         <input
                           type="number"
                           value={newProductCostPrice}
-                          placeholder="Masalan: 20000"
+                          placeholder="0"
                           onChange={(e) => setNewProductCostPrice(e.target.value)}
                           className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 outline-none pr-10"
                         />
@@ -2977,17 +2985,17 @@ export const AdminView: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-black text-amber-950 dark:text-amber-300 flex items-center gap-1.5">
                       <Package className="h-4 w-4 text-amber-600" />
-                      <span>{(t as any).packagingLevelLabel || "Qadoqlash Sig'im Darajasi (0 dan 5 gacha)"}</span>
+                      <span>Qadoqlash (Idish talabi)</span>
                     </label>
                     <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
                       {newProductPackagingLevel === 0
-                        ? ((t as any).drinkNoPackaging || "0 (qadoqsiz / ichimlik)")
-                        : `${newProductPackagingLevel} / 5 ${(t as any).points || "ball"}`}
+                        ? "0 (idishsiz / ichimlik)"
+                        : `${newProductPackagingLevel} ball (qadoqli taom)`}
                     </span>
                   </div>
 
                   <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                    {(t as any).packagingLevelDesc || "Bitta idishning umumiy sig'imi 5 ball. Masalan: 2 ball bo'lsa, bitta idishga bu taomdan 2 ta sig'adi (2+2=4). 0 ball — idish talab qilmaydi (ichimliklar)."}
+                    0 — idish talab qilmaydi (ichimliklar). 1 va undan yuqori — buyurtmada nechta bo'lishidan qat'iy nazar, butun buyurtmaga bitta qadoqlash idishi narxi qo'shiladi.
                   </p>
 
                   <div className="grid grid-cols-6 gap-1.5 pt-1">
@@ -3004,7 +3012,7 @@ export const AdminView: React.FC = () => {
                       >
                         <span>{lvl === 0 ? "0" : `${lvl}`}</span>
                         <span className="text-[9px] font-medium opacity-80">
-                          {lvl === 0 ? ((t as any).noPackagingLevel || "Ichimlik") : lvl === 5 ? "100%" : `${lvl * 20}%`}
+                          {lvl === 0 ? "Ichimlik" : "Idishli"}
                         </span>
                       </button>
                     ))}

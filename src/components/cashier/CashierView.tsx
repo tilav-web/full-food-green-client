@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { apiClient } from "@/api/axios"
 import {
   Receipt,
@@ -460,10 +461,10 @@ export const CashierView: React.FC = () => {
     onSuccess: () => {
       triggerHaptic("success")
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
-      alert("Mijoz balansidan to'lov muvaffaqiyatli yechildi va buyurtma tasdiqlandi!")
+      toast.success("Mijoz balansidan to'lov muvaffaqiyatli yechildi va buyurtma tasdiqlandi!")
     },
     onError: (err: any) => {
-      alert("Xatolik: " + (err.response?.data?.message || err.message))
+      toast.error("Xatolik: " + (err.response?.data?.message || err.message))
     },
   })
 
@@ -480,7 +481,7 @@ export const CashierView: React.FC = () => {
       setSearchParams(next)
     } catch (err) {
       console.error(err)
-      alert("Yandex Taxi chaqirishda xatolik yuz berdi")
+      toast.error("Yandex Taxi chaqirishda xatolik yuz berdi")
     } finally {
       setIsDispatchingYandex(false)
     }
@@ -526,10 +527,10 @@ export const CashierView: React.FC = () => {
       setPosPaymentMethod("CASH")
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
       queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
-      alert("POS Buyurtma muvaffaqiyatli saqlandi!")
+      toast.success("POS Buyurtma muvaffaqiyatli saqlandi!")
     } catch (err: any) {
       console.error(err)
-      alert("Xatolik yuz berdi: " + (err.response?.data?.message || err.message))
+      toast.error("Xatolik yuz berdi: " + (err.response?.data?.message || err.message))
     }
   }
 
@@ -537,7 +538,7 @@ export const CashierView: React.FC = () => {
   const handleKirimSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!kirimProductId || kirimQty <= 0) {
-      alert("Mahsulot va miqdorni tanlang")
+      toast.warning("Mahsulot va miqdorni tanlang")
       return
     }
 
@@ -553,11 +554,11 @@ export const CashierView: React.FC = () => {
 
       triggerHaptic("success")
       refetchProducts()
-      alert("Kirim muvaffaqiyatli qabul qilindi!")
+      toast.success("Kirim muvaffaqiyatli qabul qilindi!")
       setKirimQty(20)
     } catch (err) {
       console.error(err)
-      alert("Kirimda xatolik")
+      toast.error("Kirimda xatolik yuz berdi")
     } finally {
       setIsSubmittingKirim(false)
     }
@@ -1247,63 +1248,71 @@ export const CashierView: React.FC = () => {
               </div>
             </div>
 
-            {/* Category Filter Pills (Fast Touch-Friendly for Cashiers) */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {/* Category Filter Square Cards with Photos (Mobile-Friendly & Touch-Optimized for POS) */}
+            <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
+              {/* Card 1: Barchasi */}
               <button
                 type="button"
                 onClick={() => setPosSelectedCategory("ALL")}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
+                className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none snap-start ${
                   posSelectedCategory === "ALL"
-                    ? "bg-emerald-600 text-white shadow-emerald-600/20 shadow-md"
-                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500"
-                }`}
+                    ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
+                    : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-90 hover:opacity-100"
+                } bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 text-white`}
               >
-                <Layers className="h-3.5 w-3.5" />
-                <span>Barchasi</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    posSelectedCategory === "ALL"
-                      ? "bg-white/25 text-white"
-                      : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
-                  }`}
-                >
-                  {products.length}
-                </span>
+                <div className="flex items-center justify-between w-full">
+                  <div className="h-6 w-6 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
+                    <Layers className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md font-black">
+                    {products.length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs sm:text-sm font-black block leading-tight">
+                    Barchasi
+                  </span>
+                  <span className="text-[9px] text-white/75 font-medium hidden sm:block">
+                    Barcha taomlar
+                  </span>
+                </div>
               </button>
 
+              {/* Card 2: Ommabop (Top 10) */}
               <button
                 type="button"
                 onClick={() => setPosSelectedCategory("POPULAR")}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
+                className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none snap-start ${
                   posSelectedCategory === "POPULAR"
-                    ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-rose-500/25 shadow-md ring-2 ring-rose-400/40"
-                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:border-rose-400"
-                }`}
+                    ? "ring-3 ring-rose-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-rose-600/30 scale-[1.02]"
+                    : "border border-neutral-200/80 dark:border-neutral-800 hover:border-rose-400 opacity-90 hover:opacity-100"
+                } bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 text-white`}
               >
-                <Flame
-                  className={`h-3.5 w-3.5 ${
-                    posSelectedCategory === "POPULAR"
-                      ? "text-white fill-white"
-                      : "text-amber-500 fill-amber-500"
-                  }`}
-                />
-                <span>Ommabop</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    posSelectedCategory === "POPULAR"
-                      ? "bg-white/25 text-white"
-                      : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300"
-                  }`}
-                >
-                  Top 10
-                </span>
+                <div className="flex items-center justify-between w-full">
+                  <div className="h-6 w-6 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
+                    <Flame className="h-3.5 w-3.5 text-white fill-white" />
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md font-black">
+                    Top 10
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs sm:text-sm font-black block leading-tight">
+                    Ommabop
+                  </span>
+                  <span className="text-[9px] text-white/75 font-medium hidden sm:block">
+                    Xaridorgir
+                  </span>
+                </div>
               </button>
 
+              {/* Category Cards with Photos */}
               {orderedCategories.map((c, index) => {
                 const count = products.filter((p) => p.categoryId === c.id).length
                 const isSelected = posSelectedCategory === c.id
                 const isDragging = draggedCatIndex === index
                 const isOver = dragOverCatIndex === index
+
                 return (
                   <button
                     key={c.id}
@@ -1314,28 +1323,45 @@ export const CashierView: React.FC = () => {
                     onDragEnd={handleCategoryDragEnd}
                     onDrop={(e) => handleCategoryDrop(e, index)}
                     onClick={() => setPosSelectedCategory(c.id)}
-                    className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs cursor-grab active:cursor-grabbing select-none group ${
-                      isDragging ? "opacity-30 scale-95 border-dashed border-emerald-500" : ""
+                    className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-pointer snap-start group ${
+                      isDragging ? "opacity-30 scale-95" : ""
                     } ${
-                      isOver ? "ring-2 ring-emerald-500 scale-105 border-dashed border-emerald-500" : ""
+                      isOver ? "ring-2 ring-emerald-500 scale-105" : ""
                     } ${
                       isSelected
-                        ? "bg-emerald-600 text-white shadow-emerald-600/20 shadow-md"
-                        : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500"
+                        ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
+                        : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
                     }`}
-                    title="Surish orqali navbatni o'zgartirish (Drag & Drop)"
                   >
-                    <GripVertical className="h-3 w-3 opacity-30 group-hover:opacity-80 -ml-1 text-neutral-400" />
-                    <span>{c.name}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
-                        isSelected
-                          ? "bg-white/25 text-white"
-                          : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
-                      }`}
-                    >
-                      {count}
-                    </span>
+                    {/* Background Image */}
+                    <img
+                      src={getImageUrl(c.imageUrl)}
+                      alt={c.name}
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                      }}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+
+                    {/* Gradient Overlay for Text Contrast */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none" />
+
+                    {/* Top Row: Drag Handle & Count Badge */}
+                    <div className="relative z-10 flex items-center justify-between w-full">
+                      <div className="opacity-40 group-hover:opacity-100 transition-opacity">
+                        <GripVertical className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md text-white font-black">
+                        {count} ta
+                      </span>
+                    </div>
+
+                    {/* Bottom Label: Category Name */}
+                    <div className="relative z-10">
+                      <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-md truncate">
+                        {c.name}
+                      </span>
+                    </div>
                   </button>
                 )
               })}
