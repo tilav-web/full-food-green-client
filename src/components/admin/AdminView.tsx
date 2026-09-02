@@ -20,6 +20,8 @@ import {
   Users,
   UtensilsCrossed,
   CreditCard,
+  Headphones,
+  Phone,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -213,6 +215,50 @@ export const AdminView: React.FC = () => {
       toast.error("Sozlamalarni saqlashda xatolik yuz berdi")
     } finally {
       setIsSavingContainerPrice(false)
+    }
+  }
+
+  // Support & Contact Settings State
+  const [supportPhoneInput, setSupportPhoneInput] = useState("+998 (71) 200-00-00")
+  const [supportTelegramInput, setSupportTelegramInput] = useState("@fullfoodbot")
+  const [supportHoursInput, setSupportHoursInput] = useState("Har kuni: 09:00 — 23:00")
+  const [isSavingSupportSettings, setIsSavingSupportSettings] = useState(false)
+
+  useEffect(() => {
+    if (appSettings) {
+      const getVal = (key: string) => {
+        return Array.isArray(appSettings)
+          ? appSettings.find((s: any) => s.key === key)?.value
+          : (appSettings as Record<string, string>)[key]
+      }
+      const phone = getVal("support_phone")
+      const tg = getVal("support_telegram")
+      const hours = getVal("support_hours")
+
+      if (phone) setSupportPhoneInput(phone)
+      if (tg) setSupportTelegramInput(tg)
+      if (hours) setSupportHoursInput(hours)
+    }
+  }, [appSettings])
+
+  const handleSaveSupportSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    try {
+      setIsSavingSupportSettings(true)
+      await apiClient.post("/settings", {
+        support_phone: supportPhoneInput.trim(),
+        support_telegram: supportTelegramInput.trim(),
+        support_hours: supportHoursInput.trim(),
+      })
+      await refetchAppSettings()
+      triggerHaptic("success")
+      toast.success("Qo'llab-quvvatlash va aloqa ma'lumotlari muvaffaqiyatli saqlandi!")
+    } catch (err) {
+      console.error(err)
+      triggerHaptic("error")
+      toast.error("Sozlamalarni saqlashda xatolik yuz berdi")
+    } finally {
+      setIsSavingSupportSettings(false)
     }
   }
 
@@ -1249,8 +1295,8 @@ export const AdminView: React.FC = () => {
                   : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900"
               }`}
             >
-              <Package className="h-4 w-4 text-emerald-600" />
-              <span>{(t as any).packagingTab || "Qadoqlash & Narx"}</span>
+              <Headphones className="h-4 w-4 text-emerald-600" />
+              <span>Sozlamalar & Aloqa</span>
             </button>
           </div>
 
@@ -1663,6 +1709,83 @@ export const AdminView: React.FC = () => {
                     {isSavingContainerPrice ? "..." : ((t as any).savePrice || "Narxni Saqlash")}
                   </Button>
                 </div>
+              </div>
+
+              {/* Card 2: Support & Contact Settings */}
+              <div className="rounded-3xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-xs space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <Headphones className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-neutral-900 dark:text-white">
+                      Qo'llab-quvvatlash va Aloqa Sozlamalari
+                    </h3>
+                    <p className="text-xs text-neutral-400">
+                      Mijozlar profilidagi "Qo'llab-quvvatlash" oynasida chiqadigan telefon, Telegram bot va ish vaqti
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveSupportSettings} className="space-y-3.5 max-w-lg">
+                  <div>
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block mb-1">
+                      Telefon raqamimiz:
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                      <input
+                        type="text"
+                        value={supportPhoneInput}
+                        onChange={(e) => setSupportPhoneInput(e.target.value)}
+                        placeholder="+998 (71) 200-00-00"
+                        className="w-full text-xs font-bold pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block mb-1">
+                      Telegram Support Bot yoki Username:
+                    </label>
+                    <div className="relative">
+                      <Send className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                      <input
+                        type="text"
+                        value={supportTelegramInput}
+                        onChange={(e) => setSupportTelegramInput(e.target.value)}
+                        placeholder="@fullfoodbot"
+                        className="w-full text-xs font-bold pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block mb-1">
+                      Ish vaqti:
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                      <input
+                        type="text"
+                        value={supportHoursInput}
+                        onChange={(e) => setSupportHoursInput(e.target.value)}
+                        placeholder="Har kuni: 09:00 — 23:00"
+                        className="w-full text-xs font-bold pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <Button
+                      type="submit"
+                      disabled={isSavingSupportSettings}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold px-5 py-2.5 shadow-md shadow-emerald-600/20 active:scale-98"
+                    >
+                      {isSavingSupportSettings ? "..." : "Aloqa Ma'lumotlarini Saqlash"}
+                    </Button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

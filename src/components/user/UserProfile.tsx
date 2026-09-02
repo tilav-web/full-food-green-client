@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Phone,
@@ -73,11 +74,10 @@ export const UserProfile: React.FC = () => {
   const [editCardBank, setEditCardBank] = useState("")
   const [isSavingCard, setIsSavingCard] = useState(false)
 
-  // Fetch Settings for Admin Profile
+  // Fetch Settings for Profile & Support (Available for all users)
   const { data: settings = {}, refetch: refetchSettings } = useQuery({
     queryKey: ["appSettings"],
     queryFn: async () => (await apiClient.get("/settings")).data,
-    enabled: user?.role === "ADMIN",
   })
 
   // Fetch latest user details to sync balance
@@ -107,10 +107,10 @@ export const UserProfile: React.FC = () => {
       await refetchSettings()
       triggerHaptic("success")
       setShowCardSheet(false)
-      alert("To'lov kartasi ma'lumotlari muvaffaqiyatli saqlandi!")
+      toast.success("To'lov kartasi ma'lumotlari muvaffaqiyatli saqlandi!")
     } catch (err) {
       triggerHaptic("error")
-      alert("Sozlamalarni saqlashda xatolik yuz berdi")
+      toast.error("Sozlamalarni saqlashda xatolik yuz berdi")
     } finally {
       setIsSavingCard(false)
     }
@@ -666,6 +666,30 @@ export const UserProfile: React.FC = () => {
                     </div>
                     <ChevronRight className="h-4 w-4 text-neutral-400" />
                   </div>
+
+                  {/* Qo'llab-quvvatlash va Aloqa Sozlamalari */}
+                  <div
+                    onClick={() => {
+                      triggerHaptic("light")
+                      navigate("/admin?tab=CATALOG&sub=SETTINGS")
+                    }}
+                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                        <Headphones className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
+                          Qo'llab-quvvatlash va Aloqa Sozlamalari
+                        </h4>
+                        <p className="text-[10px] text-neutral-400">
+                          {settings["support_phone"] || "+998 (71) 200-00-00"} • {settings["support_telegram"] || "@fullfoodbot"}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-neutral-400" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -740,31 +764,29 @@ export const UserProfile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Support & Contact Sheet (ONLY FOR REGULAR CUSTOMERS) */}
-              {(!user || user.role === "USER") && (
-                <div
-                  onClick={() => {
-                    triggerHaptic("light")
-                    setShowSupportSheet(true)
-                  }}
-                  className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
-                      <Headphones className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                        Qo'llab-quvvatlash va Aloqa
-                      </h4>
-                      <p className="text-[10px] text-neutral-400">
-                        Restoran bilan bog'lanish va savollar
-                      </p>
-                    </div>
+              {/* Support & Contact Sheet */}
+              <div
+                onClick={() => {
+                  triggerHaptic("light")
+                  setShowSupportSheet(true)
+                }}
+                className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                    <Headphones className="h-5 w-5" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
+                  <div>
+                    <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
+                      Qo'llab-quvvatlash va Aloqa
+                    </h4>
+                    <p className="text-[10px] text-neutral-400">
+                      Restoran bilan bog'lanish va savollar
+                    </p>
+                  </div>
                 </div>
-              )}
+                <ChevronRight className="h-4 w-4 text-neutral-400" />
+              </div>
 
               {/* If guest on web, show Staff Login Link */}
               {!user && (
@@ -1115,40 +1137,70 @@ export const UserProfile: React.FC = () => {
               </div>
 
               <div className="space-y-3 text-xs">
+                {/* Telefon */}
                 <div className="p-3.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800 space-y-1">
                   <span className="text-[10px] text-neutral-400 font-bold block uppercase">
                     Telefon raqamimiz:
                   </span>
-                  <a
-                    href="tel:+998712000000"
-                    className="font-bold text-sm text-emerald-600 block hover:underline"
-                  >
-                    +998 (71) 200-00-00
-                  </a>
+                  {(() => {
+                    const phone = settings["support_phone"] || "+998 (71) 200-00-00"
+                    const cleanPhone = phone.replace(/[^\d+]/g, "")
+                    return (
+                      <a
+                        href={`tel:${cleanPhone}`}
+                        className="font-bold text-sm text-emerald-600 block hover:underline"
+                      >
+                        {phone}
+                      </a>
+                    )
+                  })()}
                 </div>
 
+                {/* Telegram Bot */}
                 <div className="p-3.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800 space-y-1">
                   <span className="text-[10px] text-neutral-400 font-bold block uppercase">
                     Telegram Support Bot:
                   </span>
-                  <a
-                    href="https://t.me/fullfoodbot"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-bold text-xs text-blue-600 flex items-center gap-1 hover:underline"
-                  >
-                    <Send className="h-3.5 w-3.5" /> @fullfoodbot
-                  </a>
+                  {(() => {
+                    const tg = settings["support_telegram"] || "@fullfoodbot"
+                    const cleanHandle = tg.replace("@", "").trim()
+                    const tgUrl = tg.startsWith("http") ? tg : `https://t.me/${cleanHandle}`
+                    return (
+                      <a
+                        href={tgUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold text-xs text-blue-600 flex items-center gap-1 hover:underline"
+                      >
+                        <Send className="h-3.5 w-3.5" /> {tg.startsWith("@") ? tg : `@${tg}`}
+                      </a>
+                    )
+                  })()}
                 </div>
 
+                {/* Ish vaqti */}
                 <div className="p-3.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800 space-y-1">
                   <span className="text-[10px] text-neutral-400 font-bold block uppercase">
                     Ish vaqti:
                   </span>
                   <p className="font-bold text-neutral-900 dark:text-white flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-amber-500" /> Har kuni: 09:00 — 23:00
+                    <Clock className="h-3.5 w-3.5 text-amber-500" /> {settings["support_hours"] || "Har kuni: 09:00 — 23:00"}
                   </p>
                 </div>
+
+                {user?.role === "ADMIN" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSupportSheet(false)
+                      navigate("/admin?tab=CATALOG&sub=SETTINGS")
+                    }}
+                    className="w-full text-emerald-600 border-emerald-300 dark:border-emerald-800 rounded-xl font-bold text-xs py-2 gap-1.5 mt-1"
+                  >
+                    <Headphones className="h-3.5 w-3.5" />
+                    <span>Ushbu ma'lumotlarni tahrirlash (Admin)</span>
+                  </Button>
+                )}
 
                 <Button
                   onClick={() => setShowSupportSheet(false)}
