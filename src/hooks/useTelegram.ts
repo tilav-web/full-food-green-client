@@ -123,10 +123,15 @@ export function useTelegram() {
     }
   }, [setUser, theme])
 
-  // Closing confirmation toggle when cart is not empty
+  // Closing confirmation toggle when cart is not empty (Telegram WebApp 6.2+)
   useEffect(() => {
     const webapp = window.Telegram?.WebApp
-    if (webapp && typeof webapp.enableClosingConfirmation === "function") {
+    if (
+      webapp &&
+      typeof webapp.isVersionAtLeast === "function" &&
+      webapp.isVersionAtLeast("6.2") &&
+      typeof webapp.enableClosingConfirmation === "function"
+    ) {
       if (cart.length > 0) {
         webapp.enableClosingConfirmation()
       } else {

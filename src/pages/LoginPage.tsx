@@ -43,13 +43,22 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     if (user) {
       if (user.role === "ADMIN") {
-        navigate("/admin", { replace: true })
+        navigate("/admin?tab=STATS", { replace: true })
       } else if (user.role === "CASHIER") {
-        navigate("/cashier", { replace: true })
-      } else if (fromPath && fromPath !== "/login") {
-        navigate(fromPath, { replace: true })
+        navigate("/cashier?tab=POS", { replace: true })
       } else {
-        navigate("/menu", { replace: true })
+        // Regular USER should not be bounced back to restricted staff routes
+        const isRestrictedPath =
+          fromPath &&
+          (fromPath.startsWith("/admin") ||
+            fromPath.startsWith("/cashier") ||
+            fromPath.startsWith("/pos"))
+
+        if (fromPath && fromPath !== "/login" && !isRestrictedPath) {
+          navigate(fromPath, { replace: true })
+        } else {
+          navigate("/menu", { replace: true })
+        }
       }
     }
   }, [user, navigate, fromPath])
