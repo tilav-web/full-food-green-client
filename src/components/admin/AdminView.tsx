@@ -440,7 +440,7 @@ export const AdminView: React.FC = () => {
   }
 
   const [adminDraggedCatIndex, setAdminDraggedCatIndex] = useState<number | null>(null)
-  const [adminDragOverCatIndex, setAdminDragOverCatIndex] = useState<number | null>(null)
+  const [adminDropInsertPosition, setAdminDropInsertPosition] = useState<{ index: number; side: "top" | "bottom" } | null>(null)
 
   const handleAdminCategoryDragStart = (e: React.DragEvent, index: number) => {
     setAdminDraggedCatIndex(index)
@@ -450,30 +450,48 @@ export const AdminView: React.FC = () => {
 
   const handleAdminCategoryDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault()
-    if (adminDragOverCatIndex !== index) {
-      setAdminDragOverCatIndex(index)
+    e.dataTransfer.dropEffect = "move"
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseY = e.clientY - rect.top
+    const side = mouseY < rect.height / 2 ? "top" : "bottom"
+    if (
+      !adminDropInsertPosition ||
+      adminDropInsertPosition.index !== index ||
+      adminDropInsertPosition.side !== side
+    ) {
+      setAdminDropInsertPosition({ index, side })
     }
   }
 
   const handleAdminCategoryDragEnd = () => {
     setAdminDraggedCatIndex(null)
-    setAdminDragOverCatIndex(null)
+    setAdminDropInsertPosition(null)
   }
 
   const handleAdminCategoryDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
-    if (adminDraggedCatIndex === null || adminDraggedCatIndex === targetIndex) {
-      setAdminDraggedCatIndex(null)
-      setAdminDragOverCatIndex(null)
+    if (adminDraggedCatIndex === null) {
+      handleAdminCategoryDragEnd()
+      return
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseY = e.clientY - rect.top
+    const side = mouseY < rect.height / 2 ? "top" : "bottom"
+    const targetSlot = side === "top" ? targetIndex : targetIndex + 1
+
+    const fromIndex = adminDraggedCatIndex
+    if (fromIndex === targetSlot || fromIndex === targetSlot - 1) {
+      handleAdminCategoryDragEnd()
       return
     }
 
     const nextList = [...sortedCategories]
-    const [removed] = nextList.splice(adminDraggedCatIndex, 1)
-    nextList.splice(targetIndex, 0, removed)
+    const [removed] = nextList.splice(fromIndex, 1)
+    const finalIndex = fromIndex < targetSlot ? targetSlot - 1 : targetSlot
+    nextList.splice(finalIndex, 0, removed)
 
-    setAdminDraggedCatIndex(null)
-    setAdminDragOverCatIndex(null)
+    handleAdminCategoryDragEnd()
     handleReorderCategories(nextList)
   }
 
@@ -1324,89 +1342,118 @@ export const AdminView: React.FC = () => {
               <div className="space-y-2">
                 {sortedCategories.map((c, index) => {
                   const isDragging = adminDraggedCatIndex === index
-                  const isOver = adminDragOverCatIndex === index
+                  const showTopIndicator =
+                    adminDropInsertPosition?.index === index &&
+                    adminDropInsertPosition.side === "top" &&
+                    adminDraggedCatIndex !== null &&
+                    adminDraggedCatIndex !== index &&
+                    adminDraggedCatIndex !== index - 1
+                  const showBottomIndicator =
+                    adminDropInsertPosition?.index === index &&
+                    adminDropInsertPosition.side === "bottom" &&
+                    adminDraggedCatIndex !== null &&
+                    adminDraggedCatIndex !== index &&
+                    adminDraggedCatIndex !== index + 1
+
                   return (
-                    <div
-                      key={c.id}
-                      draggable
-                      onDragStart={(e) => handleAdminCategoryDragStart(e, index)}
-                      onDragOver={(e) => handleAdminCategoryDragOver(e, index)}
-                      onDragEnd={handleAdminCategoryDragEnd}
-                      onDrop={(e) => handleAdminCategoryDrop(e, index)}
-                      className={`border bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center justify-between shadow-xs transition-all cursor-grab active:cursor-grabbing select-none ${
-                        isDragging ? "opacity-30 scale-95 border-dashed border-emerald-500" : ""
-                      } ${
-                        isOver
-                          ? "border-emerald-500 ring-2 ring-emerald-500/30 scale-[1.01] border-dashed"
-                          : "border-neutral-200/80 dark:border-neutral-800"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <GripVertical className="h-4 w-4 text-neutral-400 hover:text-neutral-700 flex-shrink-0" />
-                        <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-black text-[11px] flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800">
-                          #{index + 1}
-                        </span>
-                        <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center overflow-hidden border border-emerald-100 dark:border-emerald-900 flex-shrink-0">
-                          {c.imageUrl ? (
-                            <img
-                              src={getImageUrl(c.imageUrl)}
-                              alt={c.name}
-                              onError={(e) => {
-                                ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                              }}
-                              draggable={false}
-                              className="h-full w-full object-cover pointer-events-none select-none"
-                            />
-                          ) : (
-                            <Layers className="h-5 w-5 text-emerald-600" />
-                          )}
+                    <div key={c.id} className="relative">
+                      {/* Top Horizontal Insertion Line */}
+                      {showTopIndicator && (
+                        <div className="absolute -top-1.5 left-2 right-2 z-30 flex items-center pointer-events-none">
+                          <div className="w-full h-1 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/80 animate-pulse flex justify-between items-center px-0.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -ml-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mr-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">{c.name}</h4>
-                          <span className="text-[10px] text-neutral-400">
-                            {c.products?.length || 0} ta taom biriktirilgan
+                      )}
+
+                      <div
+                        draggable
+                        onDragStart={(e) => handleAdminCategoryDragStart(e, index)}
+                        onDragOver={(e) => handleAdminCategoryDragOver(e, index)}
+                        onDragEnd={handleAdminCategoryDragEnd}
+                        onDrop={(e) => handleAdminCategoryDrop(e, index)}
+                        className={`border bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center justify-between shadow-xs transition-all cursor-grab active:cursor-grabbing select-none ${
+                          isDragging ? "opacity-25 scale-98 border-dashed border-emerald-400" : "border-neutral-200/80 dark:border-neutral-800"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pointer-events-none select-none">
+                          <GripVertical className="h-4 w-4 text-neutral-400 flex-shrink-0" />
+                          <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-black text-[11px] flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800">
+                            #{index + 1}
                           </span>
+                          <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center overflow-hidden border border-emerald-100 dark:border-emerald-900 flex-shrink-0">
+                            {c.imageUrl ? (
+                              <img
+                                src={getImageUrl(c.imageUrl)}
+                                alt=""
+                                onError={(e) => {
+                                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                                }}
+                                draggable={false}
+                                className="h-full w-full object-cover pointer-events-none select-none"
+                              />
+                            ) : (
+                              <Layers className="h-5 w-5 text-emerald-600" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">{c.name}</h4>
+                            <span className="text-[10px] text-neutral-400">
+                              {c.products?.length || 0} ta taom biriktirilgan
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            disabled={index === 0}
+                            onClick={() => handleMoveCategoryUp(index)}
+                            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-20 disabled:pointer-events-none transition-colors"
+                            title="Yuqoriga surish"
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            disabled={index === sortedCategories.length - 1}
+                            onClick={() => handleMoveCategoryDown(index)}
+                            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-20 disabled:pointer-events-none transition-colors"
+                            title="Pastga surish"
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenEditCategory(c)}
+                            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                            title="Tahrirlash"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteCategory(c.id)}
+                            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                            title="O'chirish"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </div>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        disabled={index === 0}
-                        onClick={() => handleMoveCategoryUp(index)}
-                        className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-20 disabled:pointer-events-none transition-colors"
-                        title="Yuqoriga surish"
-                      >
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-
-                      <button
-                        disabled={index === sortedCategories.length - 1}
-                        onClick={() => handleMoveCategoryDown(index)}
-                        className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-20 disabled:pointer-events-none transition-colors"
-                        title="Pastga surish"
-                      >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-
-                      <button
-                        onClick={() => handleOpenEditCategory(c)}
-                        className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
-                        title="Tahrirlash"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteCategory(c.id)}
-                        className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                        title="O'chirish"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {/* Bottom Horizontal Insertion Line */}
+                      {showBottomIndicator && (
+                        <div className="absolute -bottom-1.5 left-2 right-2 z-30 flex items-center pointer-events-none">
+                          <div className="w-full h-1 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/80 animate-pulse flex justify-between items-center px-0.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -ml-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mr-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
               </div>
             </div>
           )}

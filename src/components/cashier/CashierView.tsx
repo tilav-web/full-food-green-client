@@ -358,7 +358,7 @@ export const CashierView: React.FC = () => {
   // Ordered POS Categories with Drag and Drop Reordering
   const [orderedCategories, setOrderedCategories] = React.useState<Category[]>([])
   const [draggedCatIndex, setDraggedCatIndex] = React.useState<number | null>(null)
-  const [dragOverCatIndex, setDragOverCatIndex] = React.useState<number | null>(null)
+  const [dropInsertPosition, setDropInsertPosition] = React.useState<{ index: number; side: "left" | "right" } | null>(null)
 
   useEffect(() => {
     if (categories.length > 0) {
@@ -378,34 +378,52 @@ export const CashierView: React.FC = () => {
 
   const handleCategoryDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault()
-    if (dragOverCatIndex !== index) {
-      setDragOverCatIndex(index)
+    e.dataTransfer.dropEffect = "move"
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const side = mouseX < rect.width / 2 ? "left" : "right"
+    if (
+      !dropInsertPosition ||
+      dropInsertPosition.index !== index ||
+      dropInsertPosition.side !== side
+    ) {
+      setDropInsertPosition({ index, side })
     }
   }
 
   const handleCategoryDragEnd = () => {
     setDraggedCatIndex(null)
-    setDragOverCatIndex(null)
+    setDropInsertPosition(null)
   }
 
-  // Instant Optimistic Drop
+  // Instant Insertion-Line Drop
   const handleCategoryDrop = async (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
-    if (draggedCatIndex === null || draggedCatIndex === targetIndex) {
-      setDraggedCatIndex(null)
-      setDragOverCatIndex(null)
+    if (draggedCatIndex === null) {
+      handleCategoryDragEnd()
+      return
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const side = mouseX < rect.width / 2 ? "left" : "right"
+    const targetSlot = side === "left" ? targetIndex : targetIndex + 1
+
+    const fromIndex = draggedCatIndex
+    if (fromIndex === targetSlot || fromIndex === targetSlot - 1) {
+      handleCategoryDragEnd()
       return
     }
 
     const previousOrder = [...orderedCategories]
     const nextCategories = [...orderedCategories]
-    const [draggedItem] = nextCategories.splice(draggedCatIndex, 1)
-    nextCategories.splice(targetIndex, 0, draggedItem)
+    const [draggedItem] = nextCategories.splice(fromIndex, 1)
+    const finalIndex = fromIndex < targetSlot ? targetSlot - 1 : targetSlot
+    nextCategories.splice(finalIndex, 0, draggedItem)
 
-    // INSTANT UI UPDATE: Zero waiting time!
+    // INSTANT UI UPDATE
     setOrderedCategories(nextCategories)
-    setDraggedCatIndex(null)
-    setDragOverCatIndex(null)
+    handleCategoryDragEnd()
     triggerHaptic("medium")
 
     // Update query cache optimistically
@@ -1262,64 +1280,94 @@ export const CashierView: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-2.5 px-1.5 scrollbar-none snap-x">
+              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-2.5 px-2 scrollbar-none snap-x">
                 {orderedCategories.map((c, index) => {
                   const count = products.filter((p) => p.categoryId === c.id).length
                   const isSelected = posSelectedCategory === c.id
                   const isDragging = draggedCatIndex === index
-                  const isOver = dragOverCatIndex === index
+                  const showLeftIndicator =
+                    dropInsertPosition?.index === index &&
+                    dropInsertPosition.side === "left" &&
+                    draggedCatIndex !== null &&
+                    draggedCatIndex !== index &&
+                    draggedCatIndex !== index - 1
+                  const showRightIndicator =
+                    dropInsertPosition?.index === index &&
+                    dropInsertPosition.side === "right" &&
+                    draggedCatIndex !== null &&
+                    draggedCatIndex !== index &&
+                    draggedCatIndex !== index + 1
 
                   return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      draggable
-                      onDragStart={(e) => handleCategoryDragStart(e, index)}
-                      onDragOver={(e) => handleCategoryDragOver(e, index)}
-                      onDragEnd={handleCategoryDragEnd}
-                      onDrop={(e) => handleCategoryDrop(e, index)}
-                      onClick={() => setPosSelectedCategory(c.id)}
-                      className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group my-1 ${
-                        isDragging ? "opacity-30 scale-95" : ""
-                      } ${
-                        isOver ? "ring-2 ring-emerald-500 scale-105" : ""
-                      } ${
-                        isSelected
-                          ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
-                          : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
-                      }`}
-                    >
-                      {/* Background Image - pointer-events-none & draggable={false} ensure full card is draggable */}
-                      <img
-                        src={getImageUrl(c.imageUrl)}
-                        alt=""
-                        draggable={false}
-                        onError={(e) => {
-                          ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                        }}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
-                      />
-
-                      {/* Gradient Overlay for Text Contrast */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none select-none" />
-
-                      {/* Top Row: Drag Handle & Count Badge */}
-                      <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
-                        <div className="opacity-50 group-hover:opacity-100 transition-opacity">
-                          <GripVertical className="h-3.5 w-3.5 text-white" />
+                    <div key={c.id} className="relative shrink-0 flex items-center">
+                      {/* Insertion Line Before (Left) */}
+                      {showLeftIndicator && (
+                        <div className="absolute -left-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
+                          <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                          </div>
                         </div>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md text-white font-black">
-                          {count} ta
-                        </span>
-                      </div>
+                      )}
 
-                      {/* Bottom Label: Category Name */}
-                      <div className="relative z-10 pointer-events-none select-none">
-                        <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-md truncate">
-                          {c.name}
-                        </span>
-                      </div>
-                    </button>
+                      <button
+                        type="button"
+                        draggable
+                        onDragStart={(e) => handleCategoryDragStart(e, index)}
+                        onDragOver={(e) => handleCategoryDragOver(e, index)}
+                        onDragEnd={handleCategoryDragEnd}
+                        onDrop={(e) => handleCategoryDrop(e, index)}
+                        onClick={() => setPosSelectedCategory(c.id)}
+                        className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group my-1 ${
+                          isDragging ? "opacity-25 scale-95 border-2 border-dashed border-emerald-400" : ""
+                        } ${
+                          isSelected
+                            ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
+                            : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
+                        }`}
+                      >
+                        {/* Background Image - pointer-events-none & draggable={false} ensure full card is draggable */}
+                        <img
+                          src={getImageUrl(c.imageUrl)}
+                          alt=""
+                          draggable={false}
+                          onError={(e) => {
+                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                          }}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+                        />
+
+                        {/* Gradient Overlay for Text Contrast */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none select-none" />
+
+                        {/* Top Row: Drag Handle & Count Badge */}
+                        <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
+                          <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+                            <GripVertical className="h-3.5 w-3.5 text-white" />
+                          </div>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md text-white font-black">
+                            {count} ta
+                          </span>
+                        </div>
+
+                        {/* Bottom Label: Category Name */}
+                        <div className="relative z-10 pointer-events-none select-none">
+                          <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-md truncate">
+                            {c.name}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Insertion Line After (Right) */}
+                      {showRightIndicator && (
+                        <div className="absolute -right-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
+                          <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
               </div>
