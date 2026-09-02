@@ -43,12 +43,17 @@ import {
   KeyRound,
   UserPlus,
   GripVertical,
+  Megaphone,
+  CheckSquare,
+  Square,
+  Send,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ImageUploadField } from "@/components/common/ImageUploadField"
+import { BroadcastModal } from "./BroadcastModal"
 import { useTelegram } from "@/hooks/useTelegram"
 import { useTranslation } from "@/i18n/useTranslation"
 import { generateSlug } from "@/utils/slugify"
@@ -197,23 +202,33 @@ export const AdminView: React.FC = () => {
   const [editStaffPassword, setEditStaffPassword] = useState("")
   const [isUpdatingStaff, setIsUpdatingStaff] = useState(false)
 
-  // Users Page Pagination, Search & Role Filter State
+  // Users Page Pagination, Search, Role & Bot Filter State
   const [userPage, setUserPage] = useState(1)
   const [userLimit, setUserLimit] = useState(20)
   const [userSearchQuery, setUserSearchQuery] = useState("")
   const [userRoleFilter, setUserRoleFilter] = useState<"ALL" | "USER" | "CASHIER" | "ADMIN">("ALL")
+  const [userBotFilter, setUserBotFilter] = useState<"ALL" | "ACTIVE" | "BLOCKED">("ALL")
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false)
 
-  const { data: usersResponse, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ["adminUsersPaginated", userPage, userLimit, userSearchQuery, userRoleFilter],
+  const { data: usersResponse, isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery({
+    queryKey: ["adminUsersPaginated", userPage, userLimit, userSearchQuery, userRoleFilter, userBotFilter],
     queryFn: async () => {
       const params: Record<string, any> = {
         page: userPage,
         limit: userLimit,
       }
       if (userRoleFilter !== "ALL") params.role = userRoleFilter
+      if (userBotFilter !== "ALL") params.botStatus = userBotFilter
       if (userSearchQuery.trim()) params.search = userSearchQuery.trim()
       return (await apiClient.get("/users", { params })).data
     },
+  })
+
+  const { refetch: refetchBotStats } = useQuery({
+    queryKey: ["adminBotStats"],
+    queryFn: async () => (await apiClient.get("/bot/stats")).data,
+    enabled: currentPage === "USERS",
   })
 
 
@@ -2240,20 +2255,29 @@ export const AdminView: React.FC = () => {
         return (
           <div className="space-y-4">
             {/* Top Bar */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-xs font-black text-neutral-900 dark:text-white">
-                  Foydalanuvchilar (Mijozlar)
+                <h3 className="text-sm font-black text-neutral-900 dark:text-white flex items-center gap-2">
+                  <Users className="h-4 w-4 text-emerald-600" />
+                  Foydalanuvchilar & Bot Boshqaruvi
                 </h3>
-                <p className="text-[10px] text-neutral-400">
-                  Ro'yxatdan o'tgan mijozlar bazasi
+                <p className="text-[11px] text-neutral-500">
+                  Mijozlar bazasi, bot faolligi va xabarlar tarqatish
                 </p>
               </div>
+
               <div className="flex items-center gap-2">
                 {isLoadingUsers && <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />}
-                <span className="text-xs font-bold text-neutral-400">
-                  Jami <b className="text-neutral-700 dark:text-neutral-200">{counts.all}</b> ta
-                </span>
+                <Button
+                  onClick={() => {
+                    triggerHaptic("medium")
+                    setShowBroadcastModal(true)
+                  }}
+                  className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-md gap-1.5 transition-all"
+                >
+                  <Megaphone className="h-4 w-4" />
+                  <span>Xabar / Reklama Yuborish</span>
+                </Button>
               </div>
             </div>
 
@@ -2283,30 +2307,110 @@ export const AdminView: React.FC = () => {
               )}
             </div>
 
-            {/* Role Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {[
-                { label: `Barchasi (${counts.all})`, value: "ALL" },
-                { label: `Mijozlar (${counts.users})`, value: "USER" },
-                { label: `Kassirlar (${counts.cashiers})`, value: "CASHIER" },
-                { label: `Adminlar (${counts.admins})`, value: "ADMIN" },
-              ].map((rf) => (
+            {/* Filters: Role & Bot Status */}
+            <div className="space-y-2">
+              {/* Role Filters */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mr-1">Rol:</span>
+                {[
+                  { label: `Barchasi (${counts.all})`, value: "ALL" },
+                  { label: `Mijozlar (${counts.users})`, value: "USER" },
+                  { label: `Kassirlar (${counts.cashiers})`, value: "CASHIER" },
+                  { label: `Adminlar (${counts.admins})`, value: "ADMIN" },
+                ].map((rf) => (
+                  <button
+                    key={rf.value}
+                    onClick={() => {
+                      triggerHaptic("light")
+                      setUserRoleFilter(rf.value as any)
+                      setUserPage(1)
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                      userRoleFilter === rf.value
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                    }`}
+                  >
+                    {rf.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Bot Activity Status Filters */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mr-1">Bot:</span>
+                {[
+                  { label: "Barcha bot holati", value: "ALL" },
+                  { label: `🟢 Faol bot (${counts.activeBot ?? 0})`, value: "ACTIVE" },
+                  { label: `🔴 Bloklagan (${counts.blockedBot ?? 0})`, value: "BLOCKED" },
+                ].map((bf) => (
+                  <button
+                    key={bf.value}
+                    onClick={() => {
+                      triggerHaptic("light")
+                      setUserBotFilter(bf.value as any)
+                      setUserPage(1)
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                      userBotFilter === bf.value
+                        ? "bg-teal-700 text-white shadow-xs"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                    }`}
+                  >
+                    {bf.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selection Toolbar */}
+            <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
                 <button
-                  key={rf.value}
                   onClick={() => {
                     triggerHaptic("light")
-                    setUserRoleFilter(rf.value as any)
-                    setUserPage(1)
+                    const pageIds = usersList.map((u: any) => u.id)
+                    const allSelected = pageIds.length > 0 && pageIds.every((id: string) => selectedUserIds.includes(id))
+                    if (allSelected) {
+                      setSelectedUserIds((prev) => prev.filter((id) => !pageIds.includes(id)))
+                    } else {
+                      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...pageIds])))
+                    }
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                    userRoleFilter === rf.value
-                      ? "bg-emerald-600 text-white shadow-xs"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                  }`}
+                  className="flex items-center gap-1.5 font-bold text-neutral-700 dark:text-neutral-200 hover:text-emerald-600 transition-colors"
                 >
-                  {rf.label}
+                  {usersList.length > 0 && usersList.every((u: any) => selectedUserIds.includes(u.id)) ? (
+                    <CheckSquare className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <Square className="h-4 w-4 text-neutral-400" />
+                  )}
+                  <span>Sahifadagi barchasini tanlash</span>
                 </button>
-              ))}
+              </div>
+
+              {selectedUserIds.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md text-[11px]">
+                    {selectedUserIds.length} ta tanlandi
+                  </span>
+                  <button
+                    onClick={() => {
+                      triggerHaptic("medium")
+                      setShowBroadcastModal(true)
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors flex items-center gap-1 shadow-xs"
+                  >
+                    <Send className="h-3 w-3" />
+                    Xabar yuborish
+                  </button>
+                  <button
+                    onClick={() => setSelectedUserIds([])}
+                    className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 font-semibold text-[11px]"
+                  >
+                    Tozalash
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Users List */}
@@ -2328,11 +2432,33 @@ export const AdminView: React.FC = () => {
             ) : (
               <div className="space-y-2">
                 {usersList.map((u: any, idx: number) => {
+                  const isSelected = selectedUserIds.includes(u.id)
                   return (
                     <div
                       key={u.id || idx}
-                      className="p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between shadow-xs transition-all hover:border-neutral-300 dark:hover:border-neutral-700"
+                      className={`p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border transition-all flex items-center justify-between gap-3 shadow-xs ${
+                        isSelected
+                          ? "border-emerald-500 ring-1 ring-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/10"
+                          : "border-neutral-200/80 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
+                      }`}
                     >
+                      {/* Checkbox */}
+                      <button
+                        onClick={() => {
+                          triggerHaptic("light")
+                          setSelectedUserIds((prev) =>
+                            prev.includes(u.id) ? prev.filter((id) => id !== u.id) : [...prev, u.id]
+                          )
+                        }}
+                        className="p-1 text-neutral-400 hover:text-emerald-600 transition-colors flex-shrink-0"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-5 w-5 text-emerald-600" />
+                        ) : (
+                          <Square className="h-5 w-5" />
+                        )}
+                      </button>
+
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
                           className={`h-10 w-10 rounded-xl flex items-center justify-center font-black text-xs flex-shrink-0 ${
@@ -2347,7 +2473,7 @@ export const AdminView: React.FC = () => {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">
                               {u.fullName || "Telegram Mijoz"}
                             </h4>
@@ -2356,9 +2482,25 @@ export const AdminView: React.FC = () => {
                                 ✓ Telefon tasdiqlangan
                               </span>
                             )}
+                            {/* Bot status badge */}
+                            {u.telegramId ? (
+                              u.isBotActive !== false ? (
+                                <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-200/50 dark:border-emerald-800/40">
+                                  🟢 Botda faol
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.5 rounded border border-rose-200/50 dark:border-rose-800/40">
+                                  🔴 Botni bloklagan
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-[9px] font-semibold text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
+                                Bot ulanmagan
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-neutral-400">
+                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-neutral-400 flex-wrap">
                             {u.phone && <span className="font-semibold text-neutral-600 dark:text-neutral-300">📞 {u.phone}</span>}
                             {u.telegramId && <span>ID: {u.telegramId}</span>}
                             {u.username && <span>@{u.username}</span>}
@@ -2465,6 +2607,18 @@ export const AdminView: React.FC = () => {
                 )}
               </div>
             )}
+
+            {/* Broadcast / Reklama Modal */}
+            <BroadcastModal
+              isOpen={showBroadcastModal}
+              onClose={() => setShowBroadcastModal(false)}
+              activeBotCount={counts.activeBot ?? 0}
+              selectedUserIds={selectedUserIds}
+              onSuccess={() => {
+                refetchUsers()
+                refetchBotStats()
+              }}
+            />
           </div>
         )
       })()}

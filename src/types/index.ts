@@ -10,6 +10,10 @@ export interface User {
   role: Role
   telegramId?: string
   isTelegramVerified?: boolean
+  isBotActive?: boolean
+  botBlockedAt?: string | null
+  lastBotActivityAt?: string | null
+  createdAt?: string
 }
 
 export interface BannerItem {
