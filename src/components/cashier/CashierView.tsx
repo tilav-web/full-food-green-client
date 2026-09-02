@@ -1262,7 +1262,7 @@ export const CashierView: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
+              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-2.5 px-1.5 scrollbar-none snap-x">
                 {orderedCategories.map((c, index) => {
                   const count = products.filter((p) => p.categoryId === c.id).length
                   const isSelected = posSelectedCategory === c.id
@@ -1279,7 +1279,7 @@ export const CashierView: React.FC = () => {
                       onDragEnd={handleCategoryDragEnd}
                       onDrop={(e) => handleCategoryDrop(e, index)}
                       onClick={() => setPosSelectedCategory(c.id)}
-                      className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-pointer snap-start group ${
+                      className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group my-1 ${
                         isDragging ? "opacity-30 scale-95" : ""
                       } ${
                         isOver ? "ring-2 ring-emerald-500 scale-105" : ""
@@ -1289,23 +1289,24 @@ export const CashierView: React.FC = () => {
                           : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
                       }`}
                     >
-                      {/* Background Image */}
+                      {/* Background Image - pointer-events-none & draggable={false} ensure full card is draggable */}
                       <img
                         src={getImageUrl(c.imageUrl)}
-                        alt={c.name}
+                        alt=""
+                        draggable={false}
                         onError={(e) => {
                           ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
                         }}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
                       />
 
                       {/* Gradient Overlay for Text Contrast */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none select-none" />
 
                       {/* Top Row: Drag Handle & Count Badge */}
-                      <div className="relative z-10 flex items-center justify-between w-full">
-                        <div className="opacity-40 group-hover:opacity-100 transition-opacity">
-                          <GripVertical className="h-3 w-3 text-white" />
+                      <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
+                        <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+                          <GripVertical className="h-3.5 w-3.5 text-white" />
                         </div>
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md text-white font-black">
                           {count} ta
@@ -1313,7 +1314,7 @@ export const CashierView: React.FC = () => {
                       </div>
 
                       {/* Bottom Label: Category Name */}
-                      <div className="relative z-10">
+                      <div className="relative z-10 pointer-events-none select-none">
                         <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-md truncate">
                           {c.name}
                         </span>

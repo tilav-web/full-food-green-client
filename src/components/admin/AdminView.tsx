@@ -1354,7 +1354,8 @@ export const AdminView: React.FC = () => {
                               onError={(e) => {
                                 ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
                               }}
-                              className="h-full w-full object-cover"
+                              draggable={false}
+                              className="h-full w-full object-cover pointer-events-none select-none"
                             />
                           ) : (
                             <Layers className="h-5 w-5 text-emerald-600" />
