@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -22,6 +22,8 @@ import {
   CreditCard,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Loader2,
   UserCheck,
   CheckCircle2,
@@ -129,10 +131,32 @@ export const AdminView: React.FC = () => {
     },
   })
 
-  const { data: portionSummary = [] } = useQuery({
+  const { data: portionSummary = [], isLoading: isPortionSummaryLoading } = useQuery({
     queryKey: ["portionSummary"],
     queryFn: async () => (await apiClient.get("/inventory/portion-summary")).data,
   })
+
+  // Portion expenses search and expand state
+  const [portionSearchQuery, setPortionSearchQuery] = useState("")
+  const [isPortionsExpanded, setIsPortionsExpanded] = useState(false)
+
+  const filteredPortions = useMemo(() => {
+    if (!portionSearchQuery.trim()) return portionSummary
+    return portionSummary.filter((item: any) =>
+      item.name?.toLowerCase().includes(portionSearchQuery.toLowerCase())
+    )
+  }, [portionSummary, portionSearchQuery])
+
+  const displayedPortions = useMemo(() => {
+    if (isPortionsExpanded || portionSearchQuery.trim()) {
+      return filteredPortions
+    }
+    return filteredPortions.slice(0, 7)
+  }, [filteredPortions, isPortionsExpanded, portionSearchQuery])
+
+  const totalPortionsSum = useMemo(() => {
+    return portionSummary.reduce((acc: number, item: any) => acc + (Number(item.totalPortions) || 0), 0)
+  }, [portionSummary])
 
   const { data: products = [], refetch: refetchProducts } = useQuery<Product[]>({
     queryKey: ["adminProducts"],
@@ -2103,39 +2127,124 @@ export const AdminView: React.FC = () => {
 
           {/* 7. PORTION & GRAIN INVENTORY ANALYSIS */}
           <Card className="border-neutral-200/80 dark:border-neutral-800 rounded-3xl bg-white dark:bg-neutral-900 shadow-xs overflow-hidden">
-            <CardHeader className="p-4 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-              <CardTitle className="text-xs font-bold flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
+            <CardHeader className="p-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 space-y-2.5">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="text-xs font-bold flex items-center gap-1.5">
                   <UtensilsCrossed className="h-4 w-4 text-emerald-600" />
-                  {t.potPortionsSpent || "Qozondagi Porsiyalar va Mahsulotlar Sarfi"}
-                </span>
-                <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 border-emerald-300">
-                  {t.warehouseControl || "Ombor Nazorati"}
-                </Badge>
-              </CardTitle>
+                  <span>{t.potPortionsSpent || "Qozondagi Porsiyalar va Mahsulotlar Sarfi"}</span>
+                </CardTitle>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[10px] font-bold text-neutral-600 dark:text-neutral-300">
+                    {portionSummary.length} xil taom
+                  </Badge>
+                  <Badge className="bg-emerald-600 text-white font-bold text-[10px] px-2 py-0.5">
+                    Jami: {totalPortionsSum} ta porsiya
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Quick search input if more than 4 items */}
+              {portionSummary.length > 4 && (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={portionSearchQuery}
+                    onChange={(e) => setPortionSearchQuery(e.target.value)}
+                    placeholder="Sarf qilingan taom yoki garnirni qidirish..."
+                    className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-[11px] font-medium outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  {portionSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setPortionSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-4 space-y-2">
-              {portionSummary.length === 0 ? (
+              {isPortionSummaryLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/80">
+                      <div className="space-y-1">
+                        <Skeleton className="h-3.5 w-28 rounded" />
+                        <Skeleton className="h-2.5 w-20 rounded" />
+                      </div>
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredPortions.length === 0 ? (
                 <p className="text-xs text-neutral-400 py-4 text-center">
-                  {t.noPortionDishes || "Hozircha porsiyali taomlar yo'q"}
+                  {portionSearchQuery ? "Qidiruv bo'yicha taom topilmadi" : t.noPortionDishes || "Hozircha porsiyali taomlar yo'q"}
                 </p>
               ) : (
-                portionSummary.map((item: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/80 text-xs border border-neutral-100 dark:border-neutral-700/60"
-                  >
-                    <div>
-                      <span className="font-bold text-neutral-900 dark:text-white block">{item.name}</span>
-                      <span className="text-[10px] text-neutral-400">
-                        {t.totalLabel || "Jami:"} {(item.totalRevenue || 0).toLocaleString()} {t.currency || "so'm"}
-                      </span>
-                    </div>
-                    <Badge className="bg-emerald-600 text-white font-bold text-[10px] px-2.5 py-1">
-                      {item.totalPortions} {t.portionsCount || "ta porsiya"}
-                    </Badge>
+                <>
+                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
+                    {displayedPortions.map((item: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/80 text-xs border border-neutral-100 dark:border-neutral-700/60 hover:border-emerald-500/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`h-6 w-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 ${
+                              idx === 0
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                                : idx === 1
+                                ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                : idx === 2
+                                ? "bg-amber-700/10 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
+                                : "bg-neutral-200/60 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400"
+                            }`}
+                          >
+                            #{idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="font-bold text-neutral-900 dark:text-white block leading-tight truncate">
+                              {item.name}
+                            </span>
+                            <span className="text-[10px] text-neutral-400">
+                              {t.totalLabel || "Jami:"} {(item.totalRevenue || 0).toLocaleString()} {t.currency || "so'm"}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge className="bg-emerald-600 text-white font-bold text-[10px] px-2.5 py-1 shrink-0 ml-2">
+                          {item.totalPortions} {t.portionsCount || "ta porsiya"}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
-                ))
+
+                  {/* Expand / Collapse Button if more than 7 items and not searching */}
+                  {filteredPortions.length > 7 && !portionSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light")
+                        setIsPortionsExpanded((prev) => !prev)
+                      }}
+                      className="w-full py-2 px-3 mt-1 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-neutral-600 dark:text-neutral-300 hover:text-emerald-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      {isPortionsExpanded ? (
+                        <>
+                          <ChevronUp className="h-3.5 w-3.5" />
+                          <span>Qisqartirish (Top 7 ga qaytish)</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3.5 w-3.5" />
+                          <span>Barcha taomlarni ko'rish (+{filteredPortions.length - 7} ta taom)</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
