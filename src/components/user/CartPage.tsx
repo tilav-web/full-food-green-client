@@ -25,6 +25,7 @@ import {
   PackagePlus,
   CheckCircle2,
   AlertCircle,
+  Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -382,6 +383,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
   // Payment & Receipt
   const [createdOrder, setCreatedOrder] = useState<any>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"CARD_TRANSFER" | "BALANCE">("CARD_TRANSFER")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [copiedCard, setCopiedCard] = useState(false)
@@ -524,7 +526,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
         floor: floor || undefined,
         apartment: apartment || undefined,
         type: orderType,
-        paymentMethod: "CARD_TRANSFER",
+        paymentMethod: selectedPaymentMethod,
         address: orderType === "ONLINE_DELIVERY" ? deliveryAddress : "Restorandan olib ketish",
         distanceKm,
         deliveryFee: orderType === "ONLINE_DELIVERY" ? deliveryFee : 0,
@@ -542,10 +544,14 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       setCreatedOrder(res.data)
       setCurrentActiveOrder(res.data)
       clearCart()
-      setStep("PAYMENT")
-    } catch (err) {
+      if (selectedPaymentMethod === "BALANCE") {
+        setStep("SUCCESS")
+      } else {
+        setStep("PAYMENT")
+      }
+    } catch (err: any) {
       console.error(err)
-      alert("Buyurtma yaratishda xatolik yuz berdi")
+      alert("Buyurtma yaratishda xatolik yuz berdi: " + (err.response?.data?.message || err.message))
     } finally {
       setIsSubmitting(false)
     }
@@ -1363,6 +1369,92 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             </div>
           )}
 
+          {/* Payment Method Selector */}
+          <div className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 space-y-2.5 shadow-xs">
+            <label className="text-xs font-black text-neutral-900 dark:text-white flex items-center justify-between">
+              <span>To'lov usuli:</span>
+              {user && (
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+                  <Wallet className="h-3.5 w-3.5" />
+                  Balans: {Number(user.balance || 0).toLocaleString()} {t.currency}
+                </span>
+              )}
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* 1. Pay with Personal Balance */}
+              <button
+                type="button"
+                disabled={Number(user?.balance || 0) < totalAmount}
+                onClick={() => {
+                  triggerHaptic("light")
+                  setSelectedPaymentMethod("BALANCE")
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all flex items-start gap-2.5 ${
+                  selectedPaymentMethod === "BALANCE"
+                    ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-600"
+                    : Number(user?.balance || 0) < totalAmount
+                    ? "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 opacity-50 cursor-not-allowed"
+                    : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300"
+                }`}
+              >
+                <div
+                  className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    selectedPaymentMethod === "BALANCE" ? "bg-emerald-600 text-white" : "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300"
+                  }`}
+                >
+                  <Wallet className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="font-black text-xs block text-neutral-900 dark:text-white">
+                    Hisobimdan to'lash
+                  </span>
+                  <span className="text-[10px] text-neutral-400 block">
+                    {Number(user?.balance || 0) >= totalAmount
+                      ? "Balans yetarli — to'g'ridan-to'g'ri yechiladi"
+                      : "Balansda mablag' yetarli emas"}
+                  </span>
+                </div>
+              </button>
+
+              {/* 2. Pay with Card & Receipt */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light")
+                  setSelectedPaymentMethod("CARD_TRANSFER")
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all flex items-start gap-2.5 ${
+                  selectedPaymentMethod === "CARD_TRANSFER"
+                    ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-600"
+                    : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300"
+                }`}
+              >
+                <div
+                  className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    selectedPaymentMethod === "CARD_TRANSFER" ? "bg-emerald-600 text-white" : "bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300"
+                  }`}
+                >
+                  <CreditCard className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="font-black text-xs block text-neutral-900 dark:text-white">
+                    Karta orqali to'lov
+                  </span>
+                  <span className="text-[10px] text-neutral-400 block">
+                    Kartaga o'tkazib chek yuklanadi
+                  </span>
+                </div>
+              </button>
+            </div>
+
+            {selectedPaymentMethod === "BALANCE" && (
+              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                💡 <b>Balans to'lovi:</b> Chek yuklash talab qilinmaydi. Kassir buyurtmangizni tasdiqlashi bilan hisobingizdan <b>{totalAmount.toLocaleString()} {t.currency}</b> yechiladi.
+              </div>
+            )}
+          </div>
+
           {/* Checkout Totals & Submit */}
           <div className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 space-y-3 shadow-xs">
             <div className="space-y-1.5 pb-1 text-xs">
@@ -1416,7 +1508,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 disabled={isSubmitting || !isUserVerified}
                 className="w-2/3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 text-white rounded-2xl font-black text-xs shadow-lg shadow-emerald-600/20 active:scale-98"
               >
-                {isSubmitting ? t.loading : t.proceedToPayment}
+                {isSubmitting ? t.loading : selectedPaymentMethod === "BALANCE" ? "Buyurtmani Tasdiqlash" : t.proceedToPayment}
               </Button>
             </div>
           </div>
@@ -1520,6 +1612,32 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             <p className="text-xs text-neutral-500 max-w-xs mx-auto">
               {t.orderSuccessDesc}
             </p>
+          </div>
+
+          {/* Payment & Order Summary Card */}
+          <div className="p-4 rounded-3xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-neutral-700 dark:text-neutral-300 space-y-1.5 max-w-sm mx-auto shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-neutral-500">Buyurtma raqami:</span>
+              <Badge className="bg-emerald-600 text-white font-bold">
+                #{createdOrder.orderNumber}
+              </Badge>
+            </div>
+            {createdOrder.paymentMethod === "BALANCE" ? (
+              <div className="pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300">
+                <p className="font-black flex items-center justify-center gap-1">
+                  <Wallet className="h-3.5 w-3.5" />
+                  Shaxsiy balans orqali to'lov ({Number(createdOrder.totalAmount || totalAmount).toLocaleString()} {t.currency})
+                </p>
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  Kassir tasdiqlashi bilan hisobingizdan yechiladi va taom tayyorlanadi.
+                </p>
+              </div>
+            ) : (
+              <div className="pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/60 text-neutral-600 dark:text-neutral-400">
+                <p className="font-semibold">To'lov cheki qabul qilindi.</p>
+                <p className="text-[11px] text-neutral-400">Kassir tekshirgach buyurtma tayyorlashga o'tadi.</p>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 justify-center pt-4">

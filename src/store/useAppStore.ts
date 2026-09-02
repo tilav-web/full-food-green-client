@@ -25,6 +25,7 @@ interface AppState {
   // Auth actions
   setUser: (user: User | null) => void
   setAuth: (user: User | null, accessToken?: string | null, refreshToken?: string | null) => void
+  updateUserBalance: (balance: number) => void
   logout: () => void
 
   // Appearance & Language
@@ -75,6 +76,12 @@ export const useAppStore = create<AppState>()(
             accessToken: accessToken || get().accessToken,
             refreshToken: refreshToken || get().refreshToken,
           })
+        },
+
+        updateUserBalance: (balance: number) => {
+          set((state) => ({
+            user: state.user ? { ...state.user, balance } : null,
+          }))
         },
 
         logout: () => {

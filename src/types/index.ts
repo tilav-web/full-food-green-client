@@ -10,6 +10,7 @@ export interface User {
   role: Role
   telegramId?: string
   isTelegramVerified?: boolean
+  balance?: number
   isBotActive?: boolean
   botBlockedAt?: string | null
   lastBotActivityAt?: string | null
@@ -121,8 +122,21 @@ export type OrderStatus =
   | "COMPLETED"
   | "CANCELLED"
 
-export type PaymentMethod = "CARD_TRANSFER" | "CASH" | "TERMINAL"
+export type PaymentMethod = "CARD_TRANSFER" | "CASH" | "TERMINAL" | "BALANCE"
 export type PaymentStatus = "UNPAID" | "REVIEW" | "PAID" | "REJECTED"
+
+export interface BalanceTransaction {
+  id: string
+  userId: string
+  amount: number
+  balanceBefore: number
+  balanceAfter: number
+  type: "DEPOSIT" | "ORDER_PAYMENT" | "MANUAL_ADJUSTMENT" | "ORDER_REFUND"
+  orderId?: string
+  note?: string
+  performedBy?: string
+  createdAt: string
+}
 
 export interface OrderItem {
   id?: string
@@ -176,6 +190,7 @@ export interface Order {
   distanceKm?: number
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus
+  isPaidFromBalance?: boolean
   receiptImageUrl?: string
   receiptRejectReason?: string
   isYandexTaxiCalled: boolean

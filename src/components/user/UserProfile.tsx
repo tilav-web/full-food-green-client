@@ -35,6 +35,7 @@ import {
   Receipt,
   Scale,
   Sparkles,
+  Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -80,6 +81,20 @@ export const UserProfile: React.FC = () => {
     queryKey: ["appSettings"],
     queryFn: async () => (await apiClient.get("/settings")).data,
     enabled: user?.role === "ADMIN",
+  })
+
+  // Fetch latest user details to sync balance
+  useQuery({
+    queryKey: ["userProfileLatest", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null
+      const res = await apiClient.get(`/users/${user.id}`)
+      if (res.data) {
+        setUser({ ...user, ...res.data })
+      }
+      return res.data
+    },
+    enabled: !!user?.id,
   })
 
   // Handle Save Payment Card
@@ -266,6 +281,34 @@ export const UserProfile: React.FC = () => {
                 <span>{isTelegram ? t.shareContactBtn : t.loginViaBotBtn}</span>
               </Button>
             </motion.div>
+          )}
+
+          {/* User Pre-paid Deposit Balance Card */}
+          {user && (
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-white/20 text-white flex items-center justify-center shadow-xs backdrop-blur-xs">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-emerald-100 uppercase tracking-wider block">
+                      Mening Balansim (Depozit)
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                      {Number(user.balance || 0).toLocaleString()} <span className="text-xs font-normal text-emerald-100">so'm</span>
+                    </h3>
+                  </div>
+                </div>
+                <Badge className="bg-white/20 text-white border border-white/30 text-[10px] font-bold backdrop-blur-xs">
+                  {Number(user.balance || 0) > 0 ? "Mablag' bor" : "0 so'm"}
+                </Badge>
+              </div>
+              <p className="text-[11px] text-emerald-100/90 mt-2.5 pt-2 border-t border-white/15">
+                Oldindan to'langan depozit hisobingiz. Buyurtma berishda to'lovni balansingizdan yechish imkoni mavjud.
+              </p>
+            </div>
           )}
 
           {/* Section 1: User Data & Locations Management (ONLY FOR REGULAR CUSTOMERS) */}

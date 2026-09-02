@@ -47,6 +47,7 @@ import {
   CheckSquare,
   Square,
   Send,
+  Wallet,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -54,11 +55,12 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ImageUploadField } from "@/components/common/ImageUploadField"
 import { BroadcastModal } from "./BroadcastModal"
+import { BalanceModal } from "./BalanceModal"
 import { useTelegram } from "@/hooks/useTelegram"
 import { useTranslation } from "@/i18n/useTranslation"
 import { generateSlug } from "@/utils/slugify"
 import { getImageUrl } from "@/lib/utils"
-import type { Product, Category, Unit, Banner, BannerItem, Combo } from "@/types"
+import type { Product, Category, Unit, Banner, BannerItem, Combo, User } from "@/types"
 
 export type AdminPage =
   | "PRODUCTS"
@@ -210,6 +212,7 @@ export const AdminView: React.FC = () => {
   const [userBotFilter, setUserBotFilter] = useState<"ALL" | "ACTIVE" | "BLOCKED">("ALL")
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [showBroadcastModal, setShowBroadcastModal] = useState(false)
+  const [selectedBalanceUser, setSelectedBalanceUser] = useState<User | null>(null)
 
   const { data: usersResponse, isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery({
     queryKey: ["adminUsersPaginated", userPage, userLimit, userSearchQuery, userRoleFilter, userBotFilter],
@@ -2508,18 +2511,38 @@ export const AdminView: React.FC = () => {
                         </div>
                       </div>
 
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] font-bold flex-shrink-0 ${
-                          u.role === "ADMIN"
-                            ? "border-purple-500/40 text-purple-600 bg-purple-50 dark:bg-purple-950/30"
-                            : u.role === "CASHIER"
-                            ? "border-blue-500/40 text-blue-600 bg-blue-50 dark:bg-blue-950/30"
-                            : "border-neutral-200 text-neutral-500"
-                        }`}
-                      >
-                        {u.role === "ADMIN" ? "Admin" : u.role === "CASHIER" ? "Kassir" : "Mijoz"}
-                      </Badge>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Balance button / badge */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic("light")
+                            setSelectedBalanceUser(u)
+                          }}
+                          className={`px-2.5 py-1.5 rounded-xl font-black text-[11px] flex items-center gap-1.5 transition-all border ${
+                            Number(u.balance || 0) > 0
+                              ? "bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-xs active:scale-95"
+                              : "bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700 active:scale-95"
+                          }`}
+                          title="Balansni boshqarish"
+                        >
+                          <Wallet className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>{Number(u.balance || 0).toLocaleString()} so'm</span>
+                        </button>
+
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-bold flex-shrink-0 ${
+                            u.role === "ADMIN"
+                              ? "border-purple-500/40 text-purple-600 bg-purple-50 dark:bg-purple-950/30"
+                              : u.role === "CASHIER"
+                              ? "border-blue-500/40 text-blue-600 bg-blue-50 dark:bg-blue-950/30"
+                              : "border-neutral-200 text-neutral-500"
+                          }`}
+                        >
+                          {u.role === "ADMIN" ? "Admin" : u.role === "CASHIER" ? "Kassir" : "Mijoz"}
+                        </Badge>
+                      </div>
                     </div>
                   )
                 })}
@@ -2618,6 +2641,14 @@ export const AdminView: React.FC = () => {
                 refetchUsers()
                 refetchBotStats()
               }}
+            />
+
+            {/* Balance Management Modal */}
+            <BalanceModal
+              isOpen={!!selectedBalanceUser}
+              user={selectedBalanceUser}
+              onClose={() => setSelectedBalanceUser(null)}
+              onSuccess={() => refetchUsers()}
             />
           </div>
         )

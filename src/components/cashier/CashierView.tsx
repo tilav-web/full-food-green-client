@@ -22,6 +22,9 @@ import {
   ShoppingBag,
   Flame,
   GripVertical,
+  Wallet,
+  UserCheck,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,7 +32,7 @@ import { useTranslation } from "@/i18n/useTranslation"
 import { useTelegram } from "@/hooks/useTelegram"
 import { ProductSearchSelect } from "@/components/common/ProductSearchSelect"
 import { getImageUrl } from "@/lib/utils"
-import type { Order, Product, Category, OrderStatus } from "@/types"
+import type { Order, Product, Category, OrderStatus, User } from "@/types"
 
 import { socket } from "@/api/socket"
 
@@ -308,9 +311,29 @@ export const CashierView: React.FC = () => {
   // POS State (Walk-in customer order)
   const [posCart, setPosCart] = React.useState<Array<{ product: Product; quantity: number }>>([])
   const [posCustomerName, setPosCustomerName] = React.useState("Zal Mijoz")
-  const [posPaymentMethod, setPosPaymentMethod] = React.useState<"CASH" | "TERMINAL">("CASH")
+  const [posPaymentMethod, setPosPaymentMethod] = React.useState<"CASH" | "TERMINAL" | "BALANCE">("CASH")
   const [posSelectedCategory, setPosSelectedCategory] = React.useState<string>("ALL")
   const [posSearchQuery, setPosSearchQuery] = React.useState<string>("")
+  const [posSelectedCustomer, setPosSelectedCustomer] = React.useState<User | null>(null)
+  const [customerSearchQuery, setCustomerSearchQuery] = React.useState("")
+  const [customerSearchResults, setCustomerSearchResults] = React.useState<User[]>([])
+  const [isSearchingCustomer, setIsSearchingCustomer] = React.useState(false)
+
+  const handleSearchCustomers = async (q: string) => {
+    if (!q.trim()) {
+      setCustomerSearchResults([])
+      return
+    }
+    try {
+      setIsSearchingCustomer(true)
+      const res = await apiClient.get("/users", { params: { search: q.trim(), limit: 5 } })
+      setCustomerSearchResults(res.data.data || [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSearchingCustomer(false)
+    }
+  }
 
   // POS Grid Columns State (3, 4, 5) - Default 4, remembered in localStorage
   const [posGridCols, setPosGridCols] = React.useState<3 | 4 | 5>(() => {
@@ -428,6 +451,21 @@ export const CashierView: React.FC = () => {
     },
   })
 
+  // Confirm Balance Payment Mutation
+  const confirmBalancePaymentMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      return apiClient.post(`/orders/${orderId}/confirm-balance-payment`, { performedBy: "Kassir" })
+    },
+    onSuccess: () => {
+      triggerHaptic("success")
+      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+      alert("Mijoz balansidan to'lov muvaffaqiyatli yechildi va buyurtma tasdiqlandi!")
+    },
+    onError: (err: any) => {
+      alert("Xatolik: " + (err.response?.data?.message || err.message))
+    },
+  })
+
   // Dispatch Yandex Taxi
   const handleConfirmYandexDispatch = async () => {
     if (!yandexConfirmOrder) return
@@ -471,8 +509,9 @@ export const CashierView: React.FC = () => {
       }))
 
       await apiClient.post("/orders", {
+        userId: posSelectedCustomer?.id,
         customerName: posCustomerName,
-        customerPhone: "+998 00 000 00 00",
+        customerPhone: posSelectedCustomer?.phone || "+998 00 000 00 00",
         type: "DINE_IN",
         paymentMethod: posPaymentMethod,
         items,
@@ -480,12 +519,16 @@ export const CashierView: React.FC = () => {
 
       triggerHaptic("success")
       setPosCart([])
+      setPosSelectedCustomer(null)
+      setPosCustomerName("Zal Mijoz")
+      setCustomerSearchQuery("")
+      setPosPaymentMethod("CASH")
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
       queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
       alert("POS Buyurtma muvaffaqiyatli saqlandi!")
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert("Xatolik yuz berdi")
+      alert("Xatolik yuz berdi: " + (err.response?.data?.message || err.message))
     }
   }
 
@@ -783,6 +826,18 @@ export const CashierView: React.FC = () => {
                                     📱 TELEGRAM YETKAZISH
                                   </span>
                                 )}
+                                {order.paymentMethod === "BALANCE" && (
+                                  <span
+                                    className={`text-[10px] font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                                      order.isPaidFromBalance
+                                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                                        : "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-700 animate-pulse"
+                                    }`}
+                                  >
+                                    <Wallet className="h-3 w-3" />
+                                    {order.isPaidFromBalance ? "BALANSDAN TO'LANGAN" : "BALANS (TASDIQLASH KUTILMOQDA)"}
+                                  </span>
+                                )}
                                 {STATUS_CONFIG[order.status] && (
                                   <span
                                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_CONFIG[order.status].bg} ${STATUS_CONFIG[order.status].text} ${STATUS_CONFIG[order.status].border}`}
@@ -964,6 +1019,39 @@ export const CashierView: React.FC = () => {
                               ) : (
                                 renderStatusBadge(order.status)
                               )
+                            ) : order.paymentMethod === "BALANCE" && !order.isPaidFromBalance && (order.status === "PENDING_PAYMENT" || order.status === "PAYMENT_REVIEW") ? (
+                              <div className="space-y-2 p-2.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-black text-xs">
+                                    <Wallet className="h-4 w-4 text-emerald-600" />
+                                    <span>Mijoz Balansidan To'lov</span>
+                                  </div>
+                                  <span className="text-[10px] bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 font-bold px-2 py-0.5 rounded-full">
+                                    Yetarli
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-neutral-600 dark:text-neutral-400">
+                                  Tasdiqlansa, mijoz hisobidan <b>{Number(order.totalAmount || 0).toLocaleString()} so'm</b> avtomatik yechiladi.
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-0.5">
+                                  <Button
+                                    disabled={confirmBalancePaymentMutation.isPending}
+                                    onClick={() => confirmBalancePaymentMutation.mutate(order.id)}
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black py-2 shadow-sm flex items-center justify-center gap-1"
+                                  >
+                                    <Check className="h-3.5 w-3.5" />
+                                    <span>Balansdan yechish</span>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    disabled={updateStatusMutation.isPending}
+                                    onClick={() => updateStatusMutation.mutate({ orderId: order.id, status: "PREPARING" })}
+                                    className="w-full rounded-xl text-xs font-bold py-2 border-neutral-300 dark:border-neutral-700"
+                                  >
+                                    <span>Tashqarida to'landi</span>
+                                  </Button>
+                                </div>
+                              </div>
                             ) : isPendingReview ? (
                               <Button
                                 onClick={() => {
@@ -1486,15 +1574,112 @@ export const CashierView: React.FC = () => {
               </div>
 
               <div className="space-y-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                {/* Customer Selection (Optional for Balance Charging) */}
+                <div className="space-y-1.5 p-2.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1">
+                      <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
+                      Mijoz hisobi (ixtiyoriy)
+                    </span>
+                    {posSelectedCustomer && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPosSelectedCustomer(null)
+                          setPosCustomerName("Zal Mijoz")
+                          if (posPaymentMethod === "BALANCE") setPosPaymentMethod("CASH")
+                        }}
+                        className="text-[10px] text-rose-500 font-bold hover:underline"
+                      >
+                        Tozalash
+                      </button>
+                    )}
+                  </div>
+
+                  {posSelectedCustomer ? (
+                    <div className="p-2 rounded-xl bg-white dark:bg-neutral-900 border border-emerald-500/40 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-xs text-neutral-900 dark:text-white truncate">
+                          👤 {posSelectedCustomer.fullName || posSelectedCustomer.username}
+                        </span>
+                        <span className="text-[10px] text-emerald-600 font-bold">
+                          {posSelectedCustomer.phone || ""}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-neutral-400">Hisobdagi balans:</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400 font-black">
+                          {Number(posSelectedCustomer.balance || 0).toLocaleString()} so'm
+                        </strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      {isSearchingCustomer ? (
+                        <Loader2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-emerald-600" />
+                      ) : (
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+                      )}
+                      <input
+                        type="text"
+                        value={customerSearchQuery}
+                        onChange={(e) => {
+                          setCustomerSearchQuery(e.target.value)
+                          handleSearchCustomers(e.target.value)
+                        }}
+                        placeholder="Mijozni qidirish (ism yoki tel)..."
+                        className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs font-medium text-neutral-900 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+
+                      {/* Dropdown search results */}
+                      {customerSearchResults.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-xl max-h-44 overflow-y-auto p-1 space-y-1">
+                          {customerSearchResults.map((cust) => (
+                            <button
+                              key={cust.id}
+                              type="button"
+                              onClick={() => {
+                                setPosSelectedCustomer(cust)
+                                setPosCustomerName(cust.fullName || cust.username || "Mijoz")
+                                setCustomerSearchQuery("")
+                                setCustomerSearchResults([])
+                                if (Number(cust.balance || 0) >= posTotal) {
+                                  setPosPaymentMethod("BALANCE")
+                                }
+                                triggerHaptic("light")
+                              }}
+                              className="w-full p-2 text-left rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center justify-between text-xs transition-colors"
+                            >
+                              <div className="min-w-0 flex-1 pr-2">
+                                <p className="font-bold text-neutral-900 dark:text-white truncate">
+                                  {cust.fullName || cust.username}
+                                </p>
+                                <span className="text-[10px] text-neutral-400">
+                                  {cust.phone || (cust.telegramId ? `ID: ${cust.telegramId}` : "")}
+                                </span>
+                              </div>
+                              <span className="font-black text-[11px] text-emerald-600 flex-shrink-0">
+                                {Number(cust.balance || 0).toLocaleString()} so'm
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between text-sm font-black">
                   <span>{t.totalPayment || "Jami to'lov"}:</span>
                   <span className="text-emerald-600 dark:text-emerald-400 text-lg">{posTotal.toLocaleString()} so'm</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                {/* Payment Method selection */}
+                <div className={`grid gap-2 ${posSelectedCustomer ? "grid-cols-3" : "grid-cols-2"}`}>
                   <button
+                    type="button"
                     onClick={() => setPosPaymentMethod("CASH")}
-                    className={`py-2.5 rounded-2xl text-xs font-bold border transition-all ${
+                    className={`py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all ${
                       posPaymentMethod === "CASH"
                         ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
                         : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
@@ -1503,8 +1688,9 @@ export const CashierView: React.FC = () => {
                     {t.cashPayment || "Naqd pul"}
                   </button>
                   <button
+                    type="button"
                     onClick={() => setPosPaymentMethod("TERMINAL")}
-                    className={`py-2.5 rounded-2xl text-xs font-bold border transition-all ${
+                    className={`py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all ${
                       posPaymentMethod === "TERMINAL"
                         ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
                         : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
@@ -1512,6 +1698,24 @@ export const CashierView: React.FC = () => {
                   >
                     {t.terminalPayment || "Terminal"}
                   </button>
+                  {posSelectedCustomer && (
+                    <button
+                      type="button"
+                      disabled={Number(posSelectedCustomer.balance || 0) < posTotal}
+                      onClick={() => setPosPaymentMethod("BALANCE")}
+                      className={`py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center justify-center ${
+                        posPaymentMethod === "BALANCE"
+                          ? "border-emerald-600 bg-emerald-600 text-white shadow-xs"
+                          : Number(posSelectedCustomer.balance || 0) >= posTotal
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          : "border-neutral-200 text-neutral-300 opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1 font-black">
+                        <Wallet className="h-3 w-3" /> Balans
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 <Button
