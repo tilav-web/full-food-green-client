@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   ShoppingBag,
   Flame,
+  GripVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -331,10 +332,64 @@ export const CashierView: React.FC = () => {
     } catch (_) {}
   }
 
-  // Filtered POS Products by Category and Search
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+  // Ordered POS Categories with Drag and Drop Reordering
+  const [orderedCategories, setOrderedCategories] = React.useState<Category[]>([])
+  const [draggedCatIndex, setDraggedCatIndex] = React.useState<number | null>(null)
+  const [dragOverCatIndex, setDragOverCatIndex] = React.useState<number | null>(null)
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      setOrderedCategories([...categories].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)))
+    }
   }, [categories])
+
+  const handleCategoryDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedCatIndex(index)
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", String(index))
+  }
+
+  const handleCategoryDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (dragOverCatIndex !== index) {
+      setDragOverCatIndex(index)
+    }
+  }
+
+  const handleCategoryDragEnd = () => {
+    setDraggedCatIndex(null)
+    setDragOverCatIndex(null)
+  }
+
+  const handleCategoryDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+    if (draggedCatIndex === null || draggedCatIndex === targetIndex) {
+      setDraggedCatIndex(null)
+      setDragOverCatIndex(null)
+      return
+    }
+
+    const nextCategories = [...orderedCategories]
+    const [draggedItem] = nextCategories.splice(draggedCatIndex, 1)
+    nextCategories.splice(targetIndex, 0, draggedItem)
+
+    setOrderedCategories(nextCategories)
+    setDraggedCatIndex(null)
+    setDragOverCatIndex(null)
+    triggerHaptic("medium")
+
+    try {
+      const items = nextCategories.map((c, idx) => ({ id: c.id, sortOrder: idx + 1 }))
+      queryClient.setQueryData(["categories"], nextCategories)
+      await apiClient.put("/products/categories/reorder", { items })
+      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      queryClient.invalidateQueries({ queryKey: ["adminCategories"] })
+      queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (err) {
+      console.error("Kategoriyalarni qayta tartiblashda xatolik:", err)
+      queryClient.invalidateQueries({ queryKey: ["categories"] })
+    }
+  }
 
   const filteredPosProducts = useMemo(() => {
     return products.filter((p) => {
@@ -1155,20 +1210,33 @@ export const CashierView: React.FC = () => {
                 </span>
               </button>
 
-              {sortedCategories.map((c) => {
+              {orderedCategories.map((c, index) => {
                 const count = products.filter((p) => p.categoryId === c.id).length
                 const isSelected = posSelectedCategory === c.id
+                const isDragging = draggedCatIndex === index
+                const isOver = dragOverCatIndex === index
                 return (
                   <button
                     key={c.id}
                     type="button"
+                    draggable
+                    onDragStart={(e) => handleCategoryDragStart(e, index)}
+                    onDragOver={(e) => handleCategoryDragOver(e, index)}
+                    onDragEnd={handleCategoryDragEnd}
+                    onDrop={(e) => handleCategoryDrop(e, index)}
                     onClick={() => setPosSelectedCategory(c.id)}
-                    className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
+                    className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs cursor-grab active:cursor-grabbing select-none group ${
+                      isDragging ? "opacity-30 scale-95 border-dashed border-emerald-500" : ""
+                    } ${
+                      isOver ? "ring-2 ring-emerald-500 scale-105 border-dashed border-emerald-500" : ""
+                    } ${
                       isSelected
                         ? "bg-emerald-600 text-white shadow-emerald-600/20 shadow-md"
                         : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500"
                     }`}
+                    title="Surish orqali navbatni o'zgartirish (Drag & Drop)"
                   >
+                    <GripVertical className="h-3 w-3 opacity-30 group-hover:opacity-80 -ml-1 text-neutral-400" />
                     <span>{c.name}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
@@ -1205,10 +1273,17 @@ export const CashierView: React.FC = () => {
               <div
                 className={
                   posGridCols === 5
-                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5"
+                    ? "grid gap-2 sm:gap-2.5"
                     : posGridCols === 4
-                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
-                    : "grid grid-cols-2 sm:grid-cols-3 gap-3.5"
+                    ? "grid gap-2.5 sm:gap-3"
+                    : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5"
+                }
+                style={
+                  posGridCols === 5
+                    ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }
+                    : posGridCols === 4
+                    ? { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }
+                    : undefined
                 }
               >
                 {filteredPosProducts.map((p) => {
@@ -1230,7 +1305,9 @@ export const CashierView: React.FC = () => {
                           return [...prev, { product: p, quantity: 1 }]
                         })
                       }}
-                      className={`rounded-3xl bg-white dark:bg-neutral-900 border overflow-hidden cursor-pointer transition-all shadow-xs flex flex-col justify-between group active:scale-98 ${
+                      className={`${
+                        posGridCols === 5 ? "rounded-2xl" : "rounded-3xl"
+                      } bg-white dark:bg-neutral-900 border overflow-hidden cursor-pointer transition-all shadow-xs flex flex-col justify-between group active:scale-98 ${
                         qty > 0
                           ? "border-emerald-600 ring-2 ring-emerald-500/30 shadow-md"
                           : "border-neutral-200 dark:border-neutral-800 hover:border-emerald-500"
@@ -1240,9 +1317,9 @@ export const CashierView: React.FC = () => {
                       <div
                         className={`relative w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden ${
                           posGridCols === 5
-                            ? "h-28 sm:h-32"
+                            ? "h-24 sm:h-28"
                             : posGridCols === 4
-                            ? "h-32 sm:h-36"
+                            ? "h-28 sm:h-32"
                             : "h-36 sm:h-40"
                         }`}
                       >
@@ -1255,12 +1332,20 @@ export const CashierView: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />
-                        <div className="absolute top-2 left-2 flex items-center gap-1 pointer-events-none">
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-black/60 text-white backdrop-blur-md">
+                        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex items-center gap-1 pointer-events-none">
+                          <span
+                            className={`${
+                              posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-2 py-0.5"
+                            } font-black rounded-lg bg-black/60 text-white backdrop-blur-md`}
+                          >
                             {p.calories} kkal
                           </span>
                           {p.isPopular && (
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5">
+                            <span
+                              className={`${
+                                posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-2 py-0.5"
+                              } font-black rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5`}
+                            >
                               <Flame className="h-3 w-3 fill-white" />
                               Top 10
                             </span>
@@ -1268,22 +1353,32 @@ export const CashierView: React.FC = () => {
                         </div>
 
                         {qty > 0 && (
-                          <div className="absolute top-2 right-2 h-8 w-8 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-neutral-900 animate-in zoom-in-50">
+                          <div
+                            className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 ${
+                              posGridCols === 5 ? "h-6 w-6 text-[10px]" : "h-7 w-7 text-xs"
+                            } rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-neutral-900 animate-in zoom-in-50`}
+                          >
                             {qty}
                           </div>
                         )}
                       </div>
 
                       {/* Dish Info: Large BOLD name, NO individual price as requested! */}
-                      <div className="p-3 space-y-1">
+                      <div className={`${posGridCols === 5 ? "p-2 space-y-0.5" : "p-3 space-y-1"}`}>
                         <h4
-                          className="font-black text-sm sm:text-base text-neutral-900 dark:text-white leading-tight line-clamp-2"
+                          className={`font-black ${
+                            posGridCols === 5
+                              ? "text-xs leading-snug"
+                              : posGridCols === 4
+                              ? "text-xs sm:text-sm leading-tight"
+                              : "text-sm sm:text-base leading-tight"
+                          } text-neutral-900 dark:text-white line-clamp-2`}
                           title={p.name}
                         >
                           {p.name}
                         </h4>
                         {p.unit?.name && (
-                          <span className="inline-block text-[11px] text-neutral-400 font-semibold">
+                          <span className="inline-block text-[10px] sm:text-[11px] text-neutral-400 font-semibold">
                             {p.unit.name}
                           </span>
                         )}
@@ -1430,18 +1525,18 @@ export const CashierView: React.FC = () => {
             </div>
           </div>
 
-          {/* Floating Checkout Bar for Mobile/Tablet or anytime cashier is scrolled */}
+          {/* Floating Checkout Bar for Mobile/Tablet positioned safely above the bottom nav */}
           {posCart.length > 0 && (
-            <div className="fixed bottom-16 sm:bottom-4 left-3 right-3 lg:hidden z-40 bg-neutral-950/95 dark:bg-emerald-950/95 text-white p-3.5 rounded-3xl shadow-2xl backdrop-blur-md flex items-center justify-between border border-white/10 animate-in slide-in-from-bottom duration-300">
+            <div className="fixed bottom-[72px] sm:bottom-[76px] left-3 right-3 sm:left-6 sm:right-6 max-w-xl sm:mx-auto lg:hidden z-30 bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white p-3 rounded-2xl shadow-xl shadow-emerald-950/25 border border-emerald-500/40 backdrop-blur-md flex items-center justify-between animate-in slide-in-from-bottom duration-300">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+                <div className="h-9 w-9 rounded-xl bg-white/20 text-white flex items-center justify-center font-black text-xs shadow-xs backdrop-blur-xs border border-white/25">
                   {posCart.reduce((s, i) => s + i.quantity, 0)}
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-300 font-bold">
+                  <p className="text-xs text-emerald-100 font-bold leading-tight">
                     {posCart.length} {t.dishesCountShort || "ta taom"}
                   </p>
-                  <strong className="text-sm font-black text-emerald-400">
+                  <strong className="text-sm font-black text-white tracking-tight">
                     {posTotal.toLocaleString()} so'm
                   </strong>
                 </div>
@@ -1449,7 +1544,7 @@ export const CashierView: React.FC = () => {
 
               <Button
                 onClick={handlePosOrder}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black px-4 py-2.5 shadow-lg shadow-emerald-600/30 active:scale-95"
+                className="bg-white hover:bg-emerald-50 text-emerald-900 font-black text-xs px-4 py-2.5 rounded-xl shadow-md active:scale-95 transition-all border-none"
               >
                 {t.posSaveOrder || "Buyurtmani Saqlash"}
               </Button>

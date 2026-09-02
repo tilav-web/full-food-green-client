@@ -42,6 +42,7 @@ import {
   Tag,
   KeyRound,
   UserPlus,
+  GripVertical,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -345,6 +346,44 @@ export const AdminView: React.FC = () => {
     const temp = nextList[index]
     nextList[index] = nextList[index + 1]
     nextList[index + 1] = temp
+    handleReorderCategories(nextList)
+  }
+
+  const [adminDraggedCatIndex, setAdminDraggedCatIndex] = useState<number | null>(null)
+  const [adminDragOverCatIndex, setAdminDragOverCatIndex] = useState<number | null>(null)
+
+  const handleAdminCategoryDragStart = (e: React.DragEvent, index: number) => {
+    setAdminDraggedCatIndex(index)
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", String(index))
+  }
+
+  const handleAdminCategoryDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (adminDragOverCatIndex !== index) {
+      setAdminDragOverCatIndex(index)
+    }
+  }
+
+  const handleAdminCategoryDragEnd = () => {
+    setAdminDraggedCatIndex(null)
+    setAdminDragOverCatIndex(null)
+  }
+
+  const handleAdminCategoryDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+    if (adminDraggedCatIndex === null || adminDraggedCatIndex === targetIndex) {
+      setAdminDraggedCatIndex(null)
+      setAdminDragOverCatIndex(null)
+      return
+    }
+
+    const nextList = [...sortedCategories]
+    const [removed] = nextList.splice(adminDraggedCatIndex, 1)
+    nextList.splice(targetIndex, 0, removed)
+
+    setAdminDraggedCatIndex(null)
+    setAdminDragOverCatIndex(null)
     handleReorderCategories(nextList)
   }
 
@@ -1186,36 +1225,51 @@ export const AdminView: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                {sortedCategories.map((c, index) => (
-                  <div
-                    key={c.id}
-                    className="border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center justify-between shadow-xs transition-all"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-black text-[11px] flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800">
-                        #{index + 1}
-                      </span>
-                      <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center overflow-hidden border border-emerald-100 dark:border-emerald-900 flex-shrink-0">
-                        {c.imageUrl ? (
-                          <img
-                            src={getImageUrl(c.imageUrl)}
-                            alt={c.name}
-                            onError={(e) => {
-                              ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                            }}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <Layers className="h-5 w-5 text-emerald-600" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">{c.name}</h4>
-                        <span className="text-[10px] text-neutral-400">
-                          {c.products?.length || 0} ta taom biriktirilgan
+                {sortedCategories.map((c, index) => {
+                  const isDragging = adminDraggedCatIndex === index
+                  const isOver = adminDragOverCatIndex === index
+                  return (
+                    <div
+                      key={c.id}
+                      draggable
+                      onDragStart={(e) => handleAdminCategoryDragStart(e, index)}
+                      onDragOver={(e) => handleAdminCategoryDragOver(e, index)}
+                      onDragEnd={handleAdminCategoryDragEnd}
+                      onDrop={(e) => handleAdminCategoryDrop(e, index)}
+                      className={`border bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center justify-between shadow-xs transition-all cursor-grab active:cursor-grabbing select-none ${
+                        isDragging ? "opacity-30 scale-95 border-dashed border-emerald-500" : ""
+                      } ${
+                        isOver
+                          ? "border-emerald-500 ring-2 ring-emerald-500/30 scale-[1.01] border-dashed"
+                          : "border-neutral-200/80 dark:border-neutral-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <GripVertical className="h-4 w-4 text-neutral-400 hover:text-neutral-700 flex-shrink-0" />
+                        <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-black text-[11px] flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800">
+                          #{index + 1}
                         </span>
+                        <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center overflow-hidden border border-emerald-100 dark:border-emerald-900 flex-shrink-0">
+                          {c.imageUrl ? (
+                            <img
+                              src={getImageUrl(c.imageUrl)}
+                              alt={c.name}
+                              onError={(e) => {
+                                ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                              }}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Layers className="h-5 w-5 text-emerald-600" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">{c.name}</h4>
+                          <span className="text-[10px] text-neutral-400">
+                            {c.products?.length || 0} ta taom biriktirilgan
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
@@ -1253,7 +1307,8 @@ export const AdminView: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                )
+              })}
               </div>
             </div>
           )}
