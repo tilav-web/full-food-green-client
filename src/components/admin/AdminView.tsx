@@ -1717,136 +1717,131 @@ export const AdminView: React.FC = () => {
           </div>
 
           {/* 2. HERO FINANCIAL SUMMARY CARD (TUSHUM, SOF FOYDA, TANNARX) */}
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-650 via-teal-800 to-emerald-950 text-white p-5 sm:p-6 shadow-xl shadow-emerald-950/25 border border-emerald-500/20">
-            <div className="absolute -right-8 -bottom-8 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute left-1/3 -top-12 w-36 h-36 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="relative z-10 space-y-4">
-              {/* Header Title & Period */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-emerald-100 shadow-inner">
-                    <TrendingUp className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-black text-emerald-100/90 tracking-wide uppercase block">
-                      {statsPeriod === "today"
-                        ? "Bugungi Moliyaviy Tahlil"
-                        : statsPeriod === "yesterday"
-                        ? "Kecha Moliyaviy Tahlili"
-                        : statsPeriod === "week"
-                        ? "Haftalik Moliyaviy Tahlil"
-                        : statsPeriod === "month"
-                        ? "Oylik Moliyaviy Tahlil"
-                        : statsPeriod === "all"
-                        ? "Barcha Vaqt Moliyaviy Tahlili"
-                        : "Tanlangan Davr Tahlili"}
-                    </span>
-                    <span className="text-[10px] text-emerald-200/70 font-medium">
-                      {dashboard?.startDate ? new Date(dashboard.startDate).toLocaleDateString() : ""} {dashboard?.endDate ? `— ${new Date(dashboard.endDate).toLocaleDateString()}` : ""}
-                    </span>
-                  </div>
+          <div className="rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 p-5 sm:p-6 shadow-xs space-y-4">
+            {/* Header Title & Period */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4" />
                 </div>
-
-                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full shadow-xs">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[11px] font-bold text-white">
-                    {dashboard?.profitMargin || 0}% {t.profitMargin || "Rentabellik"}
+                <div>
+                  <span className="text-xs font-black text-neutral-900 dark:text-white tracking-wide uppercase block">
+                    {statsPeriod === "today"
+                      ? "Bugungi Moliyaviy Tahlil"
+                      : statsPeriod === "yesterday"
+                      ? "Kecha Moliyaviy Tahlili"
+                      : statsPeriod === "week"
+                      ? "Haftalik Moliyaviy Tahlil"
+                      : statsPeriod === "month"
+                      ? "Oylik Moliyaviy Tahlil"
+                      : statsPeriod === "all"
+                      ? "Barcha Vaqt Moliyaviy Tahlili"
+                      : "Tanlangan Davr Tahlili"}
+                  </span>
+                  <span className="text-[10px] text-neutral-400 font-medium">
+                    {dashboard?.startDate ? new Date(dashboard.startDate).toLocaleDateString() : ""} {dashboard?.endDate ? `— ${new Date(dashboard.endDate).toLocaleDateString()}` : ""}
                   </span>
                 </div>
               </div>
 
-              {/* 3 Primary Metrics Grid: Tushum, Sof Foyda, Tannarx */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                {/* 1. Tushum (Sotuv) */}
-                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 space-y-1">
-                  <span className="text-[10px] font-semibold text-emerald-100/80 uppercase tracking-wider block">
-                    {t.dailyRevenue || "Sotuv Tushumi"}
-                  </span>
-                  <div className="flex items-baseline gap-1">
-                    <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-                      {(dashboard?.revenue || 0).toLocaleString()}
-                    </h2>
-                    <span className="text-xs font-bold text-emerald-200">{t.currency || "so'm"}</span>
-                  </div>
-                  <span className="text-[9px] text-emerald-200/70 block font-medium">
-                    {dashboard?.completedOrdersCount || 0} ta to'langan buyurtma
-                  </span>
-                </div>
+              <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 px-3 py-1 rounded-full text-emerald-700 dark:text-emerald-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] font-bold">
+                  {dashboard?.profitMargin || 0}% {t.profitMargin || "Rentabellik"}
+                </span>
+              </div>
+            </div>
 
-                {/* 2. Sof Foyda (Net Profit) - Highlighted */}
-                <div className="p-3.5 rounded-2xl bg-emerald-400/20 backdrop-blur-md border border-emerald-300/40 shadow-inner space-y-1 ring-2 ring-white/20">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-emerald-100 uppercase tracking-wider flex items-center gap-1">
-                      <Sparkles className="h-3 w-3 text-amber-300" />
-                      {t.netProfit || "Sof Foyda"}
-                    </span>
-                    <span className="text-[9px] font-black bg-white/25 px-1.5 py-0.5 rounded-md text-white">
-                      +{dashboard?.profitMargin || 0}%
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-xs">
-                      +{(dashboard?.netProfit || 0).toLocaleString()}
-                    </h2>
-                    <span className="text-xs font-bold text-emerald-100">{t.currency || "so'm"}</span>
-                  </div>
-                  <span className="text-[9px] text-emerald-100/90 block font-semibold">
-                    Cho'ntakka qoladigan sof daromad
-                  </span>
+            {/* 3 Primary Metrics Grid: Tushum, Sof Foyda, Tannarx */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              {/* 1. Tushum (Sotuv) */}
+              <div className="p-4 rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/50 border border-neutral-200/70 dark:border-neutral-800 space-y-1">
+                <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">
+                  {t.dailyRevenue || "Sotuv Tushumi"}
+                </span>
+                <div className="flex items-baseline gap-1">
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-neutral-900 dark:text-white">
+                    {(dashboard?.revenue || 0).toLocaleString()}
+                  </h2>
+                  <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400">{t.currency || "so'm"}</span>
                 </div>
-
-                {/* 3. Taomlar Tannarxi (Food Cost) */}
-                <div className="p-3.5 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/10 space-y-1">
-                  <span className="text-[10px] font-semibold text-neutral-200/80 uppercase tracking-wider block">
-                    {t.totalCost || "Taomlar Tannarxi"} (COGS)
-                  </span>
-                  <div className="flex items-baseline gap-1">
-                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-neutral-100">
-                      -{(dashboard?.totalCost || 0).toLocaleString()}
-                    </h2>
-                    <span className="text-xs font-bold text-neutral-300">{t.currency || "so'm"}</span>
-                  </div>
-                  <span className="text-[9px] text-neutral-300/80 block font-medium">
-                    {dashboard?.revenue > 0 ? Math.round(((dashboard?.totalCost || 0) / dashboard.revenue) * 100) : 0}% tushumdan
-                  </span>
-                </div>
+                <span className="text-[10px] text-neutral-400 block font-medium">
+                  {dashboard?.completedOrdersCount || 0} ta to'langan buyurtma
+                </span>
               </div>
 
-              {/* Bottom Operational Matrix (4 Columns) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-white/15">
-                <div>
-                  <span className="text-[10px] text-emerald-200/80 block font-medium">
-                    {t.ordersCountLabel || "Buyurtmalar"}
+              {/* 2. Sof Foyda (Net Profit) - Highlighted */}
+              <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300/80 dark:border-emerald-800/80 space-y-1 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                    {t.netProfit || "Sof Foyda"}
                   </span>
-                  <span className="text-sm font-black">
-                    {dashboard?.totalOrders || 0} {t.itemsCount || "ta"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-emerald-200/80 block font-medium">
-                    {t.averageCheckLabel || "O'rtacha Chek"}
-                  </span>
-                  <span className="text-sm font-black">
-                    {(dashboard?.averageCheck || 0).toLocaleString()} <span className="text-[9px]">{t.currency || "so'm"}</span>
+                  <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-lg shadow-xs">
+                    +{dashboard?.profitMargin || 0}%
                   </span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-emerald-200/80 block font-medium">
-                    {t.averageProfitLabel || "O'rtacha Foyda (chekdan)"}
-                  </span>
-                  <span className="text-sm font-black text-emerald-200">
-                    +{(dashboard?.averageProfit || 0).toLocaleString()} <span className="text-[9px]">{t.currency || "so'm"}</span>
-                  </span>
+                <div className="flex items-baseline gap-1">
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-emerald-700 dark:text-emerald-400">
+                    +{(dashboard?.netProfit || 0).toLocaleString()}
+                  </h2>
+                  <span className="text-xs font-bold text-emerald-600/80 dark:text-emerald-400/80">{t.currency || "so'm"}</span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-emerald-200/80 block font-medium">
-                    {t.allTimeProfitLabel || "Jami Sof Foyda"}
-                  </span>
-                  <span className="text-sm font-black text-emerald-100">
-                    {((dashboard?.allTimeProfit || 0) / 1000000).toFixed(1)} {t.mlnSum || "mln"}
-                  </span>
+                <span className="text-[10px] text-emerald-700/90 dark:text-emerald-400/90 block font-semibold">
+                  Cho'ntakka qoladigan sof daromad
+                </span>
+              </div>
+
+              {/* 3. Taomlar Tannarxi (Food Cost) */}
+              <div className="p-4 rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/50 border border-neutral-200/70 dark:border-neutral-800 space-y-1">
+                <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">
+                  {t.totalCost || "Taomlar Tannarxi"} (COGS)
+                </span>
+                <div className="flex items-baseline gap-1">
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-neutral-800 dark:text-neutral-200">
+                    -{(dashboard?.totalCost || 0).toLocaleString()}
+                  </h2>
+                  <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400">{t.currency || "so'm"}</span>
                 </div>
+                <span className="text-[10px] text-neutral-400 block font-medium">
+                  {dashboard?.revenue > 0 ? Math.round(((dashboard?.totalCost || 0) / dashboard.revenue) * 100) : 0}% tushumdan
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Operational Matrix (4 Columns) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+              <div>
+                <span className="text-[10px] text-neutral-400 block font-medium">
+                  {t.ordersCountLabel || "Buyurtmalar"}
+                </span>
+                <span className="text-sm font-black text-neutral-900 dark:text-white">
+                  {dashboard?.totalOrders || 0} {t.itemsCount || "ta"}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-neutral-400 block font-medium">
+                  {t.averageCheckLabel || "O'rtacha Chek"}
+                </span>
+                <span className="text-sm font-black text-neutral-900 dark:text-white">
+                  {(dashboard?.averageCheck || 0).toLocaleString()} <span className="text-[10px] text-neutral-400 font-medium">{t.currency || "so'm"}</span>
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-neutral-400 block font-medium">
+                  {t.averageProfitLabel || "O'rtacha Foyda (chekdan)"}
+                </span>
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                  +{(dashboard?.averageProfit || 0).toLocaleString()} <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-medium">{t.currency || "so'm"}</span>
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-neutral-400 block font-medium">
+                  {t.allTimeProfitLabel || "Jami Sof Foyda"}
+                </span>
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                  {((dashboard?.allTimeProfit || 0) / 1000000).toFixed(1)} {t.mlnSum || "mln"}
+                </span>
               </div>
             </div>
           </div>
