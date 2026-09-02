@@ -399,17 +399,25 @@ export const CashierView: React.FC = () => {
   // Instant Insertion-Line Drop
   const handleCategoryDrop = async (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
+    e.stopPropagation()
     if (draggedCatIndex === null) {
       handleCategoryDragEnd()
       return
     }
 
-    const rect = e.currentTarget.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const side = mouseX < rect.width / 2 ? "left" : "right"
-    const targetSlot = side === "left" ? targetIndex : targetIndex + 1
+    // Determine target side from indicator position or mouse position
+    let side: "left" | "right" = "left"
+    if (dropInsertPosition && dropInsertPosition.index === targetIndex) {
+      side = dropInsertPosition.side
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      side = mouseX < rect.width / 2 ? "left" : "right"
+    }
 
+    const targetSlot = side === "left" ? targetIndex : targetIndex + 1
     const fromIndex = draggedCatIndex
+
     if (fromIndex === targetSlot || fromIndex === targetSlot - 1) {
       handleCategoryDragEnd()
       return
@@ -421,23 +429,38 @@ export const CashierView: React.FC = () => {
     const finalIndex = fromIndex < targetSlot ? targetSlot - 1 : targetSlot
     nextCategories.splice(finalIndex, 0, draggedItem)
 
-    // INSTANT UI UPDATE
-    setOrderedCategories(nextCategories)
+    // CRITICAL FIX: Reassign sortOrder to every category so sorting never breaks or reverts!
+    const updatedCategories = nextCategories.map((c, idx) => ({
+      ...c,
+      sortOrder: idx + 1,
+    }))
+
+    // 1. INSTANT UI UPDATE
+    setOrderedCategories(updatedCategories)
     handleCategoryDragEnd()
     triggerHaptic("medium")
 
-    // Update query cache optimistically
-    queryClient.setQueryData(["cashierCategories"], nextCategories)
-    queryClient.setQueryData(["categories"], nextCategories)
+    // 2. Optimistic cache updates with new sortOrders
+    queryClient.setQueryData(["cashierCategories"], updatedCategories)
+    queryClient.setQueryData(["categories"], updatedCategories)
+    queryClient.setQueryData(["adminCategories"], updatedCategories)
 
+    // 3. Persist to server API
     try {
-      const items = nextCategories.map((c, idx) => ({ id: c.id, sortOrder: idx + 1 }))
-      await apiClient.put("/products/categories/reorder", { items })
+      const items = updatedCategories.map((c, idx) => ({ id: c.id, sortOrder: idx + 1 }))
+      const res = await apiClient.put("/products/categories/reorder", { items })
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setOrderedCategories(res.data)
+        queryClient.setQueryData(["cashierCategories"], res.data)
+        queryClient.setQueryData(["categories"], res.data)
+        queryClient.setQueryData(["adminCategories"], res.data)
+      }
     } catch (err) {
       console.error("Kategoriyalarni qayta tartiblashda xatolik:", err)
       toast.error("Tartibni saqlashda xatolik yuz berdi")
       setOrderedCategories(previousOrder)
       queryClient.setQueryData(["cashierCategories"], previousOrder)
+      queryClient.setQueryData(["categories"], previousOrder)
     }
   }
 
@@ -1299,7 +1322,12 @@ export const CashierView: React.FC = () => {
                     draggedCatIndex !== index + 1
 
                   return (
-                    <div key={c.id} className="relative shrink-0 flex items-center">
+                    <div
+                      key={c.id}
+                      onDragOver={(e) => handleCategoryDragOver(e, index)}
+                      onDrop={(e) => handleCategoryDrop(e, index)}
+                      className="relative shrink-0 flex items-center"
+                    >
                       {/* Insertion Line Before (Left) */}
                       {showLeftIndicator && (
                         <div className="absolute -left-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
@@ -1314,9 +1342,7 @@ export const CashierView: React.FC = () => {
                         type="button"
                         draggable
                         onDragStart={(e) => handleCategoryDragStart(e, index)}
-                        onDragOver={(e) => handleCategoryDragOver(e, index)}
                         onDragEnd={handleCategoryDragEnd}
-                        onDrop={(e) => handleCategoryDrop(e, index)}
                         onClick={() => setPosSelectedCategory(c.id)}
                         className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group my-1 ${
                           isDragging ? "opacity-25 scale-95 border-2 border-dashed border-emerald-400" : ""

@@ -400,19 +400,30 @@ export const AdminView: React.FC = () => {
   const handleReorderCategories = async (newOrderedList: Category[]) => {
     try {
       triggerHaptic("light")
+      const updatedList = newOrderedList.map((cat, idx) => ({
+        ...cat,
+        sortOrder: idx + 1,
+      }))
       const payload = {
-        items: newOrderedList.map((cat, idx) => ({
+        items: updatedList.map((cat, idx) => ({
           id: cat.id,
           sortOrder: idx + 1,
         })),
       }
-      // Optimistic cache update
-      queryClient.setQueryData(["adminCategories"], newOrderedList)
-      queryClient.setQueryData(["categories"], newOrderedList)
+      // Optimistic cache update with updated sortOrders
+      queryClient.setQueryData(["adminCategories"], updatedList)
+      queryClient.setQueryData(["categories"], updatedList)
+      queryClient.setQueryData(["cashierCategories"], updatedList)
 
-      await apiClient.put("/products/categories/reorder", payload)
+      const res = await apiClient.put("/products/categories/reorder", payload)
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        queryClient.setQueryData(["adminCategories"], res.data)
+        queryClient.setQueryData(["categories"], res.data)
+        queryClient.setQueryData(["cashierCategories"], res.data)
+      }
       queryClient.invalidateQueries({ queryKey: ["adminCategories"] })
       queryClient.invalidateQueries({ queryKey: ["categories"] })
+      queryClient.invalidateQueries({ queryKey: ["cashierCategories"] })
       queryClient.invalidateQueries({ queryKey: ["products"] })
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] })
     } catch (err) {
@@ -470,17 +481,24 @@ export const AdminView: React.FC = () => {
 
   const handleAdminCategoryDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
+    e.stopPropagation()
     if (adminDraggedCatIndex === null) {
       handleAdminCategoryDragEnd()
       return
     }
 
-    const rect = e.currentTarget.getBoundingClientRect()
-    const mouseY = e.clientY - rect.top
-    const side = mouseY < rect.height / 2 ? "top" : "bottom"
-    const targetSlot = side === "top" ? targetIndex : targetIndex + 1
+    let side: "top" | "bottom" = "top"
+    if (adminDropInsertPosition && adminDropInsertPosition.index === targetIndex) {
+      side = adminDropInsertPosition.side
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const mouseY = e.clientY - rect.top
+      side = mouseY < rect.height / 2 ? "top" : "bottom"
+    }
 
+    const targetSlot = side === "top" ? targetIndex : targetIndex + 1
     const fromIndex = adminDraggedCatIndex
+
     if (fromIndex === targetSlot || fromIndex === targetSlot - 1) {
       handleAdminCategoryDragEnd()
       return
@@ -491,8 +509,13 @@ export const AdminView: React.FC = () => {
     const finalIndex = fromIndex < targetSlot ? targetSlot - 1 : targetSlot
     nextList.splice(finalIndex, 0, removed)
 
+    const updatedList = nextList.map((c, idx) => ({
+      ...c,
+      sortOrder: idx + 1,
+    }))
+
     handleAdminCategoryDragEnd()
-    handleReorderCategories(nextList)
+    handleReorderCategories(updatedList)
   }
 
   const handleOpenAddCategory = () => {
@@ -1356,7 +1379,12 @@ export const AdminView: React.FC = () => {
                     adminDraggedCatIndex !== index + 1
 
                   return (
-                    <div key={c.id} className="relative">
+                    <div
+                      key={c.id}
+                      onDragOver={(e) => handleAdminCategoryDragOver(e, index)}
+                      onDrop={(e) => handleAdminCategoryDrop(e, index)}
+                      className="relative"
+                    >
                       {/* Top Horizontal Insertion Line */}
                       {showTopIndicator && (
                         <div className="absolute -top-1.5 left-2 right-2 z-30 flex items-center pointer-events-none">
@@ -1370,9 +1398,7 @@ export const AdminView: React.FC = () => {
                       <div
                         draggable
                         onDragStart={(e) => handleAdminCategoryDragStart(e, index)}
-                        onDragOver={(e) => handleAdminCategoryDragOver(e, index)}
                         onDragEnd={handleAdminCategoryDragEnd}
-                        onDrop={(e) => handleAdminCategoryDrop(e, index)}
                         className={`border bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center justify-between shadow-xs transition-all cursor-grab active:cursor-grabbing select-none ${
                           isDragging ? "opacity-25 scale-98 border-dashed border-emerald-400" : "border-neutral-200/80 dark:border-neutral-800"
                         }`}
