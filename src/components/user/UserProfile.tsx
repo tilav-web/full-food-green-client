@@ -32,6 +32,7 @@ import {
   Scale,
   Sparkles,
   Wallet,
+  UtensilsCrossed,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -386,9 +387,77 @@ export const UserProfile: React.FC = () => {
             </div>
           )}
 
+          {/* CASHIER SPECIFIC SECTION */}
+          {user && user.role === "CASHIER" && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
+                <UtensilsCrossed className="h-3.5 w-3.5" />
+                Mijozlar Ko'rinishi
+              </span>
+
+              <div className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs">
+                <div
+                  onClick={() => {
+                    triggerHaptic("light")
+                    navigate("/menu?viewMenu=true")
+                  }}
+                  className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
+                      <UtensilsCrossed className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
+                        Mijozlar Menyusini Ko'rish
+                      </h4>
+                      <p className="text-[10px] text-neutral-400">
+                        Taomlar va aksiyalarni mijoz ko'rinishida ochish
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-neutral-400" />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* SUPER ADMIN MANAGEMENT HUB - ONLY SECTIONS NOT IN BOTTOM NAV */}
           {user && user.role === "ADMIN" && (
             <div className="space-y-4">
+              {/* GROUP 0: MIJOZLAR REJIMI / MENYU */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
+                  <UtensilsCrossed className="h-3.5 w-3.5" />
+                  Mijozlar Ko'rinishi
+                </span>
+
+                <div className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs">
+                  <div
+                    onClick={() => {
+                      triggerHaptic("light")
+                      navigate("/menu?viewMenu=true")
+                    }}
+                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
+                        <UtensilsCrossed className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
+                          Mijozlar Menyusini Ko'rish
+                        </h4>
+                        <p className="text-[10px] text-neutral-400">
+                          Taomlar va aksiyalar oddiy mijozlarga qanday ko'rinayotganini tekshirish
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-neutral-400" />
+                  </div>
+                </div>
+              </div>
+
               {/* GROUP 1: OMBOR VA KIRIM NAZORATI */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
