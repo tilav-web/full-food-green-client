@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react"
 import { apiClient } from "@/api/axios"
 import { getImageUrl } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { Banner } from "@/types"
 
 interface PromoBannerProps {
@@ -18,52 +19,12 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
   const touchStartX = useRef<number | null>(null)
 
   // Fetch dynamic banners from backend
-  const { data: dbBanners = [] } = useQuery<Banner[]>({
+  const { data: dbBanners = [], isLoading } = useQuery<Banner[]>({
     queryKey: ["banners"],
     queryFn: async () => (await apiClient.get("/banners?active=true")).data,
   })
 
-  // Fallback banners if DB is empty
-  const fallbackPromos: Banner[] = [
-    {
-      id: "1",
-      badge: "Trendda -15%",
-      title: "Mazali Tushlik Kombosi",
-      description: "Asosiy taom, salat va maxsus sous birgalikda",
-      gradient: "from-emerald-700 via-teal-800 to-emerald-950",
-      actionText: "Aksiyani ko'rish",
-      actionType: "PROMO_PAGE",
-      sortOrder: 1,
-      isActive: true,
-      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=60",
-    },
-    {
-      id: "2",
-      badge: "Konstruktor",
-      title: "O'z Tovog'ingizni Yig'ing",
-      description: "Guruch, go'sht va sabzavotlarni xohlagancha tanlang",
-      gradient: "from-teal-800 via-emerald-800 to-slate-900",
-      actionText: "Konstruktor",
-      actionType: "PROMO_PAGE",
-      sortOrder: 2,
-      isActive: true,
-      imageUrl: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop&q=60",
-    },
-    {
-      id: "3",
-      badge: "Aksiya",
-      title: "Yangi Parhez Taomlar",
-      description: "KBDU hisoblangan eng toza taomlar to'plami",
-      gradient: "from-emerald-900 via-green-950 to-neutral-950",
-      actionText: "Aksiyani ko'rish",
-      actionType: "PROMO_PAGE",
-      sortOrder: 3,
-      isActive: true,
-      imageUrl: "https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=600&auto=format&fit=crop&q=60",
-    },
-  ]
-
-  const banners = dbBanners.length > 0 ? dbBanners : fallbackPromos
+  const banners = dbBanners
 
   // Auto-Slide Timer (Rotates every 4.5 seconds like high-converting food ad banners)
   useEffect(() => {
@@ -150,6 +111,10 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
     touchStartX.current = null
   }
 
+  if (isLoading) {
+    return <Skeleton className="w-full h-[175px] sm:h-[195px] rounded-3xl" />
+  }
+
   if (banners.length === 0) return null
 
   const currentBanner = banners[currentIndex] || banners[0]
@@ -169,6 +134,11 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
+          style={{
+            transform: "translateZ(0)",
+            WebkitTransform: "translateZ(0)",
+            willChange: "transform, opacity",
+          }}
           onClick={() => handleBannerClick(currentBanner)}
           className={`w-full min-h-[175px] sm:min-h-[195px] rounded-3xl bg-gradient-to-br ${
             currentBanner.gradient || "from-emerald-700 via-teal-800 to-emerald-950"
@@ -178,21 +148,20 @@ export const PromoBanner: React.FC<PromoBannerProps> = ({ onSelectTab }) => {
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-300/15 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Background image preview with soft gradient overlay */}
-          <div className="absolute right-0 top-0 bottom-0 w-[55%] sm:w-[50%] opacity-35 mix-blend-luminosity pointer-events-none transition-transform duration-700 group-hover:scale-105">
-            <img
-              src={
-                getImageUrl(currentBanner.imageUrl) ||
-                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=60"
-              }
-              alt={currentBanner.title}
-              onError={(e) => {
-                ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-              }}
-              className="h-full w-full object-cover rounded-r-3xl"
-            />
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black/80" />
-          </div>
+          {/* Background image preview - ONLY rendered if banner has a real imageUrl */}
+          {Boolean(currentBanner.imageUrl) && (
+            <div className="absolute right-0 top-0 bottom-0 w-[55%] sm:w-[50%] opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-105">
+              <img
+                src={getImageUrl(currentBanner.imageUrl)}
+                alt={currentBanner.title}
+                onError={(e) => {
+                  ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                }}
+                className="h-full w-full object-cover rounded-r-3xl"
+              />
+              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black/80" />
+            </div>
+          )}
 
           {/* Top Row: Badge & Promo Counter Indicator */}
           <div className="relative z-10 flex items-center justify-between">

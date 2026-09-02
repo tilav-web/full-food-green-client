@@ -27,17 +27,17 @@ export const Home: React.FC = () => {
   }, [user?.role, isViewMenuMode, navigate])
 
   // Fetch Categories, Products, Combos
-  const { data: categories = [] } = useQuery<Category[]>({
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: async () => (await apiClient.get("/products/categories")).data,
   })
 
-  const { data: products = [] } = useQuery<Product[]>({
+  const { data: products = [], isLoading: isProductsLoading } = useQuery<Product[]>({
     queryKey: ["products"],
     queryFn: async () => (await apiClient.get("/products")).data,
   })
 
-  const { data: combos = [] } = useQuery<Combo[]>({
+  const { data: combos = [], isLoading: isCombosLoading } = useQuery<Combo[]>({
     queryKey: ["combos"],
     queryFn: async () => (await apiClient.get("/products/combos")).data,
   })
@@ -88,6 +88,7 @@ export const Home: React.FC = () => {
         categories={categories}
         products={products}
         combos={combos}
+        isLoading={isCategoriesLoading || isProductsLoading || isCombosLoading}
       />
     </div>
   )

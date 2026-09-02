@@ -3,9 +3,11 @@ import { Outlet, useLocation } from "react-router-dom"
 import { Navbar } from "./Navbar"
 import { BottomNav } from "./BottomNav"
 import { useAppStore } from "@/store/useAppStore"
+import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
 
 export const MainLayout: React.FC = () => {
+  useTelegram()
   const { theme, setUser, accessToken, logout } = useAppStore()
   const location = useLocation()
 

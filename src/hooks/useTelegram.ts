@@ -15,7 +15,7 @@ export function useTelegram() {
   const [tgUser, setTgUser] = useState<any>(null)
   const [initDataRaw, setInitDataRaw] = useState<string>("")
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const { user, setUser, theme, cart } = useAppStore()
+  const { user, setUser, setAuth, theme, cart } = useAppStore()
 
   // Initialize Telegram WebApp capabilities on mount
   useEffect(() => {
@@ -93,10 +93,15 @@ export function useTelegram() {
           })
           .then((res) => {
             if (res.data?.user) {
-              setUser({
+              const verifiedUser = {
                 ...res.data.user,
                 isTelegramVerified: !!(res.data.user.phone && res.data.user.telegramId),
-              })
+              }
+              if (res.data.accessToken) {
+                setAuth(verifiedUser, res.data.accessToken, res.data.refreshToken)
+              } else {
+                setUser(verifiedUser)
+              }
             }
           })
           .catch((err) => {
@@ -114,14 +119,19 @@ export function useTelegram() {
           .get(`/auth/web-session-status/${authToken}`)
           .then((res) => {
             if (res.data?.status === "COMPLETED" && res.data.user) {
-              setUser({ ...res.data.user, isTelegramVerified: true })
+              const verifiedUser = { ...res.data.user, isTelegramVerified: true }
+              if (res.data.accessToken) {
+                setAuth(verifiedUser, res.data.accessToken, res.data.refreshToken)
+              } else {
+                setUser(verifiedUser)
+              }
               window.history.replaceState({}, document.title, window.location.pathname)
             }
           })
           .catch(console.warn)
       }
     }
-  }, [setUser, theme])
+  }, [setUser, setAuth, theme])
 
   // Closing confirmation toggle when cart is not empty (Telegram WebApp 6.2+)
   useEffect(() => {
@@ -172,7 +182,15 @@ export function useTelegram() {
                   })
                   .then((res) => {
                     if (res.data?.user) {
-                      setUser({ ...res.data.user, isTelegramVerified: true })
+                      const verifiedUser = {
+                        ...res.data.user,
+                        isTelegramVerified: true,
+                      }
+                      if (res.data.accessToken) {
+                        setAuth(verifiedUser, res.data.accessToken, res.data.refreshToken)
+                      } else {
+                        setUser(verifiedUser)
+                      }
                     }
                     resolve({ success: true, phone: phoneNumber })
                   })

@@ -53,6 +53,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     clearCart,
     user,
     setUser,
+    setAuth,
     setCurrentActiveOrder,
     savedLocations,
     containers,
@@ -62,6 +63,9 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
   // Steps: 'CART' | 'LOCATION' | 'PAYMENT' | 'SUCCESS'
   const [step, setStep] = useState<"CART" | "LOCATION" | "PAYMENT" | "SUCCESS">("CART")
+  const [showManualPhoneInput, setShowManualPhoneInput] = useState(false)
+  const [manualPhone, setManualPhone] = useState("+998")
+  const [isSavingManualPhone, setIsSavingManualPhone] = useState(false)
 
   const CONTAINER_CAPACITY = 5 // Har bir standart idish sig'imi: 5 ball
 
@@ -71,58 +75,35 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     queryFn: async () => (await apiClient.get("/products")).data,
   })
 
-  // Helper: Get dish packaging level (0-5). Drinks and beverages are strictly 0.
+  // Helper: Get dish packaging level (0-5). Purely database and category driven.
   const getItemPackagingLevel = (item: {
     id?: string
     name?: string
     cartItemId?: string
     productId?: string
     packagingLevel?: number
+    category?: any
   }): number => {
-    if (item.packagingLevel !== undefined && item.packagingLevel !== null) {
-      return Number(item.packagingLevel)
+    // 1. Direct packagingLevel if defined on cart item
+    if (typeof item.packagingLevel === "number") {
+      return item.packagingLevel
     }
+    // 2. Lookup in loaded product catalog
     const pId = item.productId || item.cartItemId || item.id
     if (pId) {
       const p = allProducts.find((prod) => prod.id === pId)
       if (p) {
-        if (p.packagingLevel !== undefined && p.packagingLevel !== null) {
-          return Number(p.packagingLevel)
+        if (typeof p.packagingLevel === "number") {
+          return p.packagingLevel
         }
         const catName = p.category?.name?.toLowerCase() || ""
         const catSlug = p.category?.slug?.toLowerCase() || ""
-        if (catName.includes("ichimlik") || catSlug.includes("ichimlik") || p.categoryId === "drinks") {
+        if (catName.includes("ichimlik") || catSlug.includes("ichimlik") || catSlug.includes("drink")) {
           return 0
         }
       }
     }
-    // Check item name for drink keywords
-    const lowerName = ((item as any).name || "").toLowerCase()
-    if (
-      lowerName.includes("cappuccino") ||
-      lowerName.includes("latte") ||
-      lowerName.includes("americano") ||
-      lowerName.includes("espresso") ||
-      lowerName.includes("fanta") ||
-      lowerName.includes("cola") ||
-      lowerName.includes("sprite") ||
-      lowerName.includes("adrenalin") ||
-      lowerName.includes("flash") ||
-      lowerName.includes("red bull") ||
-      lowerName.includes("suv") ||
-      lowerName.includes("choy") ||
-      lowerName.includes("sharbat") ||
-      lowerName.includes("sok") ||
-      lowerName.includes("fuse tea") ||
-      lowerName.includes("ayron") ||
-      lowerName.includes("mojito") ||
-      lowerName.includes("pepsi") ||
-      lowerName.includes("kampot") ||
-      lowerName.includes("kefir")
-    ) {
-      return 0
-    }
-    return 2 // default 2 ball
+    return 1 // default standard dish
   }
 
   // Boolean helper: does cart contain any dishes that need containers?
@@ -346,6 +327,39 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
   // Verification status
   const isUserVerified = !!(user?.phone && (user?.telegramId || user?.isTelegramVerified))
+
+  // Auto-sync Telegram user phone if opened inside Telegram and phone is missing from local state
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp
+    const tgUser = tg?.initDataUnsafe?.user
+    const tgId = tgUser?.id || user?.telegramId
+    if (tgId && !user?.phone) {
+      apiClient
+        .post("/auth/telegram-sync", {
+          telegramId: String(tgId),
+          username: tgUser?.username || user?.username,
+          fullName:
+            `${tgUser?.first_name || ""} ${tgUser?.last_name || ""}`.trim() ||
+            user?.fullName ||
+            "Mijoz",
+          initData: tg?.initData,
+        })
+        .then((res) => {
+          if (res.data?.user) {
+            const verified = {
+              ...res.data.user,
+              isTelegramVerified: !!(res.data.user.phone && res.data.user.telegramId),
+            }
+            if (res.data.accessToken) {
+              setAuth(verified, res.data.accessToken, res.data.refreshToken)
+            } else {
+              setUser(verified)
+            }
+          }
+        })
+        .catch(console.warn)
+    }
+  }, [user?.phone, user?.telegramId, setAuth, setUser])
 
   // Bot Verification Modal for web / unverified users
   const [showBotAuthModal, setShowBotAuthModal] = useState(false)
@@ -1128,14 +1142,78 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 </p>
               </div>
 
-              <Button
-                type="button"
-                onClick={handleStartTelegramAuth}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3 rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-98"
-              >
-                {isTelegram ? <Smartphone className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-                <span>{isTelegram ? t.shareContactBtn : t.openTelegramBot}</span>
-              </Button>
+              {!showManualPhoneInput ? (
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    onClick={handleStartTelegramAuth}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3 rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-98"
+                  >
+                    {isTelegram ? <Smartphone className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                    <span>{isTelegram ? t.shareContactBtn : t.openTelegramBot}</span>
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualPhoneInput(true)}
+                    className="text-[11px] text-neutral-500 hover:text-emerald-600 font-bold underline block mx-auto pt-1"
+                  >
+                    Telefon raqamni qo'lda kiritish
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2.5 pt-2 text-left">
+                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block">
+                    Telefon raqamingiz:
+                  </label>
+                  <input
+                    type="tel"
+                    value={manualPhone}
+                    onChange={(e) => setManualPhone(e.target.value)}
+                    placeholder="+998 90 123 45 67"
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500 text-center tracking-wider"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowManualPhoneInput(false)}
+                      className="w-1/3 rounded-xl text-xs font-bold"
+                    >
+                      Bekor qilish
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={isSavingManualPhone}
+                      onClick={async () => {
+                        const clean = manualPhone.trim()
+                        if (clean.replace(/\D/g, "").length < 9) {
+                          toast.warning("Iltimos, to'liq telefon raqamingizni kiriting")
+                          return
+                        }
+                        try {
+                          setIsSavingManualPhone(true)
+                          const formatted = clean.startsWith("+") ? clean : `+${clean}`
+                          const res = await apiClient.post("/auth/attach-phone", {
+                            userId: user?.id,
+                            phone: formatted,
+                          })
+                          if (res.data) {
+                            setUser({ ...user, ...res.data, phone: formatted, isTelegramVerified: true })
+                            toast.success("Telefon raqamingiz muvaffaqiyatli saqlandi!")
+                          }
+                        } catch (err: any) {
+                          toast.error(err?.response?.data?.message || "Raqamni saqlashda xatolik")
+                        } finally {
+                          setIsSavingManualPhone(false)
+                        }
+                      }}
+                      className="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+                    >
+                      {isSavingManualPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto" /> : "Saqlash va Davom etish"}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* ========================================================================= */

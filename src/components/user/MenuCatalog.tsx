@@ -7,6 +7,7 @@ import { useTranslation } from "@/i18n/useTranslation"
 import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { ProductDetailModal } from "./ProductDetailModal"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getImageUrl } from "@/lib/utils"
 import type { Category, Product, Combo } from "@/types"
 
@@ -14,9 +15,15 @@ interface MenuCatalogProps {
   categories: Category[]
   products: Product[]
   combos: Combo[]
+  isLoading?: boolean
 }
 
-export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, combos }) => {
+export const MenuCatalog: React.FC<MenuCatalogProps> = ({
+  categories,
+  products,
+  combos,
+  isLoading = false,
+}) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -252,6 +259,39 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({ categories, products, 
 
     return null
   }, [activeDishSlug, products, combos])
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {/* Search bar skeleton */}
+        <Skeleton className="w-full h-11 rounded-2xl" />
+
+        {/* Category pills skeleton */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="w-24 h-9 rounded-2xl shrink-0" />
+          ))}
+        </div>
+
+        {/* Product Cards Skeleton */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 p-3 space-y-2.5 shadow-xs"
+            >
+              <Skeleton className="h-32 w-full rounded-2xl" />
+              <Skeleton className="h-4 w-3/4 rounded-md" />
+              <div className="flex items-center justify-between pt-1">
+                <Skeleton className="h-4 w-1/2 rounded-md" />
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { Skeleton } from "@/components/ui/skeleton"
 import { apiClient } from "@/api/axios"
 import { socket } from "@/api/socket"
 import {
@@ -2313,59 +2314,69 @@ export const AdminView: React.FC = () => {
               )}
             </div>
 
-            {/* Filters: Role & Bot Status */}
-            <div className="space-y-2">
-              {/* Role Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mr-1">Rol:</span>
-                {[
-                  { label: `Barchasi (${counts.all})`, value: "ALL" },
-                  { label: `Mijozlar (${counts.users})`, value: "USER" },
-                  { label: `Kassirlar (${counts.cashiers})`, value: "CASHIER" },
-                  { label: `Adminlar (${counts.admins})`, value: "ADMIN" },
-                ].map((rf) => (
-                  <button
-                    key={rf.value}
-                    onClick={() => {
-                      triggerHaptic("light")
-                      setUserRoleFilter(rf.value as any)
-                      setUserPage(1)
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                      userRoleFilter === rf.value
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                    }`}
-                  >
-                    {rf.label}
-                  </button>
-                ))}
-              </div>
+            {/* Modern Unified Filters Toolbar */}
+            <div className="p-2 sm:p-2.5 rounded-2xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 space-y-2">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+                {/* Role Tabs Segmented Control */}
+                <div className="flex items-center gap-1 bg-neutral-200/60 dark:bg-neutral-800/80 p-1 rounded-xl overflow-x-auto scrollbar-none">
+                  {[
+                    { label: "Barchasi", count: counts.all, value: "ALL" },
+                    { label: "Mijozlar", count: counts.users, value: "USER" },
+                    { label: "Kassirlar", count: counts.cashiers, value: "CASHIER" },
+                    { label: "Adminlar", count: counts.admins, value: "ADMIN" },
+                  ].map((rf) => (
+                    <button
+                      key={rf.value}
+                      onClick={() => {
+                        triggerHaptic("light")
+                        setUserRoleFilter(rf.value as any)
+                        setUserPage(1)
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                        userRoleFilter === rf.value
+                          ? "bg-white dark:bg-neutral-900 text-emerald-700 dark:text-emerald-400 shadow-xs font-black"
+                          : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <span>{rf.label}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          userRoleFilter === rf.value
+                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                            : "bg-neutral-300/60 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
+                        }`}
+                      >
+                        {rf.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
 
-              {/* Bot Activity Status Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mr-1">Bot:</span>
-                {[
-                  { label: "Barcha bot holati", value: "ALL" },
-                  { label: `🟢 Faol bot (${counts.activeBot ?? 0})`, value: "ACTIVE" },
-                  { label: `🔴 Bloklagan (${counts.blockedBot ?? 0})`, value: "BLOCKED" },
-                ].map((bf) => (
-                  <button
-                    key={bf.value}
-                    onClick={() => {
-                      triggerHaptic("light")
-                      setUserBotFilter(bf.value as any)
-                      setUserPage(1)
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                      userBotFilter === bf.value
-                        ? "bg-teal-700 text-white shadow-xs"
-                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                    }`}
-                  >
-                    {bf.label}
-                  </button>
-                ))}
+                {/* Bot Status Segmented Control */}
+                <div className="flex items-center gap-1 bg-neutral-200/60 dark:bg-neutral-800/80 p-1 rounded-xl overflow-x-auto scrollbar-none self-start md:self-auto">
+                  {[
+                    { label: "Barcha bot", value: "ALL" },
+                    { label: `Faol (${counts.activeBot ?? 0})`, value: "ACTIVE", dot: "bg-emerald-500" },
+                    { label: `Bloklangan (${counts.blockedBot ?? 0})`, value: "BLOCKED", dot: "bg-rose-500" },
+                  ].map((bf) => (
+                    <button
+                      key={bf.value}
+                      onClick={() => {
+                        triggerHaptic("light")
+                        setUserBotFilter(bf.value as any)
+                        setUserPage(1)
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                        userBotFilter === bf.value
+                          ? "bg-teal-700 text-white shadow-xs font-black"
+                          : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                      }`}
+                    >
+                      {bf.dot && <span className={`h-2 w-2 rounded-full ${bf.dot}`} />}
+                      <span>{bf.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -2421,9 +2432,23 @@ export const AdminView: React.FC = () => {
 
             {/* Users List */}
             {isLoadingUsers ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2 text-neutral-400">
-                <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-                <span className="text-xs font-semibold">Foydalanuvchilar yuklanmoqda...</span>
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className="p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <Skeleton className="h-5 w-5 rounded-md" />
+                      <Skeleton className="h-10 w-10 rounded-xl" />
+                      <div className="space-y-1.5 flex-1 max-w-xs">
+                        <Skeleton className="h-3.5 w-32 rounded-md" />
+                        <Skeleton className="h-3 w-48 rounded-md" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-6 w-20 rounded-lg" />
+                  </div>
+                ))}
               </div>
             ) : usersList.length === 0 ? (
               <div className="text-center py-12 rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800 p-6 space-y-2">

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { Skeleton } from "@/components/ui/skeleton"
 import { apiClient } from "@/api/axios"
 import {
   Receipt,
@@ -14,7 +15,6 @@ import {
   Volume2,
   VolumeX,
   Search,
-  Layers,
   UtensilsCrossed,
   ExternalLink,
   FileText,
@@ -280,12 +280,12 @@ export const CashierView: React.FC = () => {
   }, [queryClient, triggerHaptic])
 
   // 3. Products & Categories data
-  const { data: products = [], refetch: refetchProducts } = useQuery<Product[]>({
+  const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useQuery<Product[]>({
     queryKey: ["cashierProducts"],
     queryFn: async () => (await apiClient.get("/products")).data,
   })
 
-  const { data: categories = [] } = useQuery<Category[]>({
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<Category[]>({
     queryKey: ["cashierCategories"],
     queryFn: async () => (await apiClient.get("/products/categories")).data,
   })
@@ -314,7 +314,7 @@ export const CashierView: React.FC = () => {
   const [posCart, setPosCart] = React.useState<Array<{ product: Product; quantity: number }>>([])
   const [posCustomerName, setPosCustomerName] = React.useState("Zal Mijoz")
   const [posPaymentMethod, setPosPaymentMethod] = React.useState<"CASH" | "TERMINAL" | "BALANCE">("CASH")
-  const [posSelectedCategory, setPosSelectedCategory] = React.useState<string>("ALL")
+  const [posSelectedCategory, setPosSelectedCategory] = React.useState<string>("")
   const [posSearchQuery, setPosSearchQuery] = React.useState<string>("")
   const [posSelectedCustomer, setPosSelectedCustomer] = React.useState<User | null>(null)
   const [customerSearchQuery, setCustomerSearchQuery] = React.useState("")
@@ -322,16 +322,17 @@ export const CashierView: React.FC = () => {
   const [isSearchingCustomer, setIsSearchingCustomer] = React.useState(false)
 
   const handleSearchCustomers = async (q: string) => {
+    setCustomerSearchQuery(q)
     if (!q.trim()) {
       setCustomerSearchResults([])
       return
     }
     try {
       setIsSearchingCustomer(true)
-      const res = await apiClient.get("/users", { params: { search: q.trim(), limit: 5 } })
-      setCustomerSearchResults(res.data.data || [])
-    } catch (e) {
-      console.error(e)
+      const res = await apiClient.get(`/users/search?q=${encodeURIComponent(q)}`)
+      setCustomerSearchResults(res.data || [])
+    } catch (_) {
+      setCustomerSearchResults([])
     } finally {
       setIsSearchingCustomer(false)
     }
@@ -341,12 +342,9 @@ export const CashierView: React.FC = () => {
   const [posGridCols, setPosGridCols] = React.useState<3 | 4 | 5>(() => {
     try {
       const saved = localStorage.getItem("fullfood_pos_grid_cols")
-      if (saved) {
-        const parsed = parseInt(saved, 10)
-        if (parsed === 3 || parsed === 4 || parsed === 5) return parsed as 3 | 4 | 5
-      }
+      if (saved === "3" || saved === "4" || saved === "5") return Number(saved) as 3 | 4 | 5
     } catch (_) {}
-    return 4 // default 4 qator
+    return 3
   })
 
   const handleSetPosGridCols = (cols: 3 | 4 | 5) => {
@@ -364,7 +362,11 @@ export const CashierView: React.FC = () => {
 
   useEffect(() => {
     if (categories.length > 0) {
-      setOrderedCategories([...categories].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)))
+      const sorted = [...categories].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      setOrderedCategories(sorted)
+      if (!posSelectedCategory || posSelectedCategory === "ALL" || posSelectedCategory === "POPULAR") {
+        setPosSelectedCategory(sorted[0]?.id || "")
+      }
     }
   }, [categories])
 
@@ -386,6 +388,7 @@ export const CashierView: React.FC = () => {
     setDragOverCatIndex(null)
   }
 
+  // Instant Optimistic Drop
   const handleCategoryDrop = async (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
     if (draggedCatIndex === null || draggedCatIndex === targetIndex) {
@@ -394,33 +397,36 @@ export const CashierView: React.FC = () => {
       return
     }
 
+    const previousOrder = [...orderedCategories]
     const nextCategories = [...orderedCategories]
     const [draggedItem] = nextCategories.splice(draggedCatIndex, 1)
     nextCategories.splice(targetIndex, 0, draggedItem)
 
+    // INSTANT UI UPDATE: Zero waiting time!
     setOrderedCategories(nextCategories)
     setDraggedCatIndex(null)
     setDragOverCatIndex(null)
     triggerHaptic("medium")
 
+    // Update query cache optimistically
+    queryClient.setQueryData(["cashierCategories"], nextCategories)
+    queryClient.setQueryData(["categories"], nextCategories)
+
     try {
       const items = nextCategories.map((c, idx) => ({ id: c.id, sortOrder: idx + 1 }))
-      queryClient.setQueryData(["categories"], nextCategories)
       await apiClient.put("/products/categories/reorder", { items })
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
-      queryClient.invalidateQueries({ queryKey: ["adminCategories"] })
-      queryClient.invalidateQueries({ queryKey: ["products"] })
     } catch (err) {
       console.error("Kategoriyalarni qayta tartiblashda xatolik:", err)
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      toast.error("Tartibni saqlashda xatolik yuz berdi")
+      setOrderedCategories(previousOrder)
+      queryClient.setQueryData(["cashierCategories"], previousOrder)
     }
   }
 
   const filteredPosProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesCategory =
-        posSelectedCategory === "ALL" ||
-        (posSelectedCategory === "POPULAR" && p.isPopular) ||
+        !posSelectedCategory ||
         p.categoryId === posSelectedCategory ||
         (p.category && (p.category.id === posSelectedCategory || p.category.name === posSelectedCategory))
 
@@ -1249,126 +1255,90 @@ export const CashierView: React.FC = () => {
             </div>
 
             {/* Category Filter Square Cards with Photos (Mobile-Friendly & Touch-Optimized for POS) */}
-            <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
-              {/* Card 1: Barchasi */}
-              <button
-                type="button"
-                onClick={() => setPosSelectedCategory("ALL")}
-                className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none snap-start ${
-                  posSelectedCategory === "ALL"
-                    ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
-                    : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-90 hover:opacity-100"
-                } bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 text-white`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="h-6 w-6 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
-                    <Layers className="h-3.5 w-3.5 text-white" />
-                  </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md font-black">
-                    {products.length}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs sm:text-sm font-black block leading-tight">
-                    Barchasi
-                  </span>
-                  <span className="text-[9px] text-white/75 font-medium hidden sm:block">
-                    Barcha taomlar
-                  </span>
-                </div>
-              </button>
+            {isCategoriesLoading ? (
+              <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  <Skeleton key={i} className="w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
+                {orderedCategories.map((c, index) => {
+                  const count = products.filter((p) => p.categoryId === c.id).length
+                  const isSelected = posSelectedCategory === c.id
+                  const isDragging = draggedCatIndex === index
+                  const isOver = dragOverCatIndex === index
 
-              {/* Card 2: Ommabop (Top 10) */}
-              <button
-                type="button"
-                onClick={() => setPosSelectedCategory("POPULAR")}
-                className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none snap-start ${
-                  posSelectedCategory === "POPULAR"
-                    ? "ring-3 ring-rose-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-rose-600/30 scale-[1.02]"
-                    : "border border-neutral-200/80 dark:border-neutral-800 hover:border-rose-400 opacity-90 hover:opacity-100"
-                } bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 text-white`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="h-6 w-6 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
-                    <Flame className="h-3.5 w-3.5 text-white fill-white" />
-                  </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md font-black">
-                    Top 10
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs sm:text-sm font-black block leading-tight">
-                    Ommabop
-                  </span>
-                  <span className="text-[9px] text-white/75 font-medium hidden sm:block">
-                    Xaridorgir
-                  </span>
-                </div>
-              </button>
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      draggable
+                      onDragStart={(e) => handleCategoryDragStart(e, index)}
+                      onDragOver={(e) => handleCategoryDragOver(e, index)}
+                      onDragEnd={handleCategoryDragEnd}
+                      onDrop={(e) => handleCategoryDrop(e, index)}
+                      onClick={() => setPosSelectedCategory(c.id)}
+                      className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-pointer snap-start group ${
+                        isDragging ? "opacity-30 scale-95" : ""
+                      } ${
+                        isOver ? "ring-2 ring-emerald-500 scale-105" : ""
+                      } ${
+                        isSelected
+                          ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
+                          : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
+                      }`}
+                    >
+                      {/* Background Image */}
+                      <img
+                        src={getImageUrl(c.imageUrl)}
+                        alt={c.name}
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                        }}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
 
-              {/* Category Cards with Photos */}
-              {orderedCategories.map((c, index) => {
-                const count = products.filter((p) => p.categoryId === c.id).length
-                const isSelected = posSelectedCategory === c.id
-                const isDragging = draggedCatIndex === index
-                const isOver = dragOverCatIndex === index
+                      {/* Gradient Overlay for Text Contrast */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none" />
 
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    draggable
-                    onDragStart={(e) => handleCategoryDragStart(e, index)}
-                    onDragOver={(e) => handleCategoryDragOver(e, index)}
-                    onDragEnd={handleCategoryDragEnd}
-                    onDrop={(e) => handleCategoryDrop(e, index)}
-                    onClick={() => setPosSelectedCategory(c.id)}
-                    className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-pointer snap-start group ${
-                      isDragging ? "opacity-30 scale-95" : ""
-                    } ${
-                      isOver ? "ring-2 ring-emerald-500 scale-105" : ""
-                    } ${
-                      isSelected
-                        ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
-                        : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
-                    }`}
-                  >
-                    {/* Background Image */}
-                    <img
-                      src={getImageUrl(c.imageUrl)}
-                      alt={c.name}
-                      onError={(e) => {
-                        ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                      }}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-
-                    {/* Gradient Overlay for Text Contrast */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none" />
-
-                    {/* Top Row: Drag Handle & Count Badge */}
-                    <div className="relative z-10 flex items-center justify-between w-full">
-                      <div className="opacity-40 group-hover:opacity-100 transition-opacity">
-                        <GripVertical className="h-3 w-3 text-white" />
+                      {/* Top Row: Drag Handle & Count Badge */}
+                      <div className="relative z-10 flex items-center justify-between w-full">
+                        <div className="opacity-40 group-hover:opacity-100 transition-opacity">
+                          <GripVertical className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md text-white font-black">
+                          {count} ta
+                        </span>
                       </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md text-white font-black">
-                        {count} ta
-                      </span>
-                    </div>
 
-                    {/* Bottom Label: Category Name */}
-                    <div className="relative z-10">
-                      <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-md truncate">
-                        {c.name}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+                      {/* Bottom Label: Category Name */}
+                      <div className="relative z-10">
+                        <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-md truncate">
+                          {c.name}
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Products Grid */}
-            {filteredPosProducts.length === 0 ? (
+            {isProductsLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="rounded-3xl border border-neutral-100 dark:border-neutral-800 p-2.5 space-y-2 bg-white dark:bg-neutral-900">
+                    <Skeleton className="h-32 sm:h-36 w-full rounded-2xl" />
+                    <Skeleton className="h-4 w-3/4 rounded-md" />
+                    <div className="flex items-center justify-between pt-1">
+                      <Skeleton className="h-4 w-1/3 rounded-md" />
+                      <Skeleton className="h-8 w-8 rounded-xl" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredPosProducts.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 p-10 text-center space-y-2 bg-white dark:bg-neutral-900">
                 <Package className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto" />
                 <p className="text-xs font-bold text-neutral-600 dark:text-neutral-400">
@@ -1376,7 +1346,7 @@ export const CashierView: React.FC = () => {
                 </p>
                 <button
                   onClick={() => {
-                    setPosSelectedCategory("ALL")
+                    setPosSelectedCategory(orderedCategories[0]?.id || "")
                     setPosSearchQuery("")
                   }}
                   className="text-xs text-emerald-600 font-bold underline"
@@ -1469,11 +1439,51 @@ export const CashierView: React.FC = () => {
 
                         {qty > 0 && (
                           <div
-                            className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 ${
-                              posGridCols === 5 ? "h-6 w-6 text-[10px]" : "h-7 w-7 text-xs"
-                            } rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-neutral-900 animate-in zoom-in-50`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20 flex items-center bg-emerald-600 text-white rounded-full shadow-lg ring-2 ring-white dark:ring-neutral-900 p-0.5 animate-in zoom-in-50"
                           >
-                            {qty}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                triggerHaptic("light")
+                                setPosCart((prev) => {
+                                  const existing = prev.find((i) => i.product.id === p.id)
+                                  if (!existing) return prev
+                                  if (existing.quantity <= 1) {
+                                    return prev.filter((i) => i.product.id !== p.id)
+                                  }
+                                  return prev.map((i) =>
+                                    i.product.id === p.id ? { ...i, quantity: i.quantity - 1 } : i
+                                  )
+                                })
+                              }}
+                              className="h-6 w-6 rounded-full hover:bg-emerald-700 active:scale-90 flex items-center justify-center text-white transition-all"
+                              title="Kamaytirish (-)"
+                            >
+                              <Minus className="h-3 w-3 stroke-[3]" />
+                            </button>
+
+                            <span className="px-1 text-xs font-black min-w-[16px] text-center select-none">
+                              {qty}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                triggerHaptic("light")
+                                setPosCart((prev) => {
+                                  return prev.map((i) =>
+                                    i.product.id === p.id ? { ...i, quantity: i.quantity + 1 } : i
+                                  )
+                                })
+                              }}
+                              className="h-6 w-6 rounded-full hover:bg-emerald-700 active:scale-90 flex items-center justify-center text-white transition-all"
+                              title="Ko'paytirish (+)"
+                            >
+                              <Plus className="h-3 w-3 stroke-[3]" />
+                            </button>
                           </div>
                         )}
                       </div>
