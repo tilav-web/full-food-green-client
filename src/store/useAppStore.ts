@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { devtools, persist } from "zustand/middleware"
-import type { User, CartItem, Order } from "@/types"
+import type { User, CartItem, Order, OrderContainer } from "@/types"
 
 export interface SavedLocationItem {
   id: string
@@ -18,6 +18,7 @@ interface AppState {
   theme: "light" | "dark"
   lang: "uz" | "ru"
   cart: CartItem[]
+  containers: OrderContainer[]
   currentActiveOrder: Order | null
   savedLocations: SavedLocationItem[]
 
@@ -31,12 +32,14 @@ interface AppState {
   setTheme: (theme: "light" | "dark") => void
   toggleTheme: () => void
 
-  // Cart actions
+  // Cart & Packaging actions
   addToCart: (item: CartItem) => void
   removeFromCart: (cartItemId: string) => void
   updateCartQuantity: (cartItemId: string, delta: number) => void
   getItemQuantity: (productId?: string, comboId?: string) => number
   clearCart: () => void
+  setContainers: (containers: OrderContainer[] | ((prev: OrderContainer[]) => OrderContainer[])) => void
+  clearContainers: () => void
   setCurrentActiveOrder: (order: Order | null) => void
 
   // Location actions
@@ -54,6 +57,7 @@ export const useAppStore = create<AppState>()(
         theme: "light",
         lang: "uz",
         cart: [],
+        containers: [],
         currentActiveOrder: null,
         savedLocations: [],
 
@@ -154,7 +158,14 @@ export const useAppStore = create<AppState>()(
             .reduce((sum, i) => sum + i.quantity, 0)
         },
 
-        clearCart: () => set({ cart: [] }),
+        clearCart: () => set({ cart: [], containers: [] }),
+
+        setContainers: (action) =>
+          set((state) => ({
+            containers: typeof action === "function" ? action(state.containers) : action,
+          })),
+
+        clearContainers: () => set({ containers: [] }),
 
         setCurrentActiveOrder: (order) => set({ currentActiveOrder: order }),
 
@@ -180,6 +191,7 @@ export const useAppStore = create<AppState>()(
           lang: state.lang,
           savedLocations: state.savedLocations,
           cart: state.cart,
+          containers: state.containers,
           currentActiveOrder: state.currentActiveOrder,
         }),
         onRehydrateStorage: () => (state) => {

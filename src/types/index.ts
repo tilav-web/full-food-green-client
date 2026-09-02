@@ -77,6 +77,8 @@ export interface Product {
   unit?: Unit
   type: ProductType
   price: number
+  costPrice?: number
+  packagingLevel?: number
   oldPrice?: number
   stockQuantity: number
   calories: number
@@ -125,6 +127,8 @@ export interface OrderItem {
   portionCount: number
   unitPrice: number
   totalPrice: number
+  costPrice?: number
+  totalCost?: number
   customPlateJson?: string
 }
 
@@ -132,6 +136,7 @@ export interface OrderContainerItem {
   cartItemId: string
   name: string
   quantity: number
+  packagingLevel?: number
   unitName?: string
   imageUrl?: string
 }
@@ -153,6 +158,7 @@ export interface Order {
   status: OrderStatus
   subtotal: number
   deliveryFee: number
+  packagingFee?: number
   totalAmount: number
   address?: string
   extraPhone?: string
@@ -200,6 +206,7 @@ export interface CartItem {
   oldPrice?: number
   quantity: number
   portionCount: number
+  packagingLevel?: number
   unitName?: string
   imageUrl?: string
   calories?: number

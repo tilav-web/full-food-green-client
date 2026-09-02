@@ -18,6 +18,7 @@ import {
   ExternalLink,
   FileText,
   Check,
+  LayoutGrid,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -305,6 +306,26 @@ export const CashierView: React.FC = () => {
   const [posPaymentMethod, setPosPaymentMethod] = React.useState<"CASH" | "TERMINAL">("CASH")
   const [posSelectedCategory, setPosSelectedCategory] = React.useState<string>("ALL")
   const [posSearchQuery, setPosSearchQuery] = React.useState<string>("")
+
+  // POS Grid Columns State (3, 4, 5) - Default 4, remembered in localStorage
+  const [posGridCols, setPosGridCols] = React.useState<3 | 4 | 5>(() => {
+    try {
+      const saved = localStorage.getItem("fullfood_pos_grid_cols")
+      if (saved) {
+        const parsed = parseInt(saved, 10)
+        if (parsed === 3 || parsed === 4 || parsed === 5) return parsed as 3 | 4 | 5
+      }
+    } catch (_) {}
+    return 4 // default 4 qator
+  })
+
+  const handleSetPosGridCols = (cols: 3 | 4 | 5) => {
+    triggerHaptic("light")
+    setPosGridCols(cols)
+    try {
+      localStorage.setItem("fullfood_pos_grid_cols", String(cols))
+    } catch (_) {}
+  }
 
   // Filtered POS Products by Category and Search
   const sortedCategories = useMemo(() => {
@@ -1016,7 +1037,7 @@ export const CashierView: React.FC = () => {
       {activeTab === "POS" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
-            {/* Header + Quick Search */}
+            {/* Header + Quick Search & Grid Column Switcher */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-black text-sm text-neutral-900 dark:text-white flex items-center gap-2">
@@ -1028,24 +1049,51 @@ export const CashierView: React.FC = () => {
                 </p>
               </div>
 
-              {/* Quick Search Input */}
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
-                <input
-                  type="text"
-                  value={posSearchQuery}
-                  onChange={(e) => setPosSearchQuery(e.target.value)}
-                  placeholder="Taom nomini qidirish..."
-                  className="w-full pl-9 pr-8 py-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-bold text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
-                />
-                {posSearchQuery && (
-                  <button
-                    onClick={() => setPosSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                {/* Grid Column Switcher (3, 4, 5 qator) */}
+                <div className="flex items-center bg-white dark:bg-neutral-900 p-1 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-xs">
+                  <div className="flex items-center gap-1 pl-2 pr-1.5 text-neutral-400">
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                    <span className="text-[10px] font-black uppercase tracking-wider hidden md:inline-block">
+                      Qator:
+                    </span>
+                  </div>
+                  {([3, 4, 5] as const).map((cols) => (
+                    <button
+                      key={cols}
+                      type="button"
+                      onClick={() => handleSetPosGridCols(cols)}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
+                        posGridCols === cols
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                      }`}
+                      title={`${cols} qator qilib ko'rsatish`}
+                    >
+                      {cols}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Quick Search Input */}
+                <div className="relative w-full sm:w-56">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={posSearchQuery}
+                    onChange={(e) => setPosSearchQuery(e.target.value)}
+                    placeholder="Taom nomini qidirish..."
+                    className="w-full pl-9 pr-8 py-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-bold text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                  />
+                  {posSearchQuery && (
+                    <button
+                      onClick={() => setPosSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1134,7 +1182,15 @@ export const CashierView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+              <div
+                className={
+                  posGridCols === 5
+                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5"
+                    : posGridCols === 4
+                    ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+                    : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3.5"
+                }
+              >
                 {filteredPosProducts.map((p) => {
                   const inCartItem = posCart.find((i) => i.product.id === p.id)
                   const qty = inCartItem?.quantity || 0
@@ -1161,7 +1217,15 @@ export const CashierView: React.FC = () => {
                       }`}
                     >
                       {/* Visual Dish Image Header */}
-                      <div className="relative h-28 sm:h-32 w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+                      <div
+                        className={`relative w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden ${
+                          posGridCols === 5
+                            ? "h-24 sm:h-28"
+                            : posGridCols === 4
+                            ? "h-26 sm:h-30"
+                            : "h-28 sm:h-32"
+                        }`}
+                      >
                         <img
                           src={getImageUrl(p.imageUrl)}
                           alt={p.name}
@@ -1185,8 +1249,8 @@ export const CashierView: React.FC = () => {
                       </div>
 
                       {/* Dish Info */}
-                      <div className="p-3 space-y-1">
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">
+                      <div className={`p-2.5 sm:p-3 ${posGridCols === 5 ? "space-y-0.5" : "space-y-1"}`}>
+                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate" title={p.name}>
                           {p.name}
                         </h4>
                         <div className="flex items-center justify-between pt-0.5">
@@ -1555,7 +1619,7 @@ export const CashierView: React.FC = () => {
               </p>
               <p className="text-neutral-500">Manzil: {yandexConfirmOrder.address}</p>
               <p className="text-purple-600 font-black">
-                Yetkazish haqi: {yandexConfirmOrder.deliveryFee?.toLocaleString()} so'm
+                Taxminiy taksi haqi: ~{yandexConfirmOrder.deliveryFee?.toLocaleString()} so'm (Mijoz to'laydi)
               </p>
             </div>
 

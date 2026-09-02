@@ -66,7 +66,7 @@ export const AdminView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const currentPage = ((searchParams.get("tab") as AdminPage) || "STATS")
-  const catalogSubTab = ((searchParams.get("sub") as "CATEGORIES" | "UNITS" | "BANNERS") || "CATEGORIES")
+  const catalogSubTab = ((searchParams.get("sub") as "CATEGORIES" | "UNITS" | "BANNERS" | "SETTINGS") || "CATEGORIES")
 
   // Statistics Period & Date Filter State
   const [statsPeriod, setStatsPeriod] = useState<"today" | "yesterday" | "week" | "month" | "all" | "custom">("today")
@@ -79,7 +79,7 @@ export const AdminView: React.FC = () => {
     setSearchParams(nextParams)
   }
 
-  const setCatalogSubTab = (sub: "CATEGORIES" | "UNITS" | "BANNERS") => {
+  const setCatalogSubTab = (sub: "CATEGORIES" | "UNITS" | "BANNERS" | "SETTINGS") => {
     const nextParams = new URLSearchParams(searchParams)
     nextParams.set("sub", sub)
     setSearchParams(nextParams)
@@ -143,6 +143,44 @@ export const AdminView: React.FC = () => {
     queryKey: ["adminStaff"],
     queryFn: async () => (await apiClient.get("/users/staff")).data,
   })
+
+  // App Settings (Container Price, etc.)
+  const { data: appSettings = {}, refetch: refetchAppSettings } = useQuery({
+    queryKey: ["appSettings"],
+    queryFn: async () => (await apiClient.get("/settings")).data,
+  })
+
+  const [containerPriceInput, setContainerPriceInput] = useState("2000")
+  const [isSavingContainerPrice, setIsSavingContainerPrice] = useState(false)
+
+  useEffect(() => {
+    if (appSettings) {
+      const p = Array.isArray(appSettings)
+        ? appSettings.find((s: any) => s.key === "container_price")?.value
+        : (appSettings as Record<string, string>)["container_price"]
+      if (p) setContainerPriceInput(p)
+      else setContainerPriceInput("2000")
+    }
+  }, [appSettings])
+
+  const handleSaveContainerPrice = async () => {
+    if (!containerPriceInput.trim()) return
+    try {
+      setIsSavingContainerPrice(true)
+      await apiClient.post("/settings", {
+        container_price: containerPriceInput.trim(),
+      })
+      await refetchAppSettings()
+      triggerHaptic("success")
+      alert((t as any).priceSavedSuccess || "Qadoqlash (idish) narxi muvaffaqiyatli saqlandi!")
+    } catch (err) {
+      console.error(err)
+      triggerHaptic("error")
+      alert("Error saving settings")
+    } finally {
+      setIsSavingContainerPrice(false)
+    }
+  }
 
   // Staff & Admin Credentials Management State
   const [showAddStaff, setShowAddStaff] = useState(false)
@@ -234,6 +272,8 @@ export const AdminView: React.FC = () => {
   const [newProductCategory, setNewProductCategory] = useState("")
   const [newProductUnit, setNewProductUnit] = useState("")
   const [newProductPrice, setNewProductPrice] = useState<number | string>(15000)
+  const [newProductCostPrice, setNewProductCostPrice] = useState<number | string>("")
+  const [newProductPackagingLevel, setNewProductPackagingLevel] = useState<number>(2)
   const [newProductOldPrice, setNewProductOldPrice] = useState<number | string>("")
   const [newProductCalories, setNewProductCalories] = useState<number | string>("")
   const [newProductProtein, setNewProductProtein] = useState<number | string>("")
@@ -438,6 +478,8 @@ export const AdminView: React.FC = () => {
         description: newProductDescription.trim(),
         categoryId: newProductCategory || categories[0]?.id,
         price: Number(newProductPrice) || 0,
+        costPrice: newProductCostPrice !== "" ? Number(newProductCostPrice) : 0,
+        packagingLevel: Number(newProductPackagingLevel) ?? 2,
         oldPrice: newProductOldPrice ? Number(newProductOldPrice) : undefined,
         calories: newProductCalories !== "" ? Number(newProductCalories) : 0,
         protein: newProductProtein !== "" ? Number(newProductProtein) : 0,
@@ -471,6 +513,8 @@ export const AdminView: React.FC = () => {
     setNewProductUnit("")
     setUnitSearch("")
     setNewProductPrice(15000)
+    setNewProductCostPrice("")
+    setNewProductPackagingLevel(2)
     setNewProductOldPrice("")
     setNewProductCalories("")
     setNewProductProtein("")
@@ -490,6 +534,8 @@ export const AdminView: React.FC = () => {
     setNewProductUnit(p.unitName || "")
     setUnitSearch(p.unitName || "")
     setNewProductPrice(p.price)
+    setNewProductCostPrice(p.costPrice !== undefined && p.costPrice !== null ? p.costPrice : "")
+    setNewProductPackagingLevel(p.packagingLevel !== undefined && p.packagingLevel !== null ? p.packagingLevel : 2)
     setNewProductOldPrice(p.oldPrice || "")
     setNewProductCalories(p.calories ?? "")
     setNewProductProtein(p.protein ?? "")
@@ -973,21 +1019,49 @@ export const AdminView: React.FC = () => {
                             Skitka
                           </span>
                         ) : <span />}
-                        <span className="bg-black/65 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-lg border border-white/20">
-                          {p.unitName}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="bg-amber-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg shadow-xs">
+                            {p.packagingLevel === 0 ? "0 (qadoqsiz)" : `${p.packagingLevel ?? 2}/5 ball`}
+                          </span>
+                          <span className="bg-black/65 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-lg border border-white/20">
+                            {p.unitName}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="p-3 space-y-1">
+                    <div className="p-3 space-y-1.5">
                       <h4 className="font-bold text-xs text-neutral-900 dark:text-white line-clamp-2 leading-snug">
                         {p.name}
                       </h4>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                          {p.price.toLocaleString()}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                            {p.price.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-neutral-400 font-semibold">so'm</span>
+                        </div>
+                        {p.costPrice && p.costPrice > 0 ? (
+                          <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md border border-emerald-200/60">
+                            +{(p.price - p.costPrice).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md border border-amber-200/60">
+                            {t.noCostWarning || "Tannarx yo'q"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex items-center justify-between pt-0.5">
+                        <span>{t.costPriceShort || "Tannarx"}:</span>
+                        <span className="font-bold text-neutral-700 dark:text-neutral-300">
+                          {p.costPrice && p.costPrice > 0 ? `${p.costPrice.toLocaleString()} so'm` : "—"}
                         </span>
-                        <span className="text-[10px] text-neutral-400 font-semibold">so'm</span>
+                      </div>
+                      <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
+                        <span>Qadoq darajasi:</span>
+                        <span className="font-bold text-amber-700 dark:text-amber-400">
+                          {p.packagingLevel === 0 ? "0 (ichimlik)" : `${p.packagingLevel ?? 2} ball`}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1072,6 +1146,21 @@ export const AdminView: React.FC = () => {
               <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-black">
                 {banners.length}
               </span>
+            </button>
+
+            <button
+              onClick={() => {
+                triggerHaptic("light")
+                setCatalogSubTab("SETTINGS")
+              }}
+              className={`flex-1 min-w-fit whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                catalogSubTab === "SETTINGS"
+                  ? "bg-white dark:bg-neutral-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                  : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900"
+              }`}
+            >
+              <Package className="h-4 w-4 text-emerald-600" />
+              <span>{(t as any).packagingTab || "Qadoqlash & Narx"}</span>
             </button>
           </div>
 
@@ -1398,6 +1487,79 @@ export const AdminView: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Sub-tab 4: Packaging & System Settings */}
+          {catalogSubTab === "SETTINGS" && (
+            <div className="space-y-4">
+              <div className="rounded-3xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-xs space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                    <Package className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-neutral-900 dark:text-white">
+                      {(t as any).containerPriceSetting || "Qadoqlash (Idish) Narxi Sozlamasi"}
+                    </h3>
+                    <p className="text-xs text-neutral-400">
+                      {(t as any).containerPriceDesc || "Savatchada har bir ishlatilgan taom qadog'i (idishi) uchun mijoz to'laydigan narx"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 space-y-2">
+                  <p className="text-xs text-emerald-950 dark:text-emerald-200 font-medium leading-relaxed">
+                    💡 {(t as any).containerPriceRule || "Qadoqlash qoidasi: Har bir standart idish 5 ball sig'imga ega. Har bir taomning qadoqlash darajasiga (0 dan 5 gacha) qarab taomlar idishlarga taqsimlanadi. Ichimliklar (0 ball) uchun idish hisoblanmaydi. Savatchada har bir to'ldirilgan idish uchun quyidagi narx avtomatik hisoblanadi."}
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-1 max-w-sm">
+                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
+                    <span>{(t as any).singleContainerPrice || "1 dona qadoq narxi (so'm)"}:</span>
+                    <span className="text-[11px] font-black text-emerald-600">
+                      {Number(containerPriceInput || 0).toLocaleString()} so'm
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={containerPriceInput}
+                      onChange={(e) => setContainerPriceInput(e.target.value)}
+                      placeholder="2000"
+                      className="w-full text-sm font-bold px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 pr-12"
+                    />
+                    <span className="absolute right-3.5 top-3 text-xs text-neutral-400 font-bold">so'm</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    {[1000, 1500, 2000, 2500, 3000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setContainerPriceInput(String(preset))}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                          containerPriceInput === String(preset)
+                            ? "border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                            : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        }`}
+                      >
+                        {preset.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    onClick={handleSaveContainerPrice}
+                    disabled={isSavingContainerPrice}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold px-5 py-2.5 shadow-md shadow-emerald-600/20 active:scale-98"
+                  >
+                    {isSavingContainerPrice ? "..." : ((t as any).savePrice || "Narxni Saqlash")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1481,38 +1643,105 @@ export const AdminView: React.FC = () => {
             )}
           </div>
 
-          {/* 2. HERO FINANCIAL SUMMARY CARD */}
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-teal-700 to-emerald-900 text-white p-5 shadow-xl shadow-emerald-900/20">
-            <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+          {/* 2. HERO FINANCIAL SUMMARY CARD (TUSHUM, SOF FOYDA, TANNARX) */}
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-650 via-teal-800 to-emerald-950 text-white p-5 sm:p-6 shadow-xl shadow-emerald-950/25 border border-emerald-500/20">
+            <div className="absolute -right-8 -bottom-8 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute left-1/3 -top-12 w-36 h-36 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
+
             <div className="relative z-10 space-y-4">
+              {/* Header Title & Period */}
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <span className="text-[11px] font-semibold text-emerald-100/90 tracking-wide uppercase">
-                    {statsPeriod === "today"
-                      ? (t.todayRevenue || "Bugungi Tushum")
-                      : statsPeriod === "yesterday"
-                      ? (t.yesterdayRevenue || "Kecha Tushumi")
-                      : statsPeriod === "week"
-                      ? (t.weekRevenue || "Haftalik Tushum")
-                      : statsPeriod === "month"
-                      ? (t.monthRevenue || "Oylik Tushum")
-                      : (t.selectedPeriodRevenue || "Tanlangan Davr Tushumi")}
-                  </span>
-                  <div className="flex items-baseline gap-1.5">
-                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-                      {(dashboard?.revenue || 0).toLocaleString()}
-                    </h1>
-                    <span className="text-sm font-bold text-emerald-200">{t.currency || "so'm"}</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-emerald-100 shadow-inner">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-black text-emerald-100/90 tracking-wide uppercase block">
+                      {statsPeriod === "today"
+                        ? "Bugungi Moliyaviy Tahlil"
+                        : statsPeriod === "yesterday"
+                        ? "Kecha Moliyaviy Tahlili"
+                        : statsPeriod === "week"
+                        ? "Haftalik Moliyaviy Tahlil"
+                        : statsPeriod === "month"
+                        ? "Oylik Moliyaviy Tahlil"
+                        : statsPeriod === "all"
+                        ? "Barcha Vaqt Moliyaviy Tahlili"
+                        : "Tanlangan Davr Tahlili"}
+                    </span>
+                    <span className="text-[10px] text-emerald-200/70 font-medium">
+                      {dashboard?.startDate ? new Date(dashboard.startDate).toLocaleDateString() : ""} {dashboard?.endDate ? `— ${new Date(dashboard.endDate).toLocaleDateString()}` : ""}
+                    </span>
                   </div>
                 </div>
 
-                <div className="h-12 w-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-inner">
-                  <TrendingUp className="h-6 w-6" />
+                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full shadow-xs">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[11px] font-bold text-white">
+                    {dashboard?.profitMargin || 0}% {t.profitMargin || "Rentabellik"}
+                  </span>
                 </div>
               </div>
 
-              {/* Mini Stats Matrix Inside Hero Card */}
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/15">
+              {/* 3 Primary Metrics Grid: Tushum, Sof Foyda, Tannarx */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {/* 1. Tushum (Sotuv) */}
+                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 space-y-1">
+                  <span className="text-[10px] font-semibold text-emerald-100/80 uppercase tracking-wider block">
+                    {t.dailyRevenue || "Sotuv Tushumi"}
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <h2 className="text-xl sm:text-2xl font-black tracking-tight">
+                      {(dashboard?.revenue || 0).toLocaleString()}
+                    </h2>
+                    <span className="text-xs font-bold text-emerald-200">{t.currency || "so'm"}</span>
+                  </div>
+                  <span className="text-[9px] text-emerald-200/70 block font-medium">
+                    {dashboard?.completedOrdersCount || 0} ta to'langan buyurtma
+                  </span>
+                </div>
+
+                {/* 2. Sof Foyda (Net Profit) - Highlighted */}
+                <div className="p-3.5 rounded-2xl bg-emerald-400/20 backdrop-blur-md border border-emerald-300/40 shadow-inner space-y-1 ring-2 ring-white/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-emerald-100 uppercase tracking-wider flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-amber-300" />
+                      {t.netProfit || "Sof Foyda"}
+                    </span>
+                    <span className="text-[9px] font-black bg-white/25 px-1.5 py-0.5 rounded-md text-white">
+                      +{dashboard?.profitMargin || 0}%
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-xs">
+                      +{(dashboard?.netProfit || 0).toLocaleString()}
+                    </h2>
+                    <span className="text-xs font-bold text-emerald-100">{t.currency || "so'm"}</span>
+                  </div>
+                  <span className="text-[9px] text-emerald-100/90 block font-semibold">
+                    Cho'ntakka qoladigan sof daromad
+                  </span>
+                </div>
+
+                {/* 3. Taomlar Tannarxi (Food Cost) */}
+                <div className="p-3.5 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/10 space-y-1">
+                  <span className="text-[10px] font-semibold text-neutral-200/80 uppercase tracking-wider block">
+                    {t.totalCost || "Taomlar Tannarxi"} (COGS)
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-neutral-100">
+                      -{(dashboard?.totalCost || 0).toLocaleString()}
+                    </h2>
+                    <span className="text-xs font-bold text-neutral-300">{t.currency || "so'm"}</span>
+                  </div>
+                  <span className="text-[9px] text-neutral-300/80 block font-medium">
+                    {dashboard?.revenue > 0 ? Math.round(((dashboard?.totalCost || 0) / dashboard.revenue) * 100) : 0}% tushumdan
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom Operational Matrix (4 Columns) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-white/15">
                 <div>
                   <span className="text-[10px] text-emerald-200/80 block font-medium">
                     {t.ordersCountLabel || "Buyurtmalar"}
@@ -1531,10 +1760,18 @@ export const AdminView: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] text-emerald-200/80 block font-medium">
-                    {t.allTimeTotalLabel || "Jami (Barchasi)"}
+                    {t.averageProfitLabel || "O'rtacha Foyda (chekdan)"}
                   </span>
-                  <span className="text-sm font-black">
-                    {((dashboard?.totalRevenue || 0) / 1000000).toFixed(1)} {t.mlnSum || "mln"}
+                  <span className="text-sm font-black text-emerald-200">
+                    +{(dashboard?.averageProfit || 0).toLocaleString()} <span className="text-[9px]">{t.currency || "so'm"}</span>
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-emerald-200/80 block font-medium">
+                    {t.allTimeProfitLabel || "Jami Sof Foyda"}
+                  </span>
+                  <span className="text-sm font-black text-emerald-100">
+                    {((dashboard?.allTimeProfit || 0) / 1000000).toFixed(1)} {t.mlnSum || "mln"}
                   </span>
                 </div>
               </div>
@@ -1731,23 +1968,37 @@ export const AdminView: React.FC = () => {
                   const medals = ["🥇", "🥈", "🥉"]
 
                   return (
-                    <div key={idx} className="space-y-1.5 p-2.5 rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-700/50">
+                    <div key={idx} className="space-y-2 p-3 rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-700/50">
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-black w-5 text-center">
                             {idx < 3 ? medals[idx] : `#${idx + 1}`}
                           </span>
-                          <span className="font-bold text-neutral-900 dark:text-white">
-                            {item.name}
-                          </span>
+                          <div>
+                            <span className="font-bold text-neutral-900 dark:text-white block">
+                              {item.name}
+                            </span>
+                            <span className="text-[10px] font-bold text-neutral-400">
+                              {item.totalQuantity} {t.soldCount || "ta sotildi"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-black text-emerald-600 dark:text-emerald-400 block text-xs">
-                            {(item.revenue || 0).toLocaleString()} {t.currency || "so'm"}
-                          </span>
-                          <span className="text-[10px] font-bold text-neutral-400">
-                            {item.totalQuantity} {t.soldCount || "ta sotildi"}
-                          </span>
+                        <div className="text-right space-y-0.5">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="text-[10px] text-neutral-400">Tushum:</span>
+                            <span className="font-black text-neutral-900 dark:text-white text-xs">
+                              {(item.revenue || 0).toLocaleString()} {t.currency || "so'm"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-end gap-1 text-[11px]">
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Sof foyda:</span>
+                            <span className="font-black text-emerald-600 dark:text-emerald-400">
+                              +{(item.profit || 0).toLocaleString()} {t.currency || "so'm"}
+                            </span>
+                            <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-bold px-1.5 py-0.2 rounded-md">
+                              {item.margin || 0}%
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -2385,34 +2636,75 @@ export const AdminView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Price and Old Price (Skitka) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    Sotuv Narxi (so'm): *
-                  </label>
-                  <input
-                    type="number"
-                    value={newProductPrice}
-                    onChange={(e) => setNewProductPrice(e.target.value)}
-                    className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 bg-neutral-50 dark:bg-neutral-800 outline-none"
-                    required
-                  />
+              {/* Price, Cost Price (Tannarx), and Old Price (Skitka) */}
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
+                      <span>{t.price || "Sotuv Narxi"} (so'm): *</span>
+                    </label>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        value={newProductPrice}
+                        onChange={(e) => setNewProductPrice(e.target.value)}
+                        placeholder="25000"
+                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 outline-none pr-10 focus:ring-1 focus:ring-emerald-500"
+                        required
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[10px] text-neutral-400 font-bold">so'm</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                      <span>{t.costPrice || "Tannarxi (Food cost)"}:</span>
+                    </label>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        value={newProductCostPrice}
+                        placeholder="Masalan: 14000"
+                        onChange={(e) => setNewProductCostPrice(e.target.value)}
+                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-emerald-300/80 dark:border-emerald-800/80 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 outline-none pr-10 focus:ring-1 focus:ring-emerald-500"
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[10px] text-emerald-600/70 font-bold">so'm</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
+                      <span>{t.oldPrice || "Eski Narx"}:</span>
+                      <span className="text-[10px] text-neutral-400">(skitka)</span>
+                    </label>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        value={newProductOldPrice}
+                        placeholder="Masalan: 30000"
+                        onChange={(e) => setNewProductOldPrice(e.target.value)}
+                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 outline-none pr-10"
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[10px] text-neutral-400 font-bold">so'm</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
-                    <span>Eski Narx (Skitka):</span>
-                    <span className="text-[10px] text-neutral-400">(ixtiyoriy)</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={newProductOldPrice}
-                    placeholder="Masalan: 18000"
-                    onChange={(e) => setNewProductOldPrice(e.target.value)}
-                    className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 bg-neutral-50 dark:bg-neutral-800 outline-none"
-                  />
-                </div>
+                {/* Real-time Profit Preview */}
+                {Number(newProductPrice) > 0 && Number(newProductCostPrice) > 0 && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs">
+                    <span className="text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-1">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                      {t.expectedProfit || "Kutilayotgan foyda"} (1 dona/pors):
+                    </span>
+                    <span className="font-black text-emerald-700 dark:text-emerald-400">
+                      +{(Number(newProductPrice) - Number(newProductCostPrice)).toLocaleString()} so'm{" "}
+                      <span className="text-[10px] bg-emerald-200/70 dark:bg-emerald-900 px-1.5 py-0.5 rounded-md ml-1 font-bold">
+                        {Math.round(((Number(newProductPrice) - Number(newProductCostPrice)) / Number(newProductPrice)) * 100)}% marja
+                      </span>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Kaloriya & KBDU (Nutritional Info) */}
@@ -2469,6 +2761,45 @@ export const AdminView: React.FC = () => {
                       className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Qadoqlash Sig'im Darajasi (Packaging Capacity Level 0 - 5) */}
+              <div className="p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-amber-950 dark:text-amber-300 flex items-center gap-1.5">
+                    <Package className="h-4 w-4 text-amber-600" />
+                    <span>{(t as any).packagingLevelLabel || "Qadoqlash Sig'im Darajasi (0 dan 5 gacha)"}</span>
+                  </label>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
+                    {newProductPackagingLevel === 0
+                      ? ((t as any).drinkNoPackaging || "0 (qadoqsiz / ichimlik)")
+                      : `${newProductPackagingLevel} / 5 ${(t as any).points || "ball"}`}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                  {(t as any).packagingLevelDesc || "Bitta idishning umumiy sig'imi 5 ball. Masalan: 2 ball bo'lsa, bitta idishga bu taomdan 2 ta sig'adi (2+2=4). 0 ball — idish talab qilmaydi (ichimliklar)."}
+                </p>
+
+                <div className="grid grid-cols-6 gap-1.5 pt-1">
+                  {[0, 1, 2, 3, 4, 5].map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setNewProductPackagingLevel(lvl)}
+                      className={`py-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 ${
+                        newProductPackagingLevel === lvl
+                          ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/50"
+                          : "bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 hover:bg-amber-50 dark:hover:bg-neutral-700"
+                      }`}
+                    >
+                      <span>{lvl === 0 ? "0" : `${lvl}`}</span>
+                      <span className="text-[9px] font-medium opacity-80">
+                        {lvl === 0 ? ((t as any).noPackagingLevel || "Ichimlik") : lvl === 5 ? "100%" : `${lvl * 20}%`}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
