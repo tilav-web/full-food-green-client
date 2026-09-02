@@ -27,12 +27,8 @@ import {
   Users,
   UserCheck,
   Layers,
-  BarChart3,
-  UtensilsCrossed,
   CreditCard,
-  Store,
   PackagePlus,
-  Receipt,
   Scale,
   Sparkles,
   Wallet,
@@ -390,65 +386,17 @@ export const UserProfile: React.FC = () => {
             </div>
           )}
 
-          {/* SUPER ADMIN MANAGEMENT HUB - CATEGORIZED SECTIONS */}
+          {/* SUPER ADMIN MANAGEMENT HUB - ONLY SECTIONS NOT IN BOTTOM NAV */}
           {user && user.role === "ADMIN" && (
             <div className="space-y-4">
-              {/* GROUP 1: KASSA VA SAVDO NAZORATI */}
+              {/* GROUP 1: OMBOR VA KIRIM NAZORATI */}
               <div className="space-y-1.5">
-                <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
-                  <Receipt className="h-3.5 w-3.5" />
-                  {t.groupCashierSales}
+                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
+                  <PackagePlus className="h-3.5 w-3.5" />
+                  Ombor & Kirim Nazorati
                 </span>
 
                 <div className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs divide-y divide-neutral-100 dark:divide-neutral-800">
-                  {/* Buyurtmalar & Cheklar */}
-                  <div
-                    onClick={() => {
-                      triggerHaptic("light")
-                      navigate("/cashier?tab=ORDERS")
-                    }}
-                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
-                        <Receipt className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.ordersAndReceipts}
-                        </h4>
-                        <p className="text-[10px] text-neutral-400">
-                          {t.ordersAndReceiptsDesc}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-neutral-400" />
-                  </div>
-
-                  {/* Zal POS */}
-                  <div
-                    onClick={() => {
-                      triggerHaptic("light")
-                      navigate("/cashier?tab=POS")
-                    }}
-                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 flex items-center justify-center">
-                        <Store className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.hallPosMode}
-                        </h4>
-                        <p className="text-[10px] text-neutral-400">
-                          {t.hallPosModeDesc}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-neutral-400" />
-                  </div>
-
                   {/* Kirim Qabul */}
                   <div
                     onClick={() => {
@@ -463,10 +411,10 @@ export const UserProfile: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.kirimStock}
+                          {t.kirimStock || "Kirim Qabul (Dual-Inventory)"}
                         </h4>
                         <p className="text-[10px] text-neutral-400">
-                          {t.kirimStockDesc}
+                          {t.kirimStockDesc || "Oshxonaga kelgan mahsulotlarni qabul qilish"}
                         </p>
                       </div>
                     </div>
@@ -475,38 +423,14 @@ export const UserProfile: React.FC = () => {
                 </div>
               </div>
 
-              {/* GROUP 2: MAHSULOTLAR VA KATALOG */}
+              {/* GROUP 2: KATALOG VA TOIFALAR SOZLAMALARI */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
-                  <UtensilsCrossed className="h-3.5 w-3.5" />
-                  {t.groupProductsCatalog}
+                  <Layers className="h-3.5 w-3.5" />
+                  Katalog & Tizim Sozlamalari
                 </span>
 
                 <div className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs divide-y divide-neutral-100 dark:divide-neutral-800">
-                  {/* Taomlar Menyu */}
-                  <div
-                    onClick={() => {
-                      triggerHaptic("light")
-                      navigate("/admin?tab=PRODUCTS")
-                    }}
-                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 flex items-center justify-center">
-                        <UtensilsCrossed className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.manageDishes}
-                        </h4>
-                        <p className="text-[10px] text-neutral-400">
-                          {t.manageDishesDesc}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-neutral-400" />
-                  </div>
-
                   {/* Toifalar */}
                   <div
                     onClick={() => {
@@ -521,10 +445,10 @@ export const UserProfile: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.manageCategories}
+                          {t.manageCategories || "Toifalar (Kategoriyalar)"}
                         </h4>
                         <p className="text-[10px] text-neutral-400">
-                          {t.manageCategoriesDesc}
+                          {t.manageCategoriesDesc || "Taom turlari va tartibini sozlash"}
                         </p>
                       </div>
                     </div>
@@ -545,10 +469,10 @@ export const UserProfile: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.manageUnits}
+                          {t.manageUnits || "O'lchov Birliklari"}
                         </h4>
                         <p className="text-[10px] text-neutral-400">
-                          {t.manageUnitsDesc}
+                          {t.manageUnitsDesc || "Portsiya, dona, gramm birliklari"}
                         </p>
                       </div>
                     </div>
@@ -569,10 +493,10 @@ export const UserProfile: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.manageBanners}
+                          {t.manageBanners || "Aksiya & Promo Bannerlar"}
                         </h4>
                         <p className="text-[10px] text-neutral-400">
-                          {t.manageBannersDesc}
+                          {t.manageBannersDesc || "Bosh sahifadagi reklama slayderlari"}
                         </p>
                       </div>
                     </div>
@@ -585,10 +509,34 @@ export const UserProfile: React.FC = () => {
               <div className="space-y-1.5">
                 <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5" />
-                  {t.groupStaffUsers}
+                  Foydalanuvchilar & Xodimlar
                 </span>
 
                 <div className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs divide-y divide-neutral-100 dark:divide-neutral-800">
+                  {/* Mijozlar & Balans */}
+                  <div
+                    onClick={() => {
+                      triggerHaptic("light")
+                      navigate("/admin?tab=USERS")
+                    }}
+                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                        <UserCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
+                          {t.manageUsers || "Mijozlar & Balans Nazorati"}
+                        </h4>
+                        <p className="text-[10px] text-neutral-400">
+                          {t.manageUsersDesc || "Foydalanuvchilar ro'yxati va hisob to'ldirish"}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-neutral-400" />
+                  </div>
+
                   {/* Xodimlar */}
                   <div
                     onClick={() => {
@@ -603,34 +551,10 @@ export const UserProfile: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.manageStaff}
+                          {t.manageStaff || "Xodimlar (Admin / Kassir)"}
                         </h4>
                         <p className="text-[10px] text-neutral-400">
-                          {t.manageStaffDesc}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-neutral-400" />
-                  </div>
-
-                  {/* Mijozlar */}
-                  <div
-                    onClick={() => {
-                      triggerHaptic("light")
-                      navigate("/admin?tab=USERS")
-                    }}
-                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
-                        <UserCheck className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.manageUsers}
-                        </h4>
-                        <p className="text-[10px] text-neutral-400">
-                          {t.manageUsersDesc}
+                          {t.manageStaffDesc || "Yangi kassirlar qo'shish va rollarni boshqarish"}
                         </p>
                       </div>
                     </div>
@@ -639,38 +563,14 @@ export const UserProfile: React.FC = () => {
                 </div>
               </div>
 
-              {/* GROUP 4: MOLIYA VA TO'LOV SOZLAMALARI */}
+              {/* GROUP 4: TO'LOV REKVIZITLARI */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
-                  <BarChart3 className="h-3.5 w-3.5" />
-                  {t.groupFinanceSettings}
+                  <CreditCard className="h-3.5 w-3.5" />
+                  To'lov Rekvizitlari
                 </span>
 
                 <div className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs divide-y divide-neutral-100 dark:divide-neutral-800">
-                  {/* Statistika */}
-                  <div
-                    onClick={() => {
-                      triggerHaptic("light")
-                      navigate("/admin?tab=STATS")
-                    }}
-                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
-                        <BarChart3 className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                          {t.manageStats}
-                        </h4>
-                        <p className="text-[10px] text-neutral-400">
-                          {t.manageStatsDesc}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-neutral-400" />
-                  </div>
-
                   {/* To'lov Rekvizitlari (Bottom Sheet) */}
                   <div
                     onClick={() => {
@@ -697,87 +597,6 @@ export const UserProfile: React.FC = () => {
                     </div>
                     <ChevronRight className="h-4 w-4 text-neutral-400" />
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* CASHIER QUICK ACCESS (Kassir uchun qismlar) */}
-          {user && user.role === "CASHIER" && (
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
-                <Store className="h-3.5 w-3.5" />
-                {t.cashierWorkspaces}
-              </span>
-
-              <div className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs divide-y divide-neutral-100 dark:divide-neutral-800">
-                <div
-                  onClick={() => {
-                    triggerHaptic("light")
-                    navigate("/cashier?tab=ORDERS")
-                  }}
-                  className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
-                      <Receipt className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                        {t.ordersAndReceipts}
-                      </h4>
-                      <p className="text-[10px] text-neutral-400">
-                        {t.ordersAndReceiptsDesc}
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
-                </div>
-
-                <div
-                  onClick={() => {
-                    triggerHaptic("light")
-                    navigate("/cashier?tab=POS")
-                  }}
-                  className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 flex items-center justify-center">
-                      <Store className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                        {t.hallPosMode}
-                      </h4>
-                      <p className="text-[10px] text-neutral-400">
-                        {t.hallPosModeDesc}
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
-                </div>
-
-                <div
-                  onClick={() => {
-                    triggerHaptic("light")
-                    navigate("/cashier?tab=KIRIM")
-                  }}
-                  className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center">
-                      <PackagePlus className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-neutral-900 dark:text-white">
-                        {t.kirimStock}
-                      </h4>
-                      <p className="text-[10px] text-neutral-400">
-                        {t.kirimStockDesc}
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
                 </div>
               </div>
             </div>
