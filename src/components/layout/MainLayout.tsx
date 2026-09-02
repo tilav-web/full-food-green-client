@@ -3,9 +3,10 @@ import { Outlet, useLocation } from "react-router-dom"
 import { Navbar } from "./Navbar"
 import { BottomNav } from "./BottomNav"
 import { useAppStore } from "@/store/useAppStore"
+import { apiClient } from "@/api/axios"
 
 export const MainLayout: React.FC = () => {
-  const { theme } = useAppStore()
+  const { theme, setUser, accessToken, logout } = useAppStore()
   const location = useLocation()
 
   useEffect(() => {
@@ -17,6 +18,27 @@ export const MainLayout: React.FC = () => {
       document.body.classList.remove("dark")
     }
   }, [theme])
+
+  // Automatically refresh profile from server to guarantee fresh role and data
+  useEffect(() => {
+    if (accessToken) {
+      apiClient
+        .get("/auth/me")
+        .then((res) => {
+          if (res.data) {
+            setUser({
+              ...res.data,
+              isTelegramVerified: !!(res.data.phone && res.data.telegramId),
+            })
+          }
+        })
+        .catch((err) => {
+          if (err?.response?.status === 401) {
+            logout()
+          }
+        })
+    }
+  }, [accessToken, setUser, logout])
 
   // Detect wide workstation pages (Cashier POS, Admin Panel)
   const isWidePage =

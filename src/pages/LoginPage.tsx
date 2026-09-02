@@ -87,9 +87,9 @@ export const LoginPage: React.FC = () => {
       triggerHaptic("success")
 
       if (authUser.role === "ADMIN") {
-        navigate("/admin", { replace: true })
+        navigate("/admin?tab=STATS", { replace: true })
       } else if (authUser.role === "CASHIER") {
-        navigate("/cashier", { replace: true })
+        navigate("/cashier?tab=POS", { replace: true })
       } else {
         navigate(fromPath || "/menu", { replace: true })
       }
