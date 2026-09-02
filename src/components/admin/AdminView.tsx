@@ -2692,73 +2692,76 @@ export const AdminView: React.FC = () => {
       {/* PRODUCT CREATE / EDIT MODAL */}
       {/* ========================================================================= */}
       {showAddProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-5 max-w-lg w-full space-y-4 border border-neutral-200 dark:border-neutral-800 shadow-2xl my-8">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 overflow-hidden">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-lg w-full border border-neutral-200 dark:border-neutral-800 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* STICKY HEADER */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 shrink-0 bg-white dark:bg-neutral-900 z-10">
               <h4 className="font-black text-sm text-neutral-900 dark:text-white">
                 {editingProductId ? "Taomni Tahrirlash" : "Yangi Taom Yaratish"}
               </h4>
               <button
+                type="button"
                 onClick={() => {
                   setShowAddProduct(false)
                   resetProductForm()
                 }}
-                className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 hover:text-neutral-900"
+                className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddProductSubmit} className="space-y-3.5">
-              {/* Product Name */}
-              <div>
-                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                  Taom Nomi: *
-                </label>
-                <input
-                  type="text"
-                  value={newProductName}
-                  placeholder="Masalan: Tandir Somsa"
-                  onChange={(e) => setNewProductName(e.target.value)}
-                  className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 bg-neutral-50 dark:bg-neutral-800 outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
-              </div>
+            {/* FORM CONTAINER WITH SCROLLABLE BODY AND STICKY FOOTER */}
+            <form onSubmit={handleAddProductSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              {/* SCROLLABLE BODY */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {/* Product Name */}
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                    Taom Nomi: *
+                  </label>
+                  <input
+                    type="text"
+                    value={newProductName}
+                    placeholder="Masalan: Tandir Somsa"
+                    onChange={(e) => setNewProductName(e.target.value)}
+                    className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 bg-neutral-50 dark:bg-neutral-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
 
-              {/* SEARCH-SELECT FOR CATEGORY */}
-              <div className="relative space-y-1">
-                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
-                  <span>Kategoriya: *</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickCreateCat(true)}
-                    className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
-                  >
-                    <Plus className="h-3 w-3" /> Yangi Kategoriya
-                  </button>
-                </label>
+                {/* SEARCH-SELECT FOR CATEGORY */}
+                <div className="relative space-y-1">
+                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
+                    <span>Kategoriya: *</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickCreateCat(true)}
+                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
+                    >
+                      <Plus className="h-3 w-3" /> Yangi Kategoriya
+                    </button>
+                  </label>
 
-                <div className="relative">
-                  <div
-                    onClick={() => setShowCatDropdown(!showCatDropdown)}
-                    className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
-                  >
-                    <span>{catSearch || "Kategoriyani qidirish va tanlash..."}</span>
-                    <Search className="h-4 w-4 text-neutral-400" />
-                  </div>
+                  <div className="relative">
+                    <div
+                      onClick={() => setShowCatDropdown(!showCatDropdown)}
+                      className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{catSearch || "Kategoriyani qidirish va tanlash..."}</span>
+                      <Search className="h-4 w-4 text-neutral-400" />
+                    </div>
 
-                  {showCatDropdown && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl p-2 space-y-2 max-h-48 overflow-y-auto">
-                      <input
-                        type="text"
-                        value={catSearch}
-                        placeholder="Kategoriya nomini qidiring..."
-                        onChange={(e) => setCatSearch(e.target.value)}
-                        className="w-full text-xs px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 outline-none"
-                        autoFocus
-                      />
-
-                      <div className="space-y-1">
+                    {showCatDropdown && (
+                      <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto p-1.5 space-y-1">
+                        <input
+                          type="text"
+                          placeholder="Qidirish..."
+                          value={catSearch}
+                          onChange={(e) => setCatSearch(e.target.value)}
+                          className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-1 outline-none"
+                          autoFocus
+                        />
                         {filteredCategories.map((c) => (
                           <div
                             key={c.id}
@@ -2767,71 +2770,53 @@ export const AdminView: React.FC = () => {
                               setCatSearch(c.name)
                               setShowCatDropdown(false)
                             }}
-                            className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/40 ${
-                              newProductCategory === c.id ? "bg-emerald-50 dark:bg-emerald-950/60 font-bold text-emerald-700 dark:text-emerald-300" : ""
+                            className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer ${
+                              newProductCategory === c.id
+                                ? "bg-emerald-50 text-emerald-700 font-bold"
+                                : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
                             }`}
                           >
                             <span>{c.name}</span>
                             {newProductCategory === c.id && <Check className="h-3.5 w-3.5" />}
                           </div>
                         ))}
-
-                        {filteredCategories.length === 0 && (
-                          <div className="p-2 text-center text-xs text-neutral-400">
-                            Mos kategoriya topilmadi
-                          </div>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowQuickCreateCat(true)
-                            setShowCatDropdown(false)
-                          }}
-                          className="w-full text-center text-xs text-emerald-600 font-bold py-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl flex items-center justify-center gap-1 border-t border-neutral-100 dark:border-neutral-800"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Yangi kategoriya yaratish
-                        </button>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SEARCH-SELECT FOR UNIT */}
-              <div className="relative space-y-1">
-                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
-                  <span>O'lchov Birligi (Unit): *</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickCreateUnit(true)}
-                    className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
-                  >
-                    <Plus className="h-3 w-3" /> Yangi Birlik
-                  </button>
-                </label>
-
-                <div className="relative">
-                  <div
-                    onClick={() => setShowUnitDropdown(!showUnitDropdown)}
-                    className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
-                  >
-                    <span>{unitSearch || "O'lchov birligini tanlang (masalan: pors, dona, kg, qoshiq)..."}</span>
-                    <Scale className="h-4 w-4 text-neutral-400" />
+                    )}
                   </div>
+                </div>
 
-                  {showUnitDropdown && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl p-2 space-y-2 max-h-48 overflow-y-auto">
-                      <input
-                        type="text"
-                        value={unitSearch}
-                        placeholder="O'lchov birligini qidiring..."
-                        onChange={(e) => setUnitSearch(e.target.value)}
-                        className="w-full text-xs px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 outline-none"
-                        autoFocus
-                      />
+                {/* SEARCH-SELECT FOR UNIT */}
+                <div className="relative space-y-1">
+                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
+                    <span>O'lchov Birligi (Unit): *</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickCreateUnit(true)}
+                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
+                    >
+                      <Plus className="h-3 w-3" /> Yangi Birlik
+                    </button>
+                  </label>
 
-                      <div className="space-y-1">
+                  <div className="relative">
+                    <div
+                      onClick={() => setShowUnitDropdown(!showUnitDropdown)}
+                      className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{unitSearch || "Birlikni qidirish va tanlash..."}</span>
+                      <Scale className="h-4 w-4 text-neutral-400" />
+                    </div>
+
+                    {showUnitDropdown && (
+                      <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto p-1.5 space-y-1">
+                        <input
+                          type="text"
+                          placeholder="Qidirish..."
+                          value={unitSearch}
+                          onChange={(e) => setUnitSearch(e.target.value)}
+                          className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-1 outline-none"
+                          autoFocus
+                        />
                         {filteredUnits.map((u) => (
                           <div
                             key={u.id}
@@ -2840,227 +2825,216 @@ export const AdminView: React.FC = () => {
                               setUnitSearch(u.name)
                               setShowUnitDropdown(false)
                             }}
-                            className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/40 ${
-                              newProductUnit === u.name ? "bg-emerald-50 dark:bg-emerald-950/60 font-bold text-emerald-700 dark:text-emerald-300" : ""
+                            className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer ${
+                              newProductUnit === u.name
+                                ? "bg-emerald-50 text-emerald-700 font-bold"
+                                : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
                             }`}
                           >
-                            <span>{u.name} ({u.shortName || u.name})</span>
+                            <span>
+                              {u.name} ({u.shortName})
+                            </span>
                             {newProductUnit === u.name && <Check className="h-3.5 w-3.5" />}
                           </div>
                         ))}
-
-                        {filteredUnits.length === 0 && (
-                          <div className="p-2 text-center text-xs text-neutral-400">
-                            Bunday birlik topilmadi
-                          </div>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowQuickCreateUnit(true)
-                            setShowUnitDropdown(false)
-                          }}
-                          className="w-full text-center text-xs text-emerald-600 font-bold py-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl flex items-center justify-center gap-1 border-t border-neutral-100 dark:border-neutral-800"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Yangi birlik yaratish
-                        </button>
                       </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pricing: Sotuv Narxi, Tannarx (COGS), Eski Narx */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {/* Sotuv narxi */}
+                    <div>
+                      <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                        Narxi (Sotuv) (so'm): *
+                      </label>
+                      <div className="relative mt-1">
+                        <input
+                          type="number"
+                          value={newProductPrice}
+                          placeholder="Masalan: 35000"
+                          onChange={(e) => setNewProductPrice(e.target.value)}
+                          className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 outline-none pr-10"
+                          required
+                        />
+                        <span className="absolute right-2.5 top-2.5 text-[10px] text-neutral-400 font-bold">so'm</span>
+                      </div>
+                    </div>
+
+                    {/* Keltirilgan narxi (Tannarx / COGS) */}
+                    <div>
+                      <label className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                        <span>Keltirilgan narxi (Tannarxi):</span>
+                      </label>
+                      <div className="relative mt-1">
+                        <input
+                          type="number"
+                          value={newProductCostPrice}
+                          placeholder="Masalan: 20000"
+                          onChange={(e) => setNewProductCostPrice(e.target.value)}
+                          className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 outline-none pr-10"
+                        />
+                        <span className="absolute right-2.5 top-2.5 text-[10px] text-emerald-600/70 font-bold">so'm</span>
+                      </div>
+                    </div>
+
+                    {/* Eski narxi (Aksiya chegirmasi) */}
+                    <div>
+                      <label className="text-xs font-medium text-neutral-500">
+                        Eski narxi (Aksiya): <span className="text-[10px]">(ixtiyoriy)</span>
+                      </label>
+                      <div className="relative mt-1">
+                        <input
+                          type="number"
+                          value={newProductOldPrice}
+                          placeholder="Masalan: 40000"
+                          onChange={(e) => setNewProductOldPrice(e.target.value)}
+                          className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 outline-none pr-10"
+                        />
+                        <span className="absolute right-2.5 top-2.5 text-[10px] text-neutral-400 font-bold">so'm</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Real-time Profit Preview */}
+                  {Number(newProductPrice) > 0 && Number(newProductCostPrice) > 0 && (
+                    <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs">
+                      <span className="text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                        {t.expectedProfit || "Kutilayotgan foyda"} (1 dona/pors):
+                      </span>
+                      <span className="font-black text-emerald-700 dark:text-emerald-400">
+                        +{(Number(newProductPrice) - Number(newProductCostPrice)).toLocaleString()} so'm{" "}
+                        <span className="text-[10px] bg-emerald-200/70 dark:bg-emerald-900 px-1.5 py-0.5 rounded-md ml-1 font-bold">
+                          {Math.round(((Number(newProductPrice) - Number(newProductCostPrice)) / Number(newProductPrice)) * 100)}% marja
+                        </span>
+                      </span>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Price, Cost Price (Tannarx), and Old Price (Skitka) */}
-              <div className="space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <div>
-                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
-                      <span>{t.price || "Sotuv Narxi"} (so'm): *</span>
-                    </label>
-                    <div className="relative mt-1">
-                      <input
-                        type="number"
-                        value={newProductPrice}
-                        onChange={(e) => setNewProductPrice(e.target.value)}
-                        placeholder="25000"
-                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 outline-none pr-10 focus:ring-1 focus:ring-emerald-500"
-                        required
-                      />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] text-neutral-400 font-bold">so'm</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                      <span>{t.costPrice || "Tannarxi (Food cost)"}:</span>
-                    </label>
-                    <div className="relative mt-1">
-                      <input
-                        type="number"
-                        value={newProductCostPrice}
-                        placeholder="Masalan: 14000"
-                        onChange={(e) => setNewProductCostPrice(e.target.value)}
-                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-emerald-300/80 dark:border-emerald-800/80 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 outline-none pr-10 focus:ring-1 focus:ring-emerald-500"
-                      />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] text-emerald-600/70 font-bold">so'm</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
-                      <span>{t.oldPrice || "Eski Narx"}:</span>
-                      <span className="text-[10px] text-neutral-400">(skitka)</span>
-                    </label>
-                    <div className="relative mt-1">
-                      <input
-                        type="number"
-                        value={newProductOldPrice}
-                        placeholder="Masalan: 30000"
-                        onChange={(e) => setNewProductOldPrice(e.target.value)}
-                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 outline-none pr-10"
-                      />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] text-neutral-400 font-bold">so'm</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Real-time Profit Preview */}
-                {Number(newProductPrice) > 0 && Number(newProductCostPrice) > 0 && (
-                  <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs">
-                    <span className="text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-1">
-                      <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                      {t.expectedProfit || "Kutilayotgan foyda"} (1 dona/pors):
-                    </span>
-                    <span className="font-black text-emerald-700 dark:text-emerald-400">
-                      +{(Number(newProductPrice) - Number(newProductCostPrice)).toLocaleString()} so'm{" "}
-                      <span className="text-[10px] bg-emerald-200/70 dark:bg-emerald-900 px-1.5 py-0.5 rounded-md ml-1 font-bold">
-                        {Math.round(((Number(newProductPrice) - Number(newProductCostPrice)) / Number(newProductPrice)) * 100)}% marja
-                      </span>
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Kaloriya & KBDU (Nutritional Info) */}
-              <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-900/40 space-y-2">
-                <label className="text-xs font-black text-emerald-950 dark:text-emerald-300 flex items-center gap-1.5">
-                  <span>🔥 Kaloriya va Ozuqaviy Qiymat (KBDU)</span>
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-neutral-500 block">
-                      Kaloriya (kkal):
-                    </label>
-                    <input
-                      type="number"
-                      value={newProductCalories}
-                      placeholder="180"
-                      onChange={(e) => setNewProductCalories(e.target.value)}
-                      className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-neutral-500 block">
-                      Oqsil (g):
-                    </label>
-                    <input
-                      type="number"
-                      value={newProductProtein}
-                      placeholder="12"
-                      onChange={(e) => setNewProductProtein(e.target.value)}
-                      className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-neutral-500 block">
-                      Yog' (g):
-                    </label>
-                    <input
-                      type="number"
-                      value={newProductFat}
-                      placeholder="4"
-                      onChange={(e) => setNewProductFat(e.target.value)}
-                      className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-neutral-500 block">
-                      Uglevod (g):
-                    </label>
-                    <input
-                      type="number"
-                      value={newProductCarbs}
-                      placeholder="28"
-                      onChange={(e) => setNewProductCarbs(e.target.value)}
-                      className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Qadoqlash Sig'im Darajasi (Packaging Capacity Level 0 - 5) */}
-              <div className="p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black text-amber-950 dark:text-amber-300 flex items-center gap-1.5">
-                    <Package className="h-4 w-4 text-amber-600" />
-                    <span>{(t as any).packagingLevelLabel || "Qadoqlash Sig'im Darajasi (0 dan 5 gacha)"}</span>
+                {/* Kaloriya & KBDU (Nutritional Info) */}
+                <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-900/40 space-y-2">
+                  <label className="text-xs font-black text-emerald-950 dark:text-emerald-300 flex items-center gap-1.5">
+                    <span>🔥 Kaloriya va Ozuqaviy Qiymat (KBDU)</span>
                   </label>
-                  <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
-                    {newProductPackagingLevel === 0
-                      ? ((t as any).drinkNoPackaging || "0 (qadoqsiz / ichimlik)")
-                      : `${newProductPackagingLevel} / 5 ${(t as any).points || "ball"}`}
-                  </span>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-neutral-500 block">
+                        Kaloriya (kkal):
+                      </label>
+                      <input
+                        type="number"
+                        value={newProductCalories}
+                        placeholder="180"
+                        onChange={(e) => setNewProductCalories(e.target.value)}
+                        className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-neutral-500 block">
+                        Oqsil (g):
+                      </label>
+                      <input
+                        type="number"
+                        value={newProductProtein}
+                        placeholder="12"
+                        onChange={(e) => setNewProductProtein(e.target.value)}
+                        className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-neutral-500 block">
+                        Yog' (g):
+                      </label>
+                      <input
+                        type="number"
+                        value={newProductFat}
+                        placeholder="4"
+                        onChange={(e) => setNewProductFat(e.target.value)}
+                        className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-neutral-500 block">
+                        Uglevod (g):
+                      </label>
+                      <input
+                        type="number"
+                        value={newProductCarbs}
+                        placeholder="28"
+                        onChange={(e) => setNewProductCarbs(e.target.value)}
+                        className="w-full text-xs font-bold px-2.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                  {(t as any).packagingLevelDesc || "Bitta idishning umumiy sig'imi 5 ball. Masalan: 2 ball bo'lsa, bitta idishga bu taomdan 2 ta sig'adi (2+2=4). 0 ball — idish talab qilmaydi (ichimliklar)."}
-                </p>
+                {/* Qadoqlash Sig'im Darajasi (Packaging Capacity Level 0 - 5) */}
+                <div className="p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-amber-950 dark:text-amber-300 flex items-center gap-1.5">
+                      <Package className="h-4 w-4 text-amber-600" />
+                      <span>{(t as any).packagingLevelLabel || "Qadoqlash Sig'im Darajasi (0 dan 5 gacha)"}</span>
+                    </label>
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
+                      {newProductPackagingLevel === 0
+                        ? ((t as any).drinkNoPackaging || "0 (qadoqsiz / ichimlik)")
+                        : `${newProductPackagingLevel} / 5 ${(t as any).points || "ball"}`}
+                    </span>
+                  </div>
 
-                <div className="grid grid-cols-6 gap-1.5 pt-1">
-                  {[0, 1, 2, 3, 4, 5].map((lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => setNewProductPackagingLevel(lvl)}
-                      className={`py-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 ${
-                        newProductPackagingLevel === lvl
-                          ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/50"
-                          : "bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 hover:bg-amber-50 dark:hover:bg-neutral-700"
-                      }`}
-                    >
-                      <span>{lvl === 0 ? "0" : `${lvl}`}</span>
-                      <span className="text-[9px] font-medium opacity-80">
-                        {lvl === 0 ? ((t as any).noPackagingLevel || "Ichimlik") : lvl === 5 ? "100%" : `${lvl * 20}%`}
-                      </span>
-                    </button>
-                  ))}
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                    {(t as any).packagingLevelDesc || "Bitta idishning umumiy sig'imi 5 ball. Masalan: 2 ball bo'lsa, bitta idishga bu taomdan 2 ta sig'adi (2+2=4). 0 ball — idish talab qilmaydi (ichimliklar)."}
+                  </p>
+
+                  <div className="grid grid-cols-6 gap-1.5 pt-1">
+                    {[0, 1, 2, 3, 4, 5].map((lvl) => (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setNewProductPackagingLevel(lvl)}
+                        className={`py-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 ${
+                          newProductPackagingLevel === lvl
+                            ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/50"
+                            : "bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 hover:bg-amber-50 dark:hover:bg-neutral-700"
+                        }`}
+                      >
+                        <span>{lvl === 0 ? "0" : `${lvl}`}</span>
+                        <span className="text-[9px] font-medium opacity-80">
+                          {lvl === 0 ? ((t as any).noPackagingLevel || "Ichimlik") : lvl === 5 ? "100%" : `${lvl * 20}%`}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* PURE IMAGE UPLOAD FIELD */}
-              <ImageUploadField
-                value={newProductImageUrl}
-                onChange={setNewProductImageUrl}
-                label="Taom Rasmi (Faqat fayl yuklash):"
-              />
-
-              {/* Description */}
-              <div>
-                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                  Qisqacha Tavsif:
-                </label>
-                <textarea
-                  value={newProductDescription}
-                  placeholder="Masalan: Yangi sabzavotlar va zaytun bilan tayyorlangan salat"
-                  onChange={(e) => setNewProductDescription(e.target.value)}
-                  rows={2}
-                  className="w-full text-xs font-medium px-3.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 bg-neutral-50 dark:bg-neutral-800 outline-none"
+                {/* PURE IMAGE UPLOAD FIELD */}
+                <ImageUploadField
+                  value={newProductImageUrl}
+                  onChange={setNewProductImageUrl}
+                  label="Taom Rasmi (Faqat fayl yuklash):"
                 />
+
+                {/* Description */}
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                    Qisqacha Tavsif:
+                  </label>
+                  <textarea
+                    value={newProductDescription}
+                    placeholder="Masalan: Yangi sabzavotlar va zaytun bilan tayyorlangan salat"
+                    onChange={(e) => setNewProductDescription(e.target.value)}
+                    rows={2}
+                    className="w-full text-xs font-medium px-3.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 bg-neutral-50 dark:bg-neutral-800 outline-none"
+                  />
+                </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              {/* STICKY FOOTER ACTIONS */}
+              <div className="flex gap-2 px-5 py-3.5 border-t border-neutral-100 dark:border-neutral-800 shrink-0 bg-white dark:bg-neutral-900 z-10">
                 <Button
                   type="button"
                   variant="outline"
