@@ -18,7 +18,12 @@ export const MainLayout: React.FC = () => {
     }
   }, [theme])
 
-  // Show BottomNav across all customer and staff pages (only hide on login page)
+  // Detect wide workstation pages (Cashier POS, Admin Panel)
+  const isWidePage =
+    location.pathname.startsWith("/cashier") ||
+    location.pathname.startsWith("/pos") ||
+    location.pathname.startsWith("/admin")
+
   const isFullScreenStaff = location.pathname.startsWith("/login")
 
   return (
@@ -26,13 +31,23 @@ export const MainLayout: React.FC = () => {
       {/* Main Navbar */}
       <Navbar />
 
-      {/* Mobile-first Page Content container */}
-      <main className="flex-1 container mx-auto max-w-4xl px-3 sm:px-6 lg:px-8 py-4 pb-24">
+      {/* Dynamic Page Content container: wide max-w-[1750px] for POS/Admin, max-w-4xl for Telegram Mini App */}
+      <main
+        className={`flex-1 mx-auto w-full ${
+          isWidePage
+            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2.5 pb-24 lg:pb-10"
+            : "max-w-4xl px-3 sm:px-6 lg:px-8 py-4 pb-24"
+        }`}
+      >
         <Outlet />
       </main>
 
-      {/* Persistent Bottom Navigation Bar for all customer pages */}
-      {!isFullScreenStaff && <BottomNav />}
+      {/* Persistent Bottom Navigation Bar for mobile (hidden on desktop for wide workstation pages) */}
+      {!isFullScreenStaff && (
+        <div className={isWidePage ? "lg:hidden" : ""}>
+          <BottomNav />
+        </div>
+      )}
 
       <footer className="hidden md:block border-t border-neutral-200 dark:border-neutral-800 py-6 text-center text-xs text-neutral-400 mb-16">
         <p>&copy; {new Date().getFullYear()} FullFood — Mazali va Sifatli Taomlar Restorani.</p>

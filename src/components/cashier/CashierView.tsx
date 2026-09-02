@@ -25,6 +25,7 @@ import {
   Wallet,
   UserCheck,
   Loader2,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1183,9 +1184,9 @@ export const CashierView: React.FC = () => {
 
       {/* TAB 2: IN-STORE POS CASHIER WITH VISUAL FOOD CARDS & CATEGORY FILTERS */}
       {activeTab === "POS" && (
-        <div className="flex flex-col lg:flex-row items-start gap-5 relative">
+        <div className="flex flex-col lg:flex-row items-start gap-4 xl:gap-5 relative">
           {/* Main Products Grid Column */}
-          <div className="w-full lg:w-[67%] xl:w-[70%] space-y-4 min-w-0">
+          <div className="flex-1 w-full min-w-0 space-y-4">
             {/* Header + Quick Search & Grid Column Switcher */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1451,7 +1452,7 @@ export const CashierView: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Dish Info: Large BOLD name, NO individual price as requested! */}
+                      {/* Dish Info: Large BOLD name and Price */}
                       <div className={`${posGridCols === 5 ? "p-2 space-y-0.5" : "p-3 space-y-1"}`}>
                         <h4
                           className={`font-black ${
@@ -1460,16 +1461,21 @@ export const CashierView: React.FC = () => {
                               : posGridCols === 4
                               ? "text-xs sm:text-sm leading-tight"
                               : "text-sm sm:text-base leading-tight"
-                          } text-neutral-900 dark:text-white line-clamp-2`}
+                          } text-neutral-900 dark:text-white line-clamp-1`}
                           title={p.name}
                         >
                           {p.name}
                         </h4>
-                        {p.unit?.name && (
-                          <span className="inline-block text-[10px] sm:text-[11px] text-neutral-400 font-semibold">
-                            {p.unit.name}
+                        <div className="flex items-center justify-between gap-1 pt-0.5">
+                          <span className="font-black text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-400">
+                            {p.price.toLocaleString()} so'm
                           </span>
-                        )}
+                          {p.unit?.name && (
+                            <span className="text-[10px] text-neutral-400 font-semibold truncate">
+                              {p.unit.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )
@@ -1479,141 +1485,81 @@ export const CashierView: React.FC = () => {
           </div>
 
           {/* POS Cart Sidebar: Sticky on Desktop/Tablet right next to the menu! */}
-          <div className="w-full lg:w-[33%] xl:w-[30%] lg:sticky lg:top-4 z-20 space-y-4">
-            <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-4 shadow-sm">
+          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] lg:sticky lg:top-3 z-20 flex-shrink-0 space-y-4">
+            <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 space-y-3.5 shadow-sm">
+              {/* Header with Dish Counter & Clear Cart */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag className="h-4 w-4 text-emerald-600" />
-                  <h3 className="font-black text-sm text-neutral-900 dark:text-white">
-                    {t.posCartTitle || "Zal Savatchasi"}
-                  </h3>
-                  {posCart.length > 0 && (
-                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 text-[10px] font-black">
-                      {posCart.reduce((s, i) => s + i.quantity, 0)} {t.dishesCountShort || "ta"}
-                    </Badge>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={posCustomerName}
-                  onChange={(e) => setPosCustomerName(e.target.value)}
-                  placeholder={t.posCustomerNamePlaceholder || "Mijoz nomi"}
-                  className="text-xs font-bold px-2.5 py-1.5 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-neutral-50 dark:bg-neutral-800 max-w-[130px] outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                {posCart.length === 0 ? (
-                  <div className="text-center py-10 space-y-2">
-                    <Package className="h-10 w-10 mx-auto text-neutral-300 dark:text-neutral-700" />
-                    <p className="text-xs text-neutral-400 font-medium">
-                      {t.posNoDishSelected || "Taom tanlanmagan"}
-                    </p>
+                  <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <ShoppingBag className="h-4 w-4" />
                   </div>
-                ) : (
-                  posCart.map((item) => {
-                    const dishImage = getDishImage(item.product.id)
+                  <div>
+                    <h3 className="font-black text-sm text-neutral-900 dark:text-white leading-tight">
+                      {t.posCartTitle || "Zal Savatchasi"}
+                    </h3>
+                    <span className="text-[10px] text-neutral-400 font-semibold">
+                      {posCart.reduce((s, i) => s + i.quantity, 0)} {t.dishesCountShort || "ta taom"}
+                    </span>
+                  </div>
+                </div>
 
-                    return (
-                      <div
-                        key={item.product.id}
-                        className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-neutral-50 dark:bg-neutral-800/70 border border-neutral-100 dark:border-neutral-800"
-                      >
-                        <div className="h-10 w-10 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
-                          <img
-                            src={dishImage}
-                            alt={item.product.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-xs text-neutral-900 dark:text-white truncate">
-                            {item.product.name}
-                          </p>
-                          <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
-                            {(item.product.price * item.quantity).toLocaleString()} so'm
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() =>
-                              setPosCart((prev) =>
-                                prev
-                                  .map((i) =>
-                                    i.product.id === item.product.id
-                                      ? { ...i, quantity: i.quantity - 1 }
-                                      : i
-                                  )
-                                  .filter((i) => i.quantity > 0)
-                              )
-                            }
-                            className="h-7 w-7 rounded-xl bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center font-bold text-xs active:scale-95"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
-                          <button
-                            onClick={() =>
-                              setPosCart((prev) =>
-                                prev.map((i) =>
-                                  i.product.id === item.product.id
-                                    ? { ...i, quantity: i.quantity + 1 }
-                                    : i
-                                )
-                              )
-                            }
-                            className="h-7 w-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs active:scale-95"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
+                {posCart.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("medium")
+                      setPosCart([])
+                    }}
+                    className="text-[11px] font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1 hover:underline px-2 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Tozalash</span>
+                  </button>
                 )}
               </div>
 
-              <div className="space-y-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-                {/* Customer Selection (Optional for Balance Charging) */}
-                <div className="space-y-1.5 p-2.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1">
-                      <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
-                      Mijoz hisobi (ixtiyoriy)
-                    </span>
-                    {posSelectedCustomer && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPosSelectedCustomer(null)
-                          setPosCustomerName("Zal Mijoz")
-                          if (posPaymentMethod === "BALANCE") setPosPaymentMethod("CASH")
-                        }}
-                        className="text-[10px] text-rose-500 font-bold hover:underline"
-                      >
-                        Tozalash
-                      </button>
-                    )}
-                  </div>
+              {/* Customer Selection & Table Info */}
+              <div className="space-y-2 p-3 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
+                    <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    Mijoz / Stol (ixtiyoriy)
+                  </span>
+                  {posSelectedCustomer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPosSelectedCustomer(null)
+                        setPosCustomerName("Zal Mijoz")
+                        if (posPaymentMethod === "BALANCE") setPosPaymentMethod("CASH")
+                      }}
+                      className="text-[10px] text-rose-500 font-bold hover:underline"
+                    >
+                      Tozalash
+                    </button>
+                  )}
+                </div>
 
-                  {posSelectedCustomer ? (
-                    <div className="p-2 rounded-xl bg-white dark:bg-neutral-900 border border-emerald-500/40 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-xs text-neutral-900 dark:text-white truncate">
-                          👤 {posSelectedCustomer.fullName || posSelectedCustomer.username}
-                        </span>
-                        <span className="text-[10px] text-emerald-600 font-bold">
-                          {posSelectedCustomer.phone || ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-neutral-400">Hisobdagi balans:</span>
-                        <strong className="text-emerald-600 dark:text-emerald-400 font-black">
-                          {Number(posSelectedCustomer.balance || 0).toLocaleString()} so'm
-                        </strong>
-                      </div>
+                {posSelectedCustomer ? (
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-emerald-500/40 space-y-1 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-xs text-neutral-900 dark:text-white truncate">
+                        👤 {posSelectedCustomer.fullName || posSelectedCustomer.username}
+                      </span>
+                      <span className="text-[10px] text-emerald-600 font-bold">
+                        {posSelectedCustomer.phone || ""}
+                      </span>
                     </div>
-                  ) : (
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-neutral-100 dark:border-neutral-800">
+                      <span className="text-neutral-400">Shaxsiy balans:</span>
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-black">
+                        {Number(posSelectedCustomer.balance || 0).toLocaleString()} so'm
+                      </strong>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Live search for registered customer */}
                     <div className="relative">
                       {isSearchingCustomer ? (
                         <Loader2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-emerald-600" />
@@ -1633,7 +1579,7 @@ export const CashierView: React.FC = () => {
 
                       {/* Dropdown search results */}
                       {customerSearchResults.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-xl max-h-44 overflow-y-auto p-1 space-y-1">
+                        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-xl max-h-48 overflow-y-auto p-1 space-y-1">
                           {customerSearchResults.map((cust) => (
                             <button
                               key={cust.id}
@@ -1666,12 +1612,99 @@ export const CashierView: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
 
+                    {/* Quick Walk-in Note (e.g. 1-Stol / Zal Mijoz) */}
+                    <input
+                      type="text"
+                      value={posCustomerName}
+                      onChange={(e) => setPosCustomerName(e.target.value)}
+                      placeholder="Stol yoki mijoz nomi (masalan: 1-Stol)"
+                      className="w-full text-xs font-semibold px-3 py-1.5 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Cart items list */}
+              <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+                {posCart.length === 0 ? (
+                  <div className="text-center py-8 space-y-2 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800">
+                    <Package className="h-8 w-8 mx-auto text-neutral-300 dark:text-neutral-700" />
+                    <p className="text-xs text-neutral-400 font-medium">
+                      {t.posNoDishSelected || "Taom tanlanmagan"}
+                    </p>
+                    <span className="text-[10px] text-neutral-400 block">Menyudan taom ustiga bosing</span>
+                  </div>
+                ) : (
+                  posCart.map((item) => {
+                    const dishImage = getDishImage(item.product.id)
+
+                    return (
+                      <div
+                        key={item.product.id}
+                        className="flex items-center justify-between gap-2.5 p-2 rounded-2xl bg-neutral-50 dark:bg-neutral-800/70 border border-neutral-100 dark:border-neutral-800 hover:border-neutral-200 transition-all shadow-2xs"
+                      >
+                        <div className="h-11 w-11 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
+                          <img
+                            src={dishImage}
+                            alt={item.product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-xs text-neutral-900 dark:text-white truncate">
+                            {item.product.name}
+                          </p>
+                          <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
+                            {(item.product.price * item.quantity).toLocaleString()} so'm
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPosCart((prev) =>
+                                prev
+                                  .map((i) =>
+                                    i.product.id === item.product.id
+                                      ? { ...i, quantity: i.quantity - 1 }
+                                      : i
+                                  )
+                                  .filter((i) => i.quantity > 0)
+                              )
+                            }
+                            className="h-7 w-7 rounded-xl bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 flex items-center justify-center font-bold text-xs active:scale-95 transition-colors"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPosCart((prev) =>
+                                prev.map((i) =>
+                                  i.product.id === item.product.id
+                                    ? { ...i, quantity: i.quantity + 1 }
+                                    : i
+                                )
+                              )
+                            }
+                            className="h-7 w-7 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shadow-xs active:scale-95 transition-colors"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Checkout & Payment Area */}
+              <div className="space-y-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
                 <div className="flex items-center justify-between text-sm font-black">
                   <span>{t.totalPayment || "Jami to'lov"}:</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 text-lg">{posTotal.toLocaleString()} so'm</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 text-lg font-black">{posTotal.toLocaleString()} so'm</span>
                 </div>
 
                 {/* Payment Method selection */}
