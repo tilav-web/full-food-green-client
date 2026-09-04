@@ -248,6 +248,12 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       return
     }
 
+    if (orderType === "ONLINE_DELIVERY" && !deliveryAddress.trim()) {
+      toast.warning("Iltimos, yetkazib berish manzilini tanlang!")
+      setIsLocationModalOpen(true)
+      return
+    }
+
     try {
       setIsSubmitting(true)
       triggerHaptic("medium")
@@ -750,23 +756,51 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                       </label>
                       <div
                         onClick={() => setIsLocationModalOpen(true)}
-                        className="p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/50 dark:bg-emerald-950/20 flex items-center justify-between cursor-pointer hover:border-emerald-500 transition-all shadow-xs"
+                        className={`p-3.5 rounded-2xl border transition-all shadow-xs flex items-center justify-between cursor-pointer ${
+                          deliveryAddress
+                            ? "border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-500"
+                            : "border-dashed border-emerald-400 dark:border-emerald-700 bg-emerald-50/40 dark:bg-emerald-950/20 hover:border-emerald-500 hover:bg-emerald-50/60"
+                        }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-9 w-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+                          <div
+                            className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              deliveryAddress
+                                ? "bg-emerald-600 text-white"
+                                : "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600"
+                            }`}
+                          >
                             <MapPin className="h-5 w-5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-neutral-900 dark:text-white truncate">
-                              {deliveryAddress}
-                            </p>
+                            {deliveryAddress ? (
+                              <p className="text-xs font-bold text-neutral-900 dark:text-white truncate">
+                                {deliveryAddress}
+                              </p>
+                            ) : (
+                              <div>
+                                <p className="text-xs font-black text-emerald-700 dark:text-emerald-300">
+                                  Xaritadan manzilni belgilang
+                                </p>
+                                <p className="text-[10px] text-neutral-400">
+                                  Yetkazish joyini tanlash uchun bosing
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {!deliveryAddress && (
+                            <span className="text-[11px] font-bold text-emerald-600">
+                              Tanlash
+                            </span>
+                          )}
+                          <ChevronRight className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                        </div>
                       </div>
 
                       {/* Direct Map Pin Preview Links (Yandex & Google) during checkout */}
-                      {coords && (
+                      {deliveryAddress && coords && coords.lat !== 0 && (
                         <div className="flex items-center justify-between px-1.5 pt-0.5 text-[11px]">
                           <span className="text-neutral-600 dark:text-neutral-400 font-medium flex items-center gap-1">
                             <MapPin className="h-3 w-3 text-emerald-600" />
@@ -1263,6 +1297,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                         handleSelectQuickSavedLocation(remaining[0])
                       } else {
                         setDeliveryAddress("")
+                        setCoords({ lat: 0, lng: 0 })
                       }
                     }
                     toast.success("Manzil o'chirildi")
