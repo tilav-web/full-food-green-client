@@ -48,6 +48,7 @@ export const UserProfile: React.FC = () => {
   const {
     user,
     setUser,
+    setAuth,
     theme,
     setTheme,
     lang,
@@ -166,7 +167,12 @@ export const UserProfile: React.FC = () => {
       try {
         const res = await apiClient.get(`/auth/web-session-status/${webSessionToken}`)
         if (res.data?.status === "COMPLETED" && res.data.user) {
-          setUser({ ...res.data.user, isTelegramVerified: true })
+          const syncUser = { ...res.data.user, isTelegramVerified: true }
+          if (res.data.accessToken) {
+            setAuth(syncUser, res.data.accessToken, res.data.refreshToken)
+          } else {
+            setUser(syncUser)
+          }
           setIsWaitingWebAuth(false)
           setShowWebAuthModal(false)
           triggerHaptic("success")

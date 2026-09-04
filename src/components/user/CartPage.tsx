@@ -589,7 +589,16 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                             phone: formatted,
                           })
                           if (res.data) {
-                            setUser({ ...user, ...res.data, phone: formatted, isTelegramVerified: true })
+                            const updatedUser = {
+                              ...(res.data.user || res.data),
+                              phone: formatted,
+                              isTelegramVerified: true,
+                            }
+                            if (res.data.accessToken) {
+                              setAuth(updatedUser, res.data.accessToken, res.data.refreshToken)
+                            } else {
+                              setUser(updatedUser)
+                            }
                             toast.success("Telefon raqamingiz muvaffaqiyatli saqlandi!")
                           }
                         } catch (err: any) {
