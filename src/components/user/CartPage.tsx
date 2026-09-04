@@ -127,7 +127,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
   const [deliveryFee, setDeliveryFee] = useState(calculateFee(distanceKm))
   const [orderType, setOrderType] = useState<"ONLINE_DELIVERY" | "ONLINE_PICKUP">("ONLINE_DELIVERY")
-  const [extraPhone, setExtraPhone] = useState("")
   const [building, setBuilding] = useState("")
   const [floor, setFloor] = useState("")
   const [apartment, setApartment] = useState("")
@@ -276,7 +275,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
         userId: user?.id,
         customerName: user.fullName || "Telegram Mijoz",
         customerPhone: user.phone,
-        extraPhone: extraPhone || undefined,
         building: building || undefined,
         floor: floor || undefined,
         apartment: apartment || undefined,
@@ -829,20 +827,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                           />
                         </div>
                       </div>
-                    </div>
-
-                    {/* Optional Extra Contact Phone */}
-                    <div>
-                      <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-                        {t.extraPhone} ({t.optional}):
-                      </label>
-                      <input
-                        type="tel"
-                        value={extraPhone}
-                        placeholder="+998 90 123 45 67"
-                        onChange={(e) => setExtraPhone(e.target.value)}
-                        className="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 mt-1 outline-none focus:ring-1 focus:ring-emerald-500"
-                      />
                     </div>
                   </>
                 )}
