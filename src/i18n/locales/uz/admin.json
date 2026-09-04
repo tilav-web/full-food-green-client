@@ -98,16 +98,11 @@
   "averageProfitLabel": "O'rtacha Foyda",
   "allTimeProfitLabel": "Jami Sof Foyda",
   "periodProfit": "Davr Sof Foydasi",
-  "packagingTab": "Qadoqlash & Narx",
-  "packagingLevelLabel": "Qadoqlash Sig'im Darajasi (0 dan 5 gacha)",
-  "packagingLevelDesc": "Bitta idishning umumiy sig'imi 5 ball. Masalan: 2 ball bo'lsa, bitta idishga bu taomdan 2 ta sig'adi (2+2=4). 0 ball — idish talab qilmaydi (ichimliklar).",
-  "containerPriceSetting": "Qadoqlash (Idish) Narxi Sozlamasi",
-  "containerPriceDesc": "Savatchada har bir ishlatilgan taom qadog'i (idishi) uchun mijoz to'laydigan narx",
-  "containerPriceRule": "Qadoqlash qoidasi: Har bir standart idish 5 ball sig'imga ega. Har bir taomning qadoqlash darajasiga (0 dan 5 gacha) qarab taomlar idishlarga taqsimlanadi. Ichimliklar (0 ball) uchun idish hisoblanmaydi. Savatchada har bir to'ldirilgan idish uchun quyidagi narx avtomatik hisoblanadi.",
-  "singleContainerPrice": "1 dona qadoq narxi (so'm)",
+  "packagingTab": "Qadoqlash Narxi",
+  "containerPriceSetting": "Qadoqlash Narxi Sozlamasi",
+  "containerPriceDesc": "Har bir buyurtma uchun olinadigan yagona qadoqlash to'lovi",
+  "containerPriceRule": "Buyurtmaga qo'shiladigan qadoqlash narxi: Mijoz savatchadagi taomlarga buyurtma berganda bitta umumiy qadoqlash narxi hisoblanadi. Agar narx 0 so'm qilinsa, buyurtmada qadoqlash bepul bo'ladi.",
+  "singleContainerPrice": "Qadoqlash narxi (so'm)",
   "savePrice": "Narxni Saqlash",
-  "priceSavedSuccess": "Qadoqlash (idish) narxi muvaffaqiyatli saqlandi!",
-  "packagingLevelShort": "Qadoq darajasi",
-  "drinkNoPackaging": "0 (ichimlik/qadoqsiz)",
-  "points": "ball"
+  "priceSavedSuccess": "Qadoqlash narxi muvaffaqiyatli saqlandi!"
 }

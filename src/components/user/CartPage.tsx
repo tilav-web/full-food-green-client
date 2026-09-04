@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import {
@@ -23,9 +23,6 @@ import {
   Loader2,
   X,
   Package,
-  PackagePlus,
-  CheckCircle2,
-  AlertCircle,
   Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -36,7 +33,6 @@ import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
 import { LocationPickerModal } from "./LocationPickerModal"
 import { getImageUrl } from "@/lib/utils"
-import type { OrderContainer, OrderContainerItem, Product } from "@/types"
 import { useQuery } from "@tanstack/react-query"
 
 interface CartPageProps {
@@ -56,8 +52,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     setAuth,
     setCurrentActiveOrder,
     savedLocations,
-    containers,
-    setContainers,
   } = useAppStore()
   const { isTelegram, triggerHaptic, requestPhoneContact } = useTelegram()
 
@@ -67,263 +61,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   const [manualPhone, setManualPhone] = useState("+998")
   const [isSavingManualPhone, setIsSavingManualPhone] = useState(false)
 
-  const CONTAINER_CAPACITY = 5 // Har bir standart idish sig'imi: 5 ball
 
-  // Fetch all products for packagingLevel lookup
-  const { data: allProducts = [] } = useQuery<Product[]>({
-    queryKey: ["publicProducts"],
-    queryFn: async () => (await apiClient.get("/products")).data,
-  })
-
-  // Helper: Get dish packaging level (0-5). Purely database and category driven.
-  const getItemPackagingLevel = (item: {
-    id?: string
-    name?: string
-    cartItemId?: string
-    productId?: string
-    packagingLevel?: number
-    category?: any
-  }): number => {
-    // 1. Direct packagingLevel if defined on cart item
-    if (typeof item.packagingLevel === "number") {
-      return item.packagingLevel
-    }
-    // 2. Lookup in loaded product catalog
-    const pId = item.productId || item.cartItemId || item.id
-    if (pId) {
-      const p = allProducts.find((prod) => prod.id === pId)
-      if (p) {
-        if (typeof p.packagingLevel === "number") {
-          return p.packagingLevel
-        }
-        const catName = p.category?.name?.toLowerCase() || ""
-        const catSlug = p.category?.slug?.toLowerCase() || ""
-        if (catName.includes("ichimlik") || catSlug.includes("ichimlik") || catSlug.includes("drink")) {
-          return 0
-        }
-      }
-    }
-    return 1 // default standard dish
-  }
-
-  // Boolean helper: does cart contain any dishes that need containers?
-  const hasPackableDishes = useMemo(() => {
-    return cart.some((item) => getItemPackagingLevel(item) > 0)
-  }, [cart, allProducts])
-
-  // Helper: Calculate unallocated portions for a cart item
-  const getUnallocatedCount = (cartItemId: string, totalCartQty: number): number => {
-    const allocated = containers.reduce((sum, c) => {
-      const found = c.items.find((i) => i.cartItemId === cartItemId)
-      return sum + (found ? found.quantity : 0)
-    }, 0)
-    return Math.max(0, totalCartQty - allocated)
-  }
-
-  // Active Container selection state
-  const [activeContainerId, setActiveContainerId] = useState<string | null>(null)
-  const [animatingItemId, setAnimatingItemId] = useState<string | null>(null)
-  const [showFullContainerModal, setShowFullContainerModal] = useState(false)
-  const [showUnallocatedModal, setShowUnallocatedModal] = useState(false)
-
-  // Keep activeContainerId in sync with containers
-  useEffect(() => {
-    if (containers.length > 0 && (!activeContainerId || !containers.some((c) => c.id === activeContainerId))) {
-      setActiveContainerId(containers[0].id)
-    }
-  }, [containers, activeContainerId])
-
-  // Safe sync: Only sanitize items from containers if their corresponding cart item was deleted
-  useEffect(() => {
-    if (cart.length === 0) {
-      if (containers.length > 0) setContainers([])
-      return
-    }
-
-    setContainers((prev) => {
-      let changed = false
-      const updated = prev.map((c) => {
-        const validItems = c.items
-          .map((it) => {
-            const ci = cart.find((item) => item.id === it.cartItemId)
-            if (!ci) {
-              changed = true
-              return null
-            }
-            if (it.quantity > ci.quantity) {
-              changed = true
-              return { ...it, quantity: ci.quantity }
-            }
-            return it
-          })
-          .filter(Boolean) as OrderContainerItem[]
-        return { ...c, items: validItems }
-      })
-      return changed ? updated : prev
-    })
-  }, [cart, setContainers])
-
-  // Add a new package / container (automatically becomes active)
-  const handleAddNewContainer = () => {
-    triggerHaptic("medium")
-    const nextIdx = containers.length + 1
-    const newBoxId = `box_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-    const newBoxName = `${nextIdx}-${t.personPack || "Qadoq"}`
-
-    const newBox: OrderContainer = {
-      id: newBoxId,
-      name: newBoxName,
-      label: "",
-      items: [],
-    }
-
-    setContainers((prev) => [...prev, newBox])
-    setActiveContainerId(newBoxId)
-    return newBoxId
-  }
-
-  // Select / activate an existing container
-  const handleSelectContainer = (boxId: string) => {
-    triggerHaptic("light")
-    setActiveContainerId(boxId)
-  }
-
-  // Remove a container box
-  const handleRemoveContainer = (boxId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
-    triggerHaptic("medium")
-    setContainers((prev) => {
-      const filtered = prev.filter((c) => c.id !== boxId)
-      if (activeContainerId === boxId) {
-        setActiveContainerId(filtered.length > 0 ? filtered[filtered.length - 1].id : null)
-      }
-      return filtered
-    })
-  }
-
-  // Add 1 portion of cartItem into the active container (with background 5-point capacity check)
-  const handleAddPortionToActiveContainer = (cartItem: any) => {
-    let targetBox = containers.find((c) => c.id === activeContainerId)
-    if (!targetBox) {
-      if (containers.length === 0) {
-        const nextIdx = 1
-        const newBoxId = `box_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-        const newBoxName = `${nextIdx}-${t.personPack || "Qadoq"}`
-        const dishLevel = getItemPackagingLevel(cartItem)
-        const newBox: OrderContainer = {
-          id: newBoxId,
-          name: newBoxName,
-          label: "",
-          items: [
-            {
-              cartItemId: cartItem.id,
-              name: cartItem.name,
-              quantity: 1,
-              packagingLevel: dishLevel,
-              unitName: cartItem.unitName,
-              imageUrl: cartItem.imageUrl,
-            },
-          ],
-        }
-        setContainers([newBox])
-        setActiveContainerId(newBoxId)
-        triggerHaptic("light")
-        setAnimatingItemId(cartItem.id)
-        setTimeout(() => setAnimatingItemId((prev) => (prev === cartItem.id ? null : prev)), 500)
-        return
-      } else {
-        targetBox = containers[containers.length - 1]
-        setActiveContainerId(targetBox.id)
-      }
-    }
-
-    const unallocated = getUnallocatedCount(cartItem.id, cartItem.quantity)
-    if (unallocated <= 0) {
-      triggerHaptic("error")
-      return
-    }
-
-    // Capacity check in background (5 points max, invisible to user)
-    const currentPoints = targetBox.items.reduce((sum, it) => {
-      const lvl = getItemPackagingLevel(it)
-      return sum + lvl * it.quantity
-    }, 0)
-    const dishLevel = getItemPackagingLevel(cartItem)
-
-    if (currentPoints + dishLevel > CONTAINER_CAPACITY) {
-      triggerHaptic("warning")
-      setShowFullContainerModal(true)
-      return
-    }
-
-    triggerHaptic("light")
-    setAnimatingItemId(cartItem.id)
-    setTimeout(() => setAnimatingItemId((prev) => (prev === cartItem.id ? null : prev)), 500)
-
-    setContainers((prev) =>
-      prev.map((c) => {
-        if (c.id !== targetBox!.id) return c
-        const existingIdx = c.items.findIndex((i) => i.cartItemId === cartItem.id)
-        if (existingIdx >= 0) {
-          const updated = [...c.items]
-          updated[existingIdx] = {
-            ...updated[existingIdx],
-            quantity: updated[existingIdx].quantity + 1,
-          }
-          return { ...c, items: updated }
-        } else {
-          return {
-            ...c,
-            items: [
-              ...c.items,
-              {
-                cartItemId: cartItem.id,
-                name: cartItem.name,
-                quantity: 1,
-                packagingLevel: dishLevel,
-                unitName: cartItem.unitName,
-                imageUrl: cartItem.imageUrl,
-              },
-            ],
-          }
-        }
-      })
-    )
-  }
-
-  // Remove 1 portion of cartItem from a specific container
-  const handleRemovePortionFromContainer = (containerId: string, cartItemId: string) => {
-    triggerHaptic("light")
-    setContainers((prev) =>
-      prev.map((c) => {
-        if (c.id !== containerId) return c
-        const existing = c.items.find((i) => i.cartItemId === cartItemId)
-        if (!existing) return c
-        if (existing.quantity > 1) {
-          return {
-            ...c,
-            items: c.items.map((i) =>
-              i.cartItemId === cartItemId ? { ...i, quantity: i.quantity - 1 } : i
-            ),
-          }
-        } else {
-          return {
-            ...c,
-            items: c.items.filter((i) => i.cartItemId !== cartItemId),
-          }
-        }
-      })
-    )
-  }
-
-  // Reset containers
-  const handleResetPackaging = () => {
-    triggerHaptic("light")
-    setContainers([])
-    setActiveContainerId(null)
-  }
-
-  const activeBox = containers.find((c) => c.id === activeContainerId)
 
   // Verification status
   const isUserVerified = !!(user?.phone && (user?.telegramId || user?.isTelegramVerified))
@@ -415,9 +153,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     return (settings as Record<string, string>)[key] || fallback
   }
 
-  const containerPrice = Number(getSetting("container_price", "2000")) || 2000
-  // Single fixed container price rule: if order has ANY dish with level > 0, charge exactly 1 container fee
-  const packagingFee = hasPackableDishes ? containerPrice : 0
+  const rawPackagingPrice = getSetting("container_price", "2000")
+  const packagingPrice = Number(rawPackagingPrice) >= 0 ? Number(rawPackagingPrice) : 2000
+  // Buyurtmada qadoqlash narxi: Agar savatchada taomlar bo'lsa va narx > 0 bo'lsa hisoblanadi
+  const packagingFee = cart.length > 0 ? packagingPrice : 0
 
   const cardNumber = getSetting("card_number", "9860 1001 2517 4530")
   const cardHolder = getSetting("card_holder", "SHAHRIZOD XALIMOV")
@@ -549,10 +288,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
         latitude: coords.lat,
         longitude: coords.lng,
         notes: notes || undefined,
-        containersJson:
-          containers.some((c) => c.items.length > 0)
-            ? JSON.stringify(containers.filter((c) => c.items.length > 0))
-            : undefined,
         items: itemsPayload,
       })
 
@@ -630,8 +365,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             onClick={() => {
               triggerHaptic("medium")
               clearCart()
-              setContainers([])
-              setActiveContainerId(null)
             }}
             className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs rounded-xl h-8 font-bold gap-1 active:scale-95"
           >
@@ -662,412 +395,79 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             </div>
           ) : (
             <div className="space-y-4">
-              {/* 1. TOP DISHES LIST */}
-              {containers.length === 0 ? (
-                /* Standard Cart Mode: Normal Steppers before packaging is initiated */
-                <div className="space-y-3">
-                  {cart.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xs"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <img
-                          src={getImageUrl(item.imageUrl)}
-                          alt={item.name}
-                          onError={(e) => {
-                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                          }}
-                          className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-white truncate">
-                            {item.name}
-                          </h4>
+              {/* 1. DISHES LIST */}
+              <div className="space-y-3">
+                {cart.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <img
+                        src={getImageUrl(item.imageUrl)}
+                        alt={item.name}
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                        }}
+                        className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-white truncate">
+                          {item.name}
+                        </h4>
 
-                          {item.customPlate && (
-                            <div className="mt-1 space-y-0.5">
-                              {item.customPlate.portions.map((p, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-block text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded-md mr-1 font-medium border border-emerald-200/40"
-                                >
-                                  {p.name} ({p.portions} pors)
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2 mt-1">
-                            <strong className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                              {(item.price * item.quantity).toLocaleString()} {t.currency || "so'm"}
-                            </strong>
+                        {item.customPlate && (
+                          <div className="mt-1 space-y-0.5">
+                            {item.customPlate.portions.map((p, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-block text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded-md mr-1 font-medium border border-emerald-200/40"
+                              >
+                                {p.name} ({p.portions} pors)
+                              </span>
+                            ))}
                           </div>
+                        )}
+
+                        <div className="flex items-center gap-2 mt-1">
+                          <strong className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                            {(item.price * item.quantity).toLocaleString()} {t.currency || "so'm"}
+                          </strong>
                         </div>
                       </div>
-
-                      {/* Stepper buttons */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => updateCartQuantity(item.id, -1)}
-                          className="h-7 w-7 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 flex items-center justify-center text-neutral-700 dark:text-neutral-300 text-xs active:scale-95"
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => updateCartQuantity(item.id, 1)}
-                          className="h-7 w-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs active:scale-95 shadow-xs"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-neutral-400 hover:text-red-500 p-1 ml-1"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                /* Packaging Mode: Unallocated dishes with [+] button to pack into active container */
-                <div className="space-y-3">
-                  <AnimatePresence mode="popLayout">
-                    {cart
-                      .filter((item) => {
-                        const lvl = getItemPackagingLevel(item)
-                        return lvl > 0 && getUnallocatedCount(item.id, item.quantity) > 0
-                      })
-                      .map((item) => {
-                        const unallocated = getUnallocatedCount(item.id, item.quantity)
-                        const isItemAnimating = animatingItemId === item.id
-
-                        return (
-                          <motion.div
-                            key={item.id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.95, height: "auto" }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{
-                              opacity: 0,
-                              scale: 0.85,
-                              height: 0,
-                              marginBottom: 0,
-                              paddingTop: 0,
-                              paddingBottom: 0,
-                              overflow: "hidden",
-                              transition: { duration: 0.3 },
-                            }}
-                            className="relative flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xs"
-                          >
-                            {/* Floating +1 transfer badge */}
-                            <AnimatePresence>
-                              {isItemAnimating && (
-                                <motion.span
-                                  initial={{ opacity: 1, y: 0, scale: 0.8 }}
-                                  animate={{ opacity: 0, y: -22, scale: 1.2 }}
-                                  exit={{ opacity: 0 }}
-                                  transition={{ duration: 0.45, ease: "easeOut" }}
-                                  className="absolute top-2 right-14 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md z-20 pointer-events-none"
-                                >
-                                  +1 {activeBox?.name || (t.personPack ? `${t.personPack}ga` : "Qadoqqa")}
-                                </motion.span>
-                              )}
-                            </AnimatePresence>
-
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <motion.img
-                                animate={
-                                  isItemAnimating
-                                    ? { scale: [1, 0.88, 1.1, 1], rotate: [0, -3, 3, 0] }
-                                    : { scale: 1, rotate: 0 }
-                                }
-                                transition={{ duration: 0.35 }}
-                                src={getImageUrl(item.imageUrl)}
-                                alt={item.name}
-                                onError={(e) => {
-                                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                                }}
-                                className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-white truncate">
-                                  {item.name}
-                                </h4>
-
-                                <div className="flex items-center gap-2 mt-1">
-                                  <strong className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                                    {(item.price * item.quantity).toLocaleString()} {t.currency || "so'm"}
-                                  </strong>
-
-                                  <Badge
-                                    variant="secondary"
-                                    className="bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 text-[10px] font-black px-2 py-0.5"
-                                  >
-                                    {t.remainingCount || "Qolgan"}: {unallocated} {t.dishesCount || "ta"}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Add to active container button */}
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleAddPortionToActiveContainer(item)}
-                                className="h-8 w-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center text-xs active:scale-90 shadow-md transition-all cursor-pointer"
-                                title={t.addDishToContainer || "Qadoqqa solish"}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </motion.div>
-                        )
-                      })}
-                  </AnimatePresence>
-
-                  {/* If all food items with packagingLevel > 0 are packed */}
-                  {cart.filter((item) => getItemPackagingLevel(item) > 0 && getUnallocatedCount(item.id, item.quantity) > 0).length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-200 shadow-2xs"
-                    >
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
-                      <span>{t.allDishesPacked || "Barcha taomlar qadoqlarga joylashtirildi"}</span>
-                    </motion.div>
-                  )}
-
-                  {/* Drinks / 0-level items: shown separately with info */}
-                  {cart.some((item) => getItemPackagingLevel(item) === 0) && (
-                    <div className="p-3 rounded-2xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200/80 dark:border-neutral-800 space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold text-neutral-600 dark:text-neutral-400">
-                        <span className="flex items-center gap-1.5">
-                          🥤 {t.noContainerNeeded || "Ichimliklar & Qadoqsiz mahsulotlar"}
-                        </span>
-                        <span className="text-[10px] font-normal text-neutral-400">
-                          {t.noContainerNeededDesc || "Qadoq talab qilinmaydi"}
-                        </span>
-                      </div>
-
-                      {cart
-                        .filter((item) => getItemPackagingLevel(item) === 0)
-                        .map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 text-xs shadow-2xs"
-                          >
-                            <div className="min-w-0 flex-1 pr-2">
-                              <span className="font-bold text-neutral-900 dark:text-white truncate block">
-                                {item.name}
-                              </span>
-                              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">
-                                {(item.price * item.quantity).toLocaleString()} {t.currency || "so'm"}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => updateCartQuantity(item.id, -1)}
-                                className="h-6 w-6 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 flex items-center justify-center text-neutral-700 dark:text-neutral-300 text-xs active:scale-95"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
-                              <button
-                                type="button"
-                                onClick={() => updateCartQuantity(item.id, 1)}
-                                className="h-6 w-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs active:scale-95 shadow-2xs"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => removeFromCart(item.id)}
-                                className="text-neutral-400 hover:text-red-500 p-1 ml-0.5"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
                     </div>
-                  )}
-                </div>
-              )}
 
-              {/* 2. QADOQLASHTIRISH TRIGGER CARD (Faqat darajaga ega taomlar bo'lganda ko'rinadi) */}
-              {hasPackableDishes && (
-                <div className="rounded-3xl border border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs flex-shrink-0">
-                      <PackagePlus className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-neutral-900 dark:text-white">
-                        {t.packagingTitle || "Taomlarni Qadoqlash (Majburiy)"}
-                      </h4>
-                      <p className="text-[10px] text-neutral-500">
-                        {t.packagingSubtitle || "Har bir qadoqqa 2-3 xil taom sig'ishi mumkin. Taomlarni qadoqlarga taqsimlang."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    {containers.length > 0 && (
+                    {/* Stepper buttons */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
                         type="button"
-                        onClick={handleResetPackaging}
-                        className="text-[11px] font-bold text-neutral-400 hover:text-red-500 px-2 py-1 transition-colors"
+                        onClick={() => updateCartQuantity(item.id, -1)}
+                        className="h-7 w-7 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 flex items-center justify-center text-neutral-700 dark:text-neutral-300 text-xs active:scale-95"
                       >
-                        {t.cancelPackaging || "Qayta boshlash"}
+                        <Minus className="h-3.5 w-3.5" />
                       </button>
-                    )}
+                      <span className="w-5 text-center font-black text-xs">{item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => updateCartQuantity(item.id, 1)}
+                        className="h-7 w-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs active:scale-95 shadow-xs"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.id)}
+                        className="text-neutral-400 hover:text-red-500 p-1 ml-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
 
-                    <Button
-                      type="button"
-                      onClick={handleAddNewContainer}
-                      className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs px-4 py-2.5 shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 active:scale-98"
-                    >
-                      <Plus className="h-4 w-4" />{" "}
-                      {containers.length === 0
-                        ? (t.createContainer || "+ Yangi qadoq ochish")
-                        : (t.createNewContainer || "Yana qadoq qo'shish")}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* 3. CREATED CONTAINERS LIST (NO POINTS / CAPACITY NUMBERS SHOWN!) */}
-              {containers.length > 0 && (
-                <div className="space-y-2.5">
-                  <AnimatePresence>
-                    {containers.map((container, idx) => {
-                      const isActive = container.id === activeContainerId
-                      const totalPortionsInBox = container.items.reduce(
-                        (s, i) => s + i.quantity,
-                        0
-                      )
-
-                      return (
-                        <motion.div
-                          key={container.id}
-                          layout
-                          initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9, height: 0 }}
-                          onClick={() => handleSelectContainer(container.id)}
-                          className={`p-3.5 rounded-2xl transition-all cursor-pointer space-y-2.5 ${
-                            isActive
-                              ? "border-2 border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-sm"
-                              : "border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-xs"
-                          }`}
-                        >
-                          {/* Container Header */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`h-7 w-7 rounded-xl flex items-center justify-center text-xs font-black shadow-2xs ${
-                                  isActive
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
-                                }`}
-                              >
-                                📦
-                              </div>
-                              <span className="text-xs font-black text-neutral-900 dark:text-white">
-                                {container.name || `${idx + 1}-${t.personPack || "Qadoq"}`}
-                              </span>
-                              {totalPortionsInBox > 0 && (
-                                <span className="text-[10px] font-semibold text-neutral-400">
-                                  ({totalPortionsInBox} {t.dishesCount || "ta taom"})
-                                </span>
-                              )}
-                              {isActive && (
-                                <Badge className="bg-emerald-600 text-white text-[9px] font-bold py-0 h-4 border-0">
-                                  {t.activeContainerSelected || "Tanlangan"}
-                                </Badge>
-                              )}
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => handleRemoveContainer(container.id, e)}
-                              className="h-7 w-7 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 text-neutral-400 hover:text-red-500 flex items-center justify-center transition-colors"
-                              title={t.deleteContainer || "Qadoqni o'chirish"}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Items inside this container */}
-                          <div>
-                            {container.items.length === 0 ? (
-                              <p className="text-[11px] text-neutral-400 italic">
-                                {isActive
-                                  ? (t.activeContainerHint || "👈 Tanlangan qadoq. Yuqoridagi taomlardan [+] bosing")
-                                  : (t.emptyContainerHint || "Qadoq bo'sh — tanlash uchun bosing")}
-                              </p>
-                            ) : (
-                              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                <AnimatePresence>
-                                  {container.items.map((it) => (
-                                    <motion.div
-                                      key={it.cartItemId}
-                                      layout
-                                      initial={{ scale: 0.7, opacity: 0 }}
-                                      animate={{ scale: 1, opacity: 1 }}
-                                      exit={{ scale: 0.7, opacity: 0 }}
-                                      className="flex items-center gap-1.5 p-1 pr-2 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-700 text-[11px] font-semibold shadow-2xs"
-                                    >
-                                      {it.imageUrl && (
-                                        <img
-                                          src={getImageUrl(it.imageUrl)}
-                                          alt={it.name}
-                                          onError={(e) => {
-                                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                                          }}
-                                          className="h-5 w-5 rounded-md object-cover"
-                                        />
-                                      )}
-                                      <span className="font-black text-emerald-700 dark:text-emerald-400">
-                                        {it.quantity}x
-                                      </span>
-                                      <span className="text-neutral-800 dark:text-neutral-200 truncate max-w-[120px]">
-                                        {it.name}
-                                      </span>
-
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleRemovePortionFromContainer(container.id, it.cartItemId)
-                                        }}
-                                        className="h-4 w-4 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 hover:text-red-500 flex items-center justify-center text-[10px] ml-0.5 text-neutral-400"
-                                        title="Olib tashlash"
-                                      >
-                                        <Minus className="h-2.5 w-2.5" />
-                                      </button>
-                                    </motion.div>
-                                  ))}
-                                </AnimatePresence>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      )
-                    })}
-                  </AnimatePresence>
-                </div>
-              )}
-
-              {/* 4. SUMMARY & CHECKOUT ACTION */}
+              {/* 2. SUMMARY & CHECKOUT ACTION */}
               <div className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 space-y-3 shadow-xs">
                 <div className="flex items-center justify-between text-sm font-semibold">
                   <span className="text-neutral-500">{t.dishesSum || "Taomlar summasi"}:</span>
@@ -1076,25 +476,15 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   </span>
                 </div>
 
-                {hasPackableDishes ? (
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                      <Package className="h-3.5 w-3.5" />
-                      Qadoqlash narxi:
-                    </span>
-                    <span className="font-bold text-amber-700 dark:text-amber-400">
-                      +{packagingFee.toLocaleString()} {t.currency || "so'm"}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                    <span className="flex items-center gap-1.5">
-                      <Package className="h-3.5 w-3.5 text-neutral-400" />
-                      Qadoqlash narxi:
-                    </span>
-                    <span className="font-bold text-emerald-600">0 {t.currency || "so'm"} (Qadoqsiz)</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5 text-emerald-600" />
+                    {t.packagingFee || "Qadoqlash narxi"}:
+                  </span>
+                  <span className={`font-bold ${packagingFee > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-neutral-500"}`}>
+                    {packagingFee > 0 ? `+${packagingFee.toLocaleString()} ${t.currency || "so'm"}` : `0 ${t.currency || "so'm"} (Bepul)`}
+                  </span>
+                </div>
 
                 <div className="border-t border-neutral-100 dark:border-neutral-800 pt-2 flex items-center justify-between text-base font-black">
                   <span className="text-neutral-900 dark:text-white">{t.restaurantTotal || "Restoranga to'lov"}:</span>
@@ -1545,23 +935,15 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 </span>
               </div>
 
-              {hasPackableDishes ? (
-                <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <Package className="h-3.5 w-3.5" />
-                    Qadoqlash narxi:
-                  </span>
-                  <span className="font-bold">+{packagingFee.toLocaleString()} {t.currency}</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between text-neutral-400 font-medium text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <Package className="h-3.5 w-3.5" />
-                    Qadoqlash narxi:
-                  </span>
-                  <span className="text-emerald-600 font-semibold">0 {t.currency} (Qadoqsiz)</span>
-                </div>
-              )}
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
+                  <Package className="h-3.5 w-3.5 text-emerald-600" />
+                  {t.packagingFee || "Qadoqlash narxi"}:
+                </span>
+                <span className={`font-bold ${packagingFee > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-neutral-500"}`}>
+                  {packagingFee > 0 ? `+${packagingFee.toLocaleString()} ${t.currency || "so'm"}` : `0 ${t.currency || "so'm"} (Bepul)`}
+                </span>
+              </div>
 
               {orderType === "ONLINE_DELIVERY" && (
                 <div className="flex items-center justify-between text-purple-700 dark:text-purple-400 font-medium">
@@ -1811,107 +1193,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
           </div>
         )}
       </AnimatePresence>
-
-      {/* ========================================================================= */}
-      {/* MODAL: CONTAINER FULL (PROMPT USER TO OPEN NEW CONTAINER) */}
-      {/* ========================================================================= */}
-      <AnimatePresence>
-        {showFullContainerModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-            <div className="absolute inset-0" onClick={() => setShowFullContainerModal(false)} />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative z-10 w-full max-w-sm bg-white dark:bg-neutral-900 rounded-3xl p-5 space-y-4 border border-neutral-200 dark:border-neutral-800 shadow-2xl text-center"
-            >
-              <div className="h-14 w-14 rounded-2xl bg-amber-100 dark:bg-amber-950/70 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
-                <Package className="h-7 w-7" />
-              </div>
-
-              <div className="space-y-1.5">
-                <h3 className="font-black text-sm sm:text-base text-neutral-900 dark:text-white">
-                  {t.containerFullTitle || "Ushbu qadoq to'ldi!"}
-                </h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed px-2">
-                  {t.containerFullPrompt ||
-                    "Ushbu qadoqqa boshqa taom sig'maydi. Iltimos, yangi qadoq oching yoki boshqa qadoqni tanlang."}
-                </p>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                <Button
-                  onClick={() => {
-                    setShowFullContainerModal(false)
-                    handleAddNewContainer()
-                  }}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold py-3 text-xs shadow-md shadow-emerald-600/20 active:scale-98"
-                >
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  {t.createNewContainerBtn || "Yangi qadoq ochish"}
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowFullContainerModal(false)}
-                  className="w-full rounded-2xl font-bold text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
-                >
-                  {t.gotIt || "Tushundim"}
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ========================================================================= */}
-      {/* MODAL: MANDATORY PACKAGING UNALLOCATED WARNING */}
-      {/* ========================================================================= */}
-      <AnimatePresence>
-        {showUnallocatedModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-            <div className="absolute inset-0" onClick={() => setShowUnallocatedModal(false)} />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative z-10 w-full max-w-sm bg-white dark:bg-neutral-900 rounded-3xl p-5 space-y-4 border border-neutral-200 dark:border-neutral-800 shadow-2xl text-center"
-            >
-              <div className="h-14 w-14 rounded-2xl bg-red-100 dark:bg-red-950/70 text-red-600 flex items-center justify-center mx-auto shadow-inner">
-                <AlertCircle className="h-7 w-7" />
-              </div>
-
-              <div className="space-y-1.5">
-                <h3 className="font-black text-sm sm:text-base text-neutral-900 dark:text-white">
-                  {t.unallocatedWarningTitle || "Qadoqlash majburiy!"}
-                </h3>
-                <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed px-2">
-                  {t.unallocatedWarningDesc ||
-                    "Buyurtmani davom ettirish uchun barcha taomlarni qadoqlarga taqsimlang! (Ichimliklar uchun qadoq talab qilinmaydi)"}
-                </p>
-              </div>
-
-              <div className="pt-1">
-                <Button
-                  onClick={() => {
-                    setShowUnallocatedModal(false)
-                    if (containers.length === 0) {
-                      handleAddNewContainer()
-                    }
-                  }}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold py-3 text-xs shadow-md shadow-emerald-600/20 active:scale-98"
-                >
-                  {containers.length === 0
-                    ? (t.createContainer || "Qadoq ochish")
-                    : (t.gotIt || "Tushundim")}
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-
 
       {/* Location Picker Modal */}
       {isLocationModalOpen && (

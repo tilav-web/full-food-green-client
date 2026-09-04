@@ -364,7 +364,6 @@ export const AdminView: React.FC = () => {
   const [newProductUnit, setNewProductUnit] = useState("")
   const [newProductPrice, setNewProductPrice] = useState<number | string>(15000)
   const [newProductCostPrice, setNewProductCostPrice] = useState<number | string>("")
-  const [newProductPackagingLevel, setNewProductPackagingLevel] = useState<number>(2)
   const [newProductOldPrice, setNewProductOldPrice] = useState<number | string>("")
   const [newProductCalories, setNewProductCalories] = useState<number | string>("")
   const [newProductProtein, setNewProductProtein] = useState<number | string>("")
@@ -652,7 +651,6 @@ export const AdminView: React.FC = () => {
         categoryId: newProductCategory || categories[0]?.id,
         price: Number(newProductPrice) || 0,
         costPrice: newProductCostPrice !== "" ? Number(newProductCostPrice) : 0,
-        packagingLevel: Number(newProductPackagingLevel) ?? 2,
         oldPrice: newProductOldPrice ? Number(newProductOldPrice) : undefined,
         calories: newProductCalories !== "" ? Number(newProductCalories) : 0,
         protein: newProductProtein !== "" ? Number(newProductProtein) : 0,
@@ -688,7 +686,6 @@ export const AdminView: React.FC = () => {
     setUnitSearch("")
     setNewProductPrice(15000)
     setNewProductCostPrice("")
-    setNewProductPackagingLevel(2)
     setNewProductOldPrice("")
     setNewProductCalories("")
     setNewProductProtein("")
@@ -709,7 +706,6 @@ export const AdminView: React.FC = () => {
     setUnitSearch(p.unitName || "")
     setNewProductPrice(p.price)
     setNewProductCostPrice(p.costPrice !== undefined && p.costPrice !== null ? p.costPrice : "")
-    setNewProductPackagingLevel(p.packagingLevel !== undefined && p.packagingLevel !== null ? p.packagingLevel : 2)
     setNewProductOldPrice(p.oldPrice || "")
     setNewProductCalories(p.calories ?? "")
     setNewProductProtein(p.protein ?? "")
@@ -1197,9 +1193,6 @@ export const AdminView: React.FC = () => {
                           </span>
                         ) : <span />}
                         <div className="flex items-center gap-1">
-                          <span className="bg-amber-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg shadow-xs">
-                            {p.packagingLevel === 0 ? "0 (qadoqsiz)" : `${p.packagingLevel ?? 2}/5 ball`}
-                          </span>
                           <span className="bg-black/65 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-lg border border-white/20">
                             {p.unitName}
                           </span>
@@ -1232,12 +1225,6 @@ export const AdminView: React.FC = () => {
                         <span>{t.costPriceShort || "Tannarx"}:</span>
                         <span className="font-bold text-neutral-700 dark:text-neutral-300">
                           {p.costPrice && p.costPrice > 0 ? `${p.costPrice.toLocaleString()} so'm` : "—"}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
-                        <span>Qadoq darajasi:</span>
-                        <span className="font-bold text-amber-700 dark:text-amber-400">
-                          {p.packagingLevel === 0 ? "0 (ichimlik)" : `${p.packagingLevel ?? 2} ball`}
                         </span>
                       </div>
                     </div>
@@ -1724,25 +1711,25 @@ export const AdminView: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-neutral-900 dark:text-white">
-                      {(t as any).containerPriceSetting || "Qadoqlash (Idish) Narxi Sozlamasi"}
+                      Qadoqlash Narxi Sozlamasi
                     </h3>
                     <p className="text-xs text-neutral-400">
-                      {(t as any).containerPriceDesc || "Savatchada har bir ishlatilgan taom qadog'i (idishi) uchun mijoz to'laydigan narx"}
+                      Har bir buyurtma uchun olinadigan yagona qadoqlash to'lovi
                     </p>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 space-y-2">
                   <p className="text-xs text-emerald-950 dark:text-emerald-200 font-medium leading-relaxed">
-                    💡 {(t as any).containerPriceRule || "Qadoqlash qoidasi: Har bir standart idish 5 ball sig'imga ega. Har bir taomning qadoqlash darajasiga (0 dan 5 gacha) qarab taomlar idishlarga taqsimlanadi. Ichimliklar (0 ball) uchun idish hisoblanmaydi. Savatchada har bir to'ldirilgan idish uchun quyidagi narx avtomatik hisoblanadi."}
+                    💡 Buyurtmaga qo'shiladigan qadoqlash narxi: Mijoz savatchadagi taomlarga buyurtma berganda bitta umumiy qadoqlash narxi hisoblanadi. Agar narx 0 so'm qilinsa, buyurtmada qadoqlash bepul bo'ladi.
                   </p>
                 </div>
 
                 <div className="space-y-2 pt-1 max-w-sm">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
-                    <span>{(t as any).singleContainerPrice || "1 dona qadoq narxi (so'm)"}:</span>
+                    <span>Qadoqlash narxi (so'm):</span>
                     <span className="text-[11px] font-black text-emerald-600">
-                      {Number(containerPriceInput || 0).toLocaleString()} so'm
+                      {Number(containerPriceInput || 0) === 0 ? "0 so'm (Bepul)" : `${Number(containerPriceInput || 0).toLocaleString()} so'm`}
                     </span>
                   </label>
                   <div className="relative">
@@ -1756,8 +1743,8 @@ export const AdminView: React.FC = () => {
                     <span className="absolute right-3.5 top-3 text-xs text-neutral-400 font-bold">so'm</span>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
-                    {[1000, 1500, 2000, 2500, 3000].map((preset) => (
+                  <div className="flex items-center gap-2 pt-2 flex-wrap">
+                    {[0, 1000, 1500, 2000, 3000, 5000].map((preset) => (
                       <button
                         key={preset}
                         type="button"
@@ -1768,7 +1755,7 @@ export const AdminView: React.FC = () => {
                             : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                         }`}
                       >
-                        {preset.toLocaleString()}
+                        {preset === 0 ? "Bepul (0)" : `${preset.toLocaleString()} so'm`}
                       </button>
                     ))}
                   </div>
@@ -1780,7 +1767,7 @@ export const AdminView: React.FC = () => {
                     disabled={isSavingContainerPrice}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold px-5 py-2.5 shadow-md shadow-emerald-600/20 active:scale-98"
                   >
-                    {isSavingContainerPrice ? "..." : ((t as any).savePrice || "Narxni Saqlash")}
+                    {isSavingContainerPrice ? "..." : "Narxni Saqlash"}
                   </Button>
                 </div>
               </div>
@@ -3311,44 +3298,7 @@ export const AdminView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Qadoqlash Sig'im Darajasi (Packaging Capacity Level 0 - 5) */}
-                <div className="p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-amber-950 dark:text-amber-300 flex items-center gap-1.5">
-                      <Package className="h-4 w-4 text-amber-600" />
-                      <span>Qadoqlash (Idish talabi)</span>
-                    </label>
-                    <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
-                      {newProductPackagingLevel === 0
-                        ? "0 (idishsiz / ichimlik)"
-                        : `${newProductPackagingLevel} ball (qadoqli taom)`}
-                    </span>
-                  </div>
 
-                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                    0 — idish talab qilmaydi (ichimliklar). 1 va undan yuqori — buyurtmada nechta bo'lishidan qat'iy nazar, butun buyurtmaga bitta qadoqlash idishi narxi qo'shiladi.
-                  </p>
-
-                  <div className="grid grid-cols-6 gap-1.5 pt-1">
-                    {[0, 1, 2, 3, 4, 5].map((lvl) => (
-                      <button
-                        key={lvl}
-                        type="button"
-                        onClick={() => setNewProductPackagingLevel(lvl)}
-                        className={`py-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 ${
-                          newProductPackagingLevel === lvl
-                            ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/50"
-                            : "bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 hover:bg-amber-50 dark:hover:bg-neutral-700"
-                        }`}
-                      >
-                        <span>{lvl === 0 ? "0" : `${lvl}`}</span>
-                        <span className="text-[9px] font-medium opacity-80">
-                          {lvl === 0 ? "Ichimlik" : "Idishli"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 {/* PURE IMAGE UPLOAD FIELD */}
                 <ImageUploadField
