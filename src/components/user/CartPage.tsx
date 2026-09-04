@@ -1057,9 +1057,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                     Yetkazib berish:
                   </span>
                   <span className="font-bold text-rose-600 dark:text-rose-400">
-                    {isDoorToDoor
-                      ? (t.doorToDoorSummary || "Eshikgacha (Kuryerga alohida to'lanadi)")
-                      : (t.paidToTaxi || "Alohida taksiga to'lanadi")}
+                    {t.paidToTaxi || "Alohida taksiga to'lanadi"}
                   </span>
                 </div>
               )}
