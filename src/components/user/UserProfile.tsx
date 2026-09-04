@@ -34,6 +34,7 @@ import {
   Sparkles,
   Wallet,
   UtensilsCrossed,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -185,6 +186,35 @@ export const UserProfile: React.FC = () => {
     return () => clearInterval(interval)
   }, [showWebAuthModal, webSessionToken, isWaitingWebAuth, setUser, triggerHaptic])
 
+  const [isUpdatingPhone, setIsUpdatingPhone] = useState(false)
+
+  const handleUpdatePhone = async () => {
+    if (!isTelegram) {
+      toast.error("Bu amal faqat Telegram Mini App orqali ishlaydi")
+      return
+    }
+
+    triggerHaptic("medium")
+    setIsUpdatingPhone(true)
+    try {
+      const res = await requestPhoneContact()
+      if (res.success && res.phone) {
+        triggerHaptic("success")
+        toast.success("Telefon raqamingiz muvaffaqiyatli yangilandi! 🎉")
+      } else if (res.error) {
+        triggerHaptic("error")
+        if (res.error !== "Permission denied by user") {
+          toast.error("Raqamni yangilashda xatolik yuz berdi")
+        }
+      }
+    } catch (err) {
+      triggerHaptic("error")
+      toast.error("Raqamni yangilashda xatolik yuz berdi")
+    } finally {
+      setIsUpdatingPhone(false)
+    }
+  }
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogoutClick = () => {
@@ -233,10 +263,28 @@ export const UserProfile: React.FC = () => {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-white/90 flex items-center gap-1 font-mono font-bold truncate">
-                      <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                      {user.phone || "Telefon raqam biriktirilmagan"}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs text-white/90 flex items-center gap-1 font-mono font-bold">
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                        {user.phone || "Telefon raqam biriktirilmagan"}
+                      </p>
+                      {isTelegram && (
+                        <button
+                          type="button"
+                          onClick={handleUpdatePhone}
+                          disabled={isUpdatingPhone}
+                          title="Telegram orqali raqamni yangilash"
+                          className="px-2 py-0.5 rounded-lg bg-white/20 hover:bg-white/30 active:scale-95 text-[10px] font-semibold text-white flex items-center gap-1 transition-all shadow-xs"
+                        >
+                          {isUpdatingPhone ? (
+                            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-2.5 w-2.5" />
+                          )}
+                          <span>Raqamni yangilash</span>
+                        </button>
+                      )}
+                    </div>
                     <div className="pt-1 flex items-center gap-1.5 flex-wrap">
                       <Badge className="bg-emerald-400 text-emerald-950 text-[9px] border-0 font-black">
                         ✓ {user.isTelegramVerified || user.telegramId ? "Telegram Tasdiqlangan" : "Tizimga Kirilgan"}
@@ -353,6 +401,26 @@ export const UserProfile: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {isTelegram && isUserVerified && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleUpdatePhone()
+                        }}
+                        disabled={isUpdatingPhone}
+                        className="h-7 px-2.5 rounded-xl text-[10px] font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 flex items-center gap-1"
+                      >
+                        {isUpdatingPhone ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3 w-3" />
+                        )}
+                        <span>Raqamni yangilash</span>
+                      </Button>
+                    )}
                     <Badge
                       variant={isUserVerified ? "secondary" : "outline"}
                       className={`text-[10px] font-bold ${
