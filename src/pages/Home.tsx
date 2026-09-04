@@ -16,7 +16,11 @@ export const Home: React.FC = () => {
   const isViewMenuMode = searchParams.get("viewMenu") === "true"
 
   useEffect(() => {
-    // If Admin or Cashier landed on default Home/Menu without explicit ?viewMenu=true flag
+    // Inside Telegram WebApp, always show Customer Menu!
+    const isTg = !!(window.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initDataUnsafe?.user)
+    if (isTg) return
+
+    // If Admin or Cashier logged in via standard browser and landed on / without ?viewMenu=true
     if (!isViewMenuMode) {
       if (user?.role === "ADMIN") {
         navigate("/admin?tab=STATS", { replace: true })
