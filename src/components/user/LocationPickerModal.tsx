@@ -234,9 +234,29 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   </button>
                 </div>
                 {coords && (
-                  <p className="text-[10px] text-neutral-600 dark:text-neutral-400 font-medium">
-                    GPS: <span className="font-mono font-bold text-neutral-800 dark:text-neutral-200">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
-                  </p>
+                  <div className="flex items-center justify-between pt-0.5 text-[10.5px]">
+                    <span className="text-neutral-500 dark:text-neutral-400 font-mono">
+                      GPS: <strong className="text-neutral-800 dark:text-neutral-200">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</strong>
+                    </span>
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <a
+                        href={yandexMapsUrl!}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-red-600 dark:text-red-400 hover:underline inline-flex items-center gap-0.5 bg-white dark:bg-neutral-800 px-2 py-0.5 rounded-lg border border-red-200/80 dark:border-red-900/50 shadow-2xs"
+                      >
+                        Yandex <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                      <a
+                        href={googleMapsUrl!}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5 bg-white dark:bg-neutral-800 px-2 py-0.5 rounded-lg border border-blue-200/80 dark:border-blue-900/50 shadow-2xs"
+                      >
+                        Google <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
@@ -381,46 +401,6 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 ))}
               </div>
             </div>
-
-            {/* Direct Map Pin Preview (Yandex & Google) to verify pinpoint without taxi dispatch */}
-            {coords && (
-              <div className="rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 p-3 border border-emerald-200/80 dark:border-emerald-800/50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-emerald-600" />
-                    Joylashuvni xaritada tekshirish (Pin):
-                  </span>
-                  <span className="text-[10px] text-neutral-600 dark:text-neutral-400 font-mono font-semibold">
-                    {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <a
-                    href={yandexMapsUrl!}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-red-600 dark:text-red-400 text-xs font-bold transition-all border border-red-200 dark:border-red-900/50 shadow-2xs active:scale-98"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span>Yandex Xarita</span>
-                  </a>
-                  <a
-                    href={googleMapsUrl!}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-blue-600 dark:text-blue-400 text-xs font-bold transition-all border border-blue-200 dark:border-blue-900/50 shadow-2xs active:scale-98"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span>Google Xarita</span>
-                  </a>
-                </div>
-
-                <p className="text-[10.5px] text-neutral-600 dark:text-neutral-400 leading-snug">
-                  📌 Tugmani bosib, qizil nishon (pin) aynan siz turgan bino yoki manzilga to'g'ri tushganini tekshirishingiz mumkin.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Confirm Button */}
