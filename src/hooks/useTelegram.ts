@@ -15,6 +15,7 @@ export function useTelegram() {
   const [tgUser, setTgUser] = useState<any>(null)
   const [initDataRaw, setInitDataRaw] = useState<string>("")
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(true)
   const { user, setUser, setAuth, theme, cart } = useAppStore()
 
   // Initialize Telegram WebApp capabilities on mount
@@ -107,9 +108,15 @@ export function useTelegram() {
           .catch((err) => {
             console.warn("Telegram sync warning:", err)
           })
+          .finally(() => {
+            setIsSyncing(false)
+          })
+      } else {
+        setIsSyncing(false)
       }
     } else {
       setIsTelegram(false)
+      setIsSyncing(false)
 
       // Fallback: Check if desktop web was opened with ?auth_token=... from Bot
       const urlParams = new URLSearchParams(window.location.search)
@@ -348,6 +355,7 @@ export function useTelegram() {
 
   return {
     isTelegram,
+    isSyncing,
     tgUser,
     initDataRaw,
     isFullscreen,

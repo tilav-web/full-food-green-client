@@ -5,10 +5,11 @@ import { BottomNav } from "./BottomNav"
 import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
+import { AuthRequiredModal } from "@/components/auth/AuthRequiredModal"
 
 export const MainLayout: React.FC = () => {
-  useTelegram()
-  const { theme, setUser, accessToken, logout } = useAppStore()
+  const { isSyncing } = useTelegram()
+  const { theme, setUser, accessToken, logout, user } = useAppStore()
   const location = useLocation()
 
   useEffect(() => {
@@ -50,10 +51,22 @@ export const MainLayout: React.FC = () => {
 
   const isFullScreenStaff = location.pathname.startsWith("/login")
 
+  const isExcludedPage =
+    isFullScreenStaff ||
+    isWidePage
+
+  const isAuthRequired =
+    !isSyncing &&
+    !isExcludedPage &&
+    (!user?.phone || user.phone.trim().length === 0)
+
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 font-sans transition-colors duration-200">
       {/* Main Navbar */}
       <Navbar />
+
+      {/* Mandatory Phone Verification / Login Modal */}
+      <AuthRequiredModal isOpen={isAuthRequired} />
 
       {/* Dynamic Page Content container: wide max-w-[1750px] for POS/Admin, max-w-4xl for Telegram Mini App */}
       <main
