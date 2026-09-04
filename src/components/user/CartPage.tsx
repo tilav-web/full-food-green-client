@@ -13,7 +13,6 @@ import {
   Check,
   Upload,
   ArrowRight,
-  ChevronRight,
   Home,
   Briefcase,
   Bookmark,
@@ -24,7 +23,6 @@ import {
   X,
   Package,
   Wallet,
-  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -111,13 +109,20 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   // Customer & Location state
   const defaultSaved = savedLocations[0]
   const [deliveryAddress, setDeliveryAddress] = useState(
-    defaultSaved ? defaultSaved.address : "Qarshi sh., Mustaqillik shoh ko'chasi"
+    defaultSaved ? defaultSaved.address : ""
   )
   const [distanceKm, setDistanceKm] = useState(defaultSaved ? defaultSaved.distanceKm : 1.5)
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
-    lat: defaultSaved ? defaultSaved.lat : 38.83825,
-    lng: defaultSaved ? defaultSaved.lng : 65.792222,
+    lat: defaultSaved ? defaultSaved.lat : 0,
+    lng: defaultSaved ? defaultSaved.lng : 0,
   })
+
+  // Auto-select first saved location if none currently selected
+  useEffect(() => {
+    if (savedLocations.length > 0 && !deliveryAddress) {
+      handleSelectQuickSavedLocation(savedLocations[0])
+    }
+  }, [savedLocations, deliveryAddress])
 
   const [orderType, setOrderType] = useState<"ONLINE_DELIVERY" | "ONLINE_PICKUP">("ONLINE_DELIVERY")
   const [building, setBuilding] = useState("")
@@ -669,167 +674,112 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               <div className="space-y-3.5">
                 {orderType === "ONLINE_DELIVERY" && (
                   <>
-                    {/* SAVED LOCATIONS QUICK PICKER */}
-                    {savedLocations.length > 0 && (
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 flex items-center justify-between">
-                          <span className="flex items-center gap-1">
-                            <Bookmark className="h-3.5 w-3.5 text-emerald-600" />
-                            {t.savedLocations}:
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setIsLocationModalOpen(true)}
-                            className="text-[11px] text-emerald-600 font-bold hover:underline"
-                          >
-                            {t.pickNewOnMap}
-                          </button>
-                        </label>
+                    <div className="space-y-1.5">
+                    {/* SAVED LOCATIONS QUICK PICKER (ALWAYS VISIBLE) */}
+                    <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <Bookmark className="h-3.5 w-3.5 text-emerald-600" />
+                        {t.savedLocations}:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsLocationModalOpen(true)}
+                        className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+                      >
+                        {t.pickNewOnMap}
+                      </button>
+                    </label>
 
-                        <div className="grid grid-cols-2 gap-2">
-                          {savedLocations.map((loc) => {
-                            const isSelected = deliveryAddress === loc.address
-                            return (
-                              <div
-                                key={loc.id}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => handleSelectQuickSavedLocation(loc)}
-                                className={`p-2.5 rounded-2xl border text-left flex items-start justify-between gap-1.5 transition-all cursor-pointer select-none relative group ${isSelected
-                                  ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 shadow-xs"
-                                  : "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/60 hover:border-neutral-300 dark:hover:border-neutral-700"
-                                  }`}
-                              >
-                                <div className="flex items-start gap-2 min-w-0 flex-1">
-                                  <div
-                                    className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 ${isSelected
-                                      ? "bg-emerald-600 text-white"
-                                      : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
+                    {savedLocations.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {savedLocations.map((loc) => {
+                          const isSelected = deliveryAddress === loc.address
+                          return (
+                            <div
+                              key={loc.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => handleSelectQuickSavedLocation(loc)}
+                              className={`p-2.5 rounded-2xl border text-left flex items-start justify-between gap-1.5 transition-all cursor-pointer select-none relative group ${isSelected
+                                ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 shadow-xs ring-1 ring-emerald-600"
+                                : "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/60 hover:border-neutral-300 dark:hover:border-neutral-700"
+                                }`}
+                            >
+                              <div className="flex items-start gap-2 min-w-0 flex-1">
+                                <div
+                                  className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 ${isSelected
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
+                                    }`}
+                                >
+                                  {loc.label === "Uy" ? (
+                                    <Home className="h-3.5 w-3.5" />
+                                  ) : loc.label === "Ishxona" ? (
+                                    <Briefcase className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <MapPin className="h-3.5 w-3.5" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span
+                                    className={`font-black text-xs block truncate ${isSelected
+                                      ? "text-emerald-800 dark:text-emerald-300"
+                                      : "text-neutral-900 dark:text-white"
                                       }`}
                                   >
-                                    {loc.label === "Uy" ? (
-                                      <Home className="h-3.5 w-3.5" />
-                                    ) : loc.label === "Ishxona" ? (
-                                      <Briefcase className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <MapPin className="h-3.5 w-3.5" />
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <span
-                                      className={`font-black text-xs block truncate ${isSelected
-                                        ? "text-emerald-800 dark:text-emerald-300"
-                                        : "text-neutral-900 dark:text-white"
-                                        }`}
-                                    >
-                                      {loc.label}
-                                    </span>
-                                    <p className="text-[10px] text-neutral-500 truncate mt-0.5">
-                                      {loc.address}
-                                    </p>
-                                  </div>
+                                    {loc.label}
+                                  </span>
+                                  <p className="text-[10px] text-neutral-500 truncate mt-0.5">
+                                    {loc.address}
+                                  </p>
                                 </div>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    triggerHaptic("medium")
-                                    setLocationToDelete(loc)
-                                  }}
-                                  className="h-6 w-6 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-950/60 flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer -mr-1 -mt-1"
-                                  title="Manzilni o'chirish"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
                               </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
 
-                    {/* ACTIVE ADDRESS CARD (Click to open Yandex Map Picker) */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-                        {t.deliveryAddress}:
-                      </label>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  triggerHaptic("medium")
+                                  setLocationToDelete(loc)
+                                }}
+                                className="h-6 w-6 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-950/60 flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer -mr-1 -mt-1"
+                                title="Manzilni o'chirish"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
                       <div
                         onClick={() => setIsLocationModalOpen(true)}
-                        className={`p-3.5 rounded-2xl border transition-all shadow-xs flex items-center justify-between cursor-pointer ${
-                          deliveryAddress
-                            ? "border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-500"
-                            : "border-dashed border-emerald-400 dark:border-emerald-700 bg-emerald-50/40 dark:bg-emerald-950/20 hover:border-emerald-500 hover:bg-emerald-50/60"
-                        }`}
+                        className="p-4 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/40 dark:bg-emerald-950/20 text-center space-y-1.5 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/60 transition-all"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                              deliveryAddress
-                                ? "bg-emerald-600 text-white"
-                                : "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600"
-                            }`}
-                          >
-                            <MapPin className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            {deliveryAddress ? (
-                              <p className="text-xs font-bold text-neutral-900 dark:text-white truncate">
-                                {deliveryAddress}
-                              </p>
-                            ) : (
-                              <div>
-                                <p className="text-xs font-black text-emerald-700 dark:text-emerald-300">
-                                  Xaritadan manzilni belgilang
-                                </p>
-                                <p className="text-[10px] text-neutral-400">
-                                  Yetkazish joyini tanlash uchun bosing
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                        <div className="h-10 w-10 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 flex items-center justify-center">
+                          <MapPin className="h-5 w-5" />
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {!deliveryAddress && (
-                            <span className="text-[11px] font-bold text-emerald-600">
-                              Tanlash
-                            </span>
-                          )}
-                          <ChevronRight className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                        <div>
+                          <p className="font-bold text-xs text-neutral-900 dark:text-white">
+                            Hozircha saqlangan manzil yo'q
+                          </p>
+                          <p className="text-[10px] text-neutral-500 mt-0.5">
+                            Buyurtma berish uchun avval joylashuv yarating
+                          </p>
                         </div>
+                        <Button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setIsLocationModalOpen(true)
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs h-8 px-3.5 shadow-sm mt-1 cursor-pointer"
+                        >
+                          + Yangi joylashuv yaratish
+                        </Button>
                       </div>
-
-                      {/* Direct Map Pin Preview Links (Yandex & Google) during checkout */}
-                      {deliveryAddress && coords && coords.lat !== 0 && (
-                        <div className="flex items-center justify-between px-1.5 pt-0.5 text-[11px]">
-                          <span className="text-neutral-600 dark:text-neutral-400 font-medium flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-emerald-600" />
-                            Xaritada tekshirish (Pin):
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={`https://yandex.uz/maps/?pt=${coords.lng},${coords.lat}&z=17&l=map`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-red-600 dark:text-red-400 font-bold hover:underline flex items-center gap-0.5"
-                            >
-                              Yandex
-                              <ExternalLink className="h-2.5 w-2.5" />
-                            </a>
-                            <span className="text-neutral-400 dark:text-neutral-600">•</span>
-                            <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5"
-                            >
-                              Google
-                              <ExternalLink className="h-2.5 w-2.5" />
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
                     {/* Optional address details: Building / Floor / Apartment */}
                     <div className="space-y-2.5 pt-1">
@@ -1021,10 +971,20 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               </Button>
               <Button
                 onClick={handleCreateOrder}
-                disabled={isSubmitting || !isUserVerified}
+                disabled={
+                  isSubmitting ||
+                  !isUserVerified ||
+                  (orderType === "ONLINE_DELIVERY" && (!deliveryAddress.trim() || savedLocations.length === 0))
+                }
                 className="w-2/3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 text-white rounded-2xl font-black text-xs shadow-lg shadow-emerald-600/20 active:scale-98"
               >
-                {isSubmitting ? t.loading : selectedPaymentMethod === "BALANCE" ? "Buyurtmani Tasdiqlash" : t.proceedToPayment}
+                {isSubmitting
+                  ? t.loading
+                  : orderType === "ONLINE_DELIVERY" && (!deliveryAddress.trim() || savedLocations.length === 0)
+                  ? "Joylashuvni tanlang"
+                  : selectedPaymentMethod === "BALANCE"
+                  ? "Buyurtmani Tasdiqlash"
+                  : t.proceedToPayment}
               </Button>
             </div>
           </div>
