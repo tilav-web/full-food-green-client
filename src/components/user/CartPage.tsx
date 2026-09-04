@@ -710,9 +710,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                       <button
                         type="button"
                         onClick={() => setIsLocationModalOpen(true)}
-                        className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+                        className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
                       >
-                        {t.pickNewOnMap}
+                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span>{t.pickNewOnMap}</span>
                       </button>
                     </label>
 
@@ -826,9 +827,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                             e.stopPropagation()
                             setIsLocationModalOpen(true)
                           }}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs h-8 px-3.5 shadow-sm mt-1 cursor-pointer"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs h-8 px-3.5 shadow-sm mt-1 cursor-pointer inline-flex items-center gap-1.5"
                         >
-                          + Yangi joylashuv yaratish
+                          <MapPin className="h-3.5 w-3.5" />
+                          <span>+ Yangi joylashuv yaratish</span>
                         </Button>
                       </div>
                     )}
@@ -1054,10 +1056,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                     <Car className="h-3.5 w-3.5 text-neutral-500" />
                     Yetkazib berish:
                   </span>
-                  <span className="font-semibold text-neutral-700 dark:text-neutral-300">
+                  <span className="font-bold text-rose-600 dark:text-rose-400">
                     {isDoorToDoor
                       ? (t.doorToDoorSummary || "Eshikgacha (Kuryerga alohida to'lanadi)")
-                      : (t.paidToTaxi || "Alohida to'lanadi")}
+                      : (t.paidToTaxi || "Alohida taksiga to'lanadi")}
                   </span>
                 </div>
               )}

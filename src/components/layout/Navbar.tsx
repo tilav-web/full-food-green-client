@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import {
   ShoppingBag,
   Leaf,
-  MapPin,
   Moon,
   Sun,
 } from "lucide-react"
@@ -54,9 +53,8 @@ export const Navbar: React.FC<NavbarProps> = () => {
               <span>Full</span>
               <span className="text-emerald-600 dark:text-emerald-400">Food</span>
               <Leaf className="h-3.5 w-3.5 text-emerald-500 fill-emerald-500" />
-              <MapPin className="h-3.5 w-3.5 text-rose-500 fill-rose-500/20" />
             </div>
-            <p className="text-[9px] sm:text-[10px] text-rose-600 dark:text-rose-400 font-bold tracking-tight mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-neutral-500 dark:text-neutral-400 font-medium tracking-tight mt-0.5">
               {t.brandSubtitle}
             </p>
           </div>
