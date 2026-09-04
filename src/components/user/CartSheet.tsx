@@ -49,6 +49,8 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
   // Location modal open state
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
 
+  const [coords, setCoords] = useState<{ lat?: number; lng?: number }>({})
+
   // Payment & Receipt
   const [createdOrder, setCreatedOrder] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -85,11 +87,16 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
   const handleLocationConfirm = (
     newAddress: string,
     newDistance: number,
-    newFee: number
+    newFee: number,
+    lat?: number,
+    lng?: number
   ) => {
     setDeliveryAddress(newAddress)
     setDistanceKm(newDistance)
     setDeliveryFee(newFee)
+    if (lat && lng) {
+      setCoords({ lat, lng })
+    }
   }
 
   // Create Order API call
@@ -122,6 +129,8 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
         address: deliveryAddress,
         distanceKm,
         deliveryFee: orderType === "ONLINE_DELIVERY" ? deliveryFee : 0,
+        latitude: coords.lat,
+        longitude: coords.lng,
         notes,
         items: itemsPayload,
       })
@@ -564,6 +573,8 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
           isOpen={isLocationModalOpen}
           currentAddress={deliveryAddress}
           currentDistance={distanceKm}
+          currentLat={coords.lat}
+          currentLng={coords.lng}
           onConfirm={handleLocationConfirm}
           onClose={() => setIsLocationModalOpen(false)}
         />

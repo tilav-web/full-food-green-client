@@ -15,6 +15,7 @@ import {
   Upload,
   Loader2,
   AlertCircle,
+  Printer,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +25,7 @@ import { useTelegram } from "@/hooks/useTelegram"
 import { getImageUrl } from "@/lib/utils"
 import { useAppStore } from "@/store/useAppStore"
 import { Link } from "react-router-dom"
+import { SoliqReceiptModal } from "@/components/cashier/SoliqReceiptModal"
 import type { Order } from "@/types"
 
 export const OrderTracker: React.FC = () => {
@@ -34,6 +36,7 @@ export const OrderTracker: React.FC = () => {
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null)
   const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null)
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null)
+  const [soliqPrintingOrder, setSoliqPrintingOrder] = useState<Order | null>(null)
 
   const { data: rawOrders, isLoading, refetch, isFetching } = useQuery<Order[]>({
     queryKey: ["userOrders", user?.id, user?.phone, currentActiveOrder?.id],
@@ -221,6 +224,17 @@ export const OrderTracker: React.FC = () => {
                         <CardTitle className="text-sm sm:text-base font-bold text-neutral-900 dark:text-white">
                           #{order.orderNumber}
                         </CardTitle>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic("light")
+                            setSoliqPrintingOrder(order)
+                          }}
+                          className="h-6 w-6 rounded-lg bg-neutral-200/70 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Soliq cheki (80mm)"
+                        >
+                          <Printer className="h-3 w-3" />
+                        </button>
                         {getStatusBadge(order.status)}
                       </div>
                       <CardDescription className="text-xs mt-0.5">
@@ -542,6 +556,12 @@ export const OrderTracker: React.FC = () => {
           </div>
         </div>
       )}
+      {/* SOLIQ FISCAL RECEIPT MODAL (80mm Thermal Printer) */}
+      <SoliqReceiptModal
+        isOpen={!!soliqPrintingOrder}
+        order={soliqPrintingOrder}
+        onClose={() => setSoliqPrintingOrder(null)}
+      />
     </div>
   )
 }

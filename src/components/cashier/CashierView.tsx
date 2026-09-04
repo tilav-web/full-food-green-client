@@ -27,6 +27,7 @@ import {
   UserCheck,
   Loader2,
   Trash2,
+  Printer,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +35,7 @@ import { useTranslation } from "@/i18n/useTranslation"
 import { useTelegram } from "@/hooks/useTelegram"
 import { ProductSearchSelect } from "@/components/common/ProductSearchSelect"
 import { getImageUrl } from "@/lib/utils"
+import { SoliqReceiptModal } from "./SoliqReceiptModal"
 import type { Order, Product, Category, OrderStatus, User } from "@/types"
 
 import { socket } from "@/api/socket"
@@ -158,6 +160,7 @@ export const CashierView: React.FC = () => {
   const orderFilter = searchParams.get("status") || "ALL"
   const activeReceiptId = searchParams.get("receipt") || null
   const activeYandexId = searchParams.get("yandex") || null
+  const [soliqPrintingOrder, setSoliqPrintingOrder] = React.useState<Order | null>(null)
 
   const setActiveTab = (tab: "ORDERS" | "POS" | "KIRIM") => {
     const next = new URLSearchParams(searchParams)
@@ -908,12 +911,27 @@ export const CashierView: React.FC = () => {
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[11px] text-neutral-400 font-bold">
-                                {new Date(order.createdAt).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
+
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    triggerHaptic("light")
+                                    setSoliqPrintingOrder(order)
+                                  }}
+                                  className="h-7 w-7 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 flex items-center justify-center transition-all shadow-2xs group cursor-pointer"
+                                  title="Soliq chekini chop etish (80mm)"
+                                >
+                                  <Printer className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300 group-hover:text-white transition-colors" />
+                                </button>
+                                <span className="text-[11px] text-neutral-400 font-bold">
+                                  {new Date(order.createdAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
                             </div>
 
                             <div>
@@ -1040,10 +1058,21 @@ export const CashierView: React.FC = () => {
                               </strong>
                             </div>
 
-                            {/* Underlined Receipt Link (Visible in all statuses if receipt was uploaded) */}
-                            {order.receiptImageUrl && (
-                              <div className="flex items-center justify-between py-1 px-0.5 text-xs bg-neutral-50 dark:bg-neutral-800/40 rounded-xl px-2">
-                                <span className="text-[11px] text-neutral-400 font-medium">To'lov hujjati:</span>
+                            {/* Receipt / Invoice & Soliq Printing Actions */}
+                            <div className="flex items-center justify-between py-1 px-1.5 text-xs bg-neutral-50 dark:bg-neutral-800/40 rounded-xl gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerHaptic("light")
+                                  setSoliqPrintingOrder(order)
+                                }}
+                                className="inline-flex items-center gap-1.5 font-bold text-xs text-neutral-700 dark:text-neutral-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                              >
+                                <Printer className="h-3.5 w-3.5 text-emerald-600" />
+                                <span>Soliq cheki (80mm)</span>
+                              </button>
+
+                              {order.receiptImageUrl && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1054,10 +1083,10 @@ export const CashierView: React.FC = () => {
                                   className="inline-flex items-center gap-1 font-bold text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 underline underline-offset-4 decoration-emerald-500/70 hover:decoration-emerald-700 transition-all cursor-pointer"
                                 >
                                   <Receipt className="h-3.5 w-3.5" />
-                                  <span>To'lov chekini ko'rish</span>
+                                  <span>To'lov rasmi</span>
                                 </button>
-                              </div>
-                            )}
+                              )}
+                            </div>
 
                             {/* Action buttons */}
                             {isDineIn ? (
@@ -2084,30 +2113,42 @@ export const CashierView: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="space-y-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
                 <Button
+                  type="button"
                   variant="outline"
-                  onClick={() =>
-                    reviewReceiptMutation.mutate({
-                      orderId: selectedReceiptOrder.id,
-                      approved: false,
-                    })
-                  }
-                  className="w-1/2 rounded-2xl text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 h-10"
+                  onClick={() => setSoliqPrintingOrder(selectedReceiptOrder)}
+                  className="w-full rounded-2xl text-xs font-bold border-neutral-300 dark:border-neutral-700 flex items-center justify-center gap-1.5 h-10 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
                 >
-                  Rad etish
+                  <Printer className="h-4 w-4 text-emerald-600" />
+                  <span>Soliq Chekini Chiqarish (80mm)</span>
                 </Button>
-                <Button
-                  onClick={() =>
-                    reviewReceiptMutation.mutate({
-                      orderId: selectedReceiptOrder.id,
-                      approved: true,
-                    })
-                  }
-                  className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-md h-10"
-                >
-                  Tasdiqlash
-                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      reviewReceiptMutation.mutate({
+                        orderId: selectedReceiptOrder.id,
+                        approved: false,
+                      })
+                    }
+                    className="w-1/2 rounded-2xl text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 h-10"
+                  >
+                    Rad etish
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      reviewReceiptMutation.mutate({
+                        orderId: selectedReceiptOrder.id,
+                        approved: true,
+                      })
+                    }
+                    className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-md h-10"
+                  >
+                    Tasdiqlash
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -2168,6 +2209,13 @@ export const CashierView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* SOLIQ FISCAL RECEIPT MODAL (80mm Thermal Printer) */}
+      <SoliqReceiptModal
+        isOpen={!!soliqPrintingOrder}
+        order={soliqPrintingOrder}
+        onClose={() => setSoliqPrintingOrder(null)}
+      />
     </div>
   )
 }

@@ -251,6 +251,85 @@ export function useTelegram() {
     return Promise.resolve(window.confirm(message))
   }
 
+  // 1-Tap Location Request using Telegram WebApp 8.0+ LocationManager with browser fallback
+  const requestLocation = useCallback(
+    async (): Promise<{ success: boolean; lat?: number; lng?: number; accuracy?: number; error?: string }> => {
+      const webapp = window.Telegram?.WebApp
+
+      // 1. If Telegram LocationManager is available
+      if (webapp?.LocationManager) {
+        return new Promise((resolve) => {
+          try {
+            webapp.LocationManager.init(() => {
+              if (webapp.LocationManager.isLocationAvailable) {
+                webapp.LocationManager.getLocation((data: any) => {
+                  if (data && typeof data.latitude === "number" && typeof data.longitude === "number") {
+                    resolve({
+                      success: true,
+                      lat: data.latitude,
+                      lng: data.longitude,
+                      accuracy: data.horizontal_accuracy,
+                    })
+                  } else {
+                    resolve({ success: false, error: "Telegram joylashuvni taqdim etmadi" })
+                  }
+                })
+              } else {
+                if (typeof webapp.LocationManager.openSettings === "function") {
+                  webapp.LocationManager.openSettings()
+                }
+                resolve({ success: false, error: "Qurilmangizda geolokatsiya (GPS) o'chiq" })
+              }
+            })
+          } catch (e: any) {
+            console.warn("LocationManager error, fallback to browser:", e)
+            if ("geolocation" in navigator) {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  resolve({
+                    success: true,
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                  })
+                },
+                (err) => {
+                  resolve({ success: false, error: err.message || "Joylashuvni aniqlab bo'lmadi" })
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+              )
+            } else {
+              resolve({ success: false, error: e?.message || "Geolokatsiyani olib bo'lmadi" })
+            }
+          }
+        })
+      }
+
+      // 2. Fallback: Browser HTML5 Geolocation API
+      if ("geolocation" in navigator) {
+        return new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              resolve({
+                success: true,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+              })
+            },
+            (err) => {
+              resolve({ success: false, error: err.message || "Joylashuvni aniqlab bo'lmadi" })
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          )
+        })
+      }
+
+      return { success: false, error: "Qurilmangizda geolokatsiya qo'llab-quvvatlanmaydi" }
+    },
+    []
+  )
+
   const openTgLink = (url: string) => {
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink(url)
@@ -267,6 +346,7 @@ export function useTelegram() {
     tgWebApp: window.Telegram?.WebApp,
     triggerHaptic,
     requestPhoneContact,
+    requestLocation,
     showNativeAlert,
     showNativeConfirm,
     openTgLink,
