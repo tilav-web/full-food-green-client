@@ -278,29 +278,16 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               </div>
             )}
 
-            {/* Location Metrics (Distance, Delivery Fee) */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                  Restorandan Masofa
+            {/* Location Metric (Distance) */}
+            <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                Restorandan Masofa
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Car className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-black text-neutral-900 dark:text-white">
+                  ~{distanceKm} km
                 </span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <Car className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm font-black text-neutral-900 dark:text-white">
-                    ~{distanceKm} km
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                  Yetkazish (Taksi) Narxi
-                </span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-sm font-black text-emerald-600">
-                    ~{deliveryFee.toLocaleString()} so'm
-                  </span>
-                </div>
               </div>
             </div>
 
