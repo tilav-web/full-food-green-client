@@ -185,8 +185,16 @@ export const UserProfile: React.FC = () => {
     return () => clearInterval(interval)
   }, [showWebAuthModal, webSessionToken, isWaitingWebAuth, setUser, triggerHaptic])
 
-  const handleLogout = () => {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+
+  const handleLogoutClick = () => {
+    triggerHaptic("warning")
+    setShowLogoutConfirm(true)
+  }
+
+  const handleConfirmLogout = () => {
     triggerHaptic("medium")
+    setShowLogoutConfirm(false)
     logout()
   }
 
@@ -244,7 +252,7 @@ export const UserProfile: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   title="Chiqish"
                   className="p-2.5 rounded-2xl bg-white/15 hover:bg-white/25 active:scale-95 text-white flex-shrink-0 transition-all"
                 >
@@ -1342,6 +1350,53 @@ export const UserProfile: React.FC = () => {
           onClose={() => setIsLocationModalOpen(false)}
         />
       )}
+
+      {/* Logout Confirmation Dialog */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-neutral-900 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-neutral-200 dark:border-neutral-800 text-center"
+            >
+              <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+                <LogOut className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  Hisobdan chiqish
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
+                  Haqiqatan ham hisobingizdan chiqmoqchimisiz?
+                </p>
+              </div>
+              <div className="flex gap-2.5 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 rounded-xl text-xs h-10"
+                >
+                  Bekor qilish
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmLogout}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs h-10 font-bold shadow-md shadow-red-600/20"
+                >
+                  Ha, chiqish
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
