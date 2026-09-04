@@ -514,7 +514,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 </div>
 
                 <div className="border-t border-neutral-100 dark:border-neutral-800 pt-2 flex items-center justify-between text-base font-black">
-                  <span className="text-neutral-900 dark:text-white">{t.restaurantTotal || "Restoranga to'lov"}:</span>
+                  <span className="text-neutral-900 dark:text-white">{t.restaurantTotal || "Jami to'lov"}:</span>
                   <span className="text-emerald-600 dark:text-emerald-400">
                     {(subtotal + packagingFee).toLocaleString()} {t.currency || "so'm"}
                   </span>
@@ -1057,14 +1057,14 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                     Yetkazib berish:
                   </span>
                   <span className="font-bold text-rose-600 dark:text-rose-400">
-                    {t.paidToTaxi || "Alohida taksiga to'lanadi"}
+                    {t.paidToTaxi || "Alohida kuryerga to'lanadi"}
                   </span>
                 </div>
               )}
             </div>
 
             <div className="border-t border-neutral-100 dark:border-neutral-800 pt-2 flex items-center justify-between text-sm font-semibold">
-              <span className="text-neutral-900 dark:text-white font-black">{t.restaurantTotal || "Restoranga to'lov"}:</span>
+              <span className="text-neutral-900 dark:text-white font-black">{t.restaurantTotal || "Jami to'lov"}:</span>
               <strong className="font-black text-emerald-700 dark:text-emerald-400 text-base">
                 {totalAmount.toLocaleString()} {t.currency}
               </strong>
@@ -1108,7 +1108,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               #{createdOrder.orderNumber}
             </Badge>
             <p className="text-xs text-neutral-600 dark:text-neutral-300 font-medium">
-              {t.restaurantTotal || "Restoranga to'lov"}:
+              {t.restaurantTotal || "Jami to'lov"}:
             </p>
             <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
               {Number(createdOrder.totalAmount || createdOrder.totalPrice || totalAmount).toLocaleString()} {t.currency}
