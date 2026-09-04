@@ -26,7 +26,14 @@ interface LocationPickerModalProps {
   currentDistance?: number
   currentLat?: number
   currentLng?: number
-  onConfirm: (address: string, distanceKm: number, fee: number, lat?: number, lng?: number) => void
+  onConfirm: (
+    address: string,
+    distanceKm: number,
+    fee: number,
+    lat?: number,
+    lng?: number,
+    savedLocationId?: string
+  ) => void
   onClose: () => void
 }
 
@@ -159,7 +166,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       address.trim() || (coords ? `Qarshi (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})` : "Qarshi shahar")
 
     // Automatically save to app store for quick reuse
-    addSavedLocation({
+    const created = addSavedLocation({
       label: selectedLabel,
       address: finalAddress,
       lat: coords?.lat || RESTAURANT_COORDS[0],
@@ -172,7 +179,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       distanceKm,
       deliveryFee,
       coords?.lat,
-      coords?.lng
+      coords?.lng,
+      created?.id
     )
     onClose()
   }
