@@ -795,23 +795,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                       )}
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900 space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Car className="h-4 w-4 text-purple-600" />
-                          <span className="text-purple-950 dark:text-purple-200 font-bold">
-                            {t.deliveryYandex || "Yetkazib berish (Yandex Taxi)"}
-                          </span>
-                        </div>
-                        <span className="font-black text-purple-700 dark:text-purple-300">
-                          ~{deliveryFee.toLocaleString()} {t.currency} (~25 daq)
-                        </span>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/80 dark:bg-purple-900/30 border border-purple-200/60 dark:border-purple-800/40 text-[11px] text-purple-900 dark:text-purple-200 font-medium leading-relaxed">
-                        💡 {t.deliveryFeeNotice || "Yetkazib berish narxi taxminiy bo'lib, to'lov to'g'ridan-to'g'ri taksi haydovchisiga to'lanadi. Siz restoranga faqat ovqat va qadoqlash uchun to'laysiz."}
-                      </div>
-                    </div>
-
                     {/* Optional address details: Building / Floor / Apartment */}
                     <div className="space-y-2.5 pt-1">
                       <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
