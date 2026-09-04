@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useRef } from "react"
+import React, { useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Printer, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTelegram } from "@/hooks/useTelegram"
-import QRCode from "qrcode"
 import type { Order } from "@/types"
 
 interface SoliqReceiptModalProps {
@@ -20,29 +19,7 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
   onClose,
 }) => {
   const { triggerHaptic } = useTelegram()
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
   const receiptRef = useRef<HTMLDivElement>(null)
-
-  // Generate real Soliq OFD format QR Code
-  useEffect(() => {
-    if (!order) return
-
-    const dateStr = new Date(order.createdAt).toISOString()
-    const checkSum = Math.round(Number(order.totalAmount || 0))
-    // Standard Uzbekistan Soliq OFD receipt verification URL structure
-    const soliqUrl = `https://ofd.soliq.uz/check?t=${order.orderNumber}&s=${checkSum}&d=${encodeURIComponent(dateStr)}&inn=309876543`
-
-    QRCode.toDataURL(soliqUrl, {
-      width: 140,
-      margin: 1,
-      color: {
-        dark: "#000000",
-        light: "#ffffff",
-      },
-    })
-      .then((url) => setQrCodeUrl(url))
-      .catch((err) => console.error("QR generation error:", err))
-  }, [order])
 
   if (!isOpen || !order) return null
 
@@ -81,14 +58,6 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
   const subtotal = Number(order.subtotal || totalAmount)
   const packagingFee = Number(order.packagingFee || 0)
   const deliveryFee = Number(order.deliveryFee || 0)
-  // Standard Uzbekistan VAT (QQS 12%): Summa * 12 / 112
-  const qqsAmount = Math.round((totalAmount * 12) / 112)
-
-  // Pseudo-fiscal code based on order number
-  const cleanDigits = (order.orderNumber.replace(/\D/g, "") + "98321456789").slice(0, 12)
-  const fiscalSign = cleanDigits || "984729184712"
-  const fiscalModule = "00084719201"
-  const terminalSn = "SAM" + cleanDigits.slice(-7)
 
   // Native Print Handler for 80mm POS Thermal Receipt Printer
   const handlePrint = () => {
@@ -107,7 +76,7 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 15 }}
           transition={{ duration: 0.2 }}
-          className="relative z-10 w-full max-w-[340px] my-auto bg-neutral-900/90 rounded-3xl shadow-2xl border border-neutral-800 p-3 sm:p-4 flex flex-col items-center print:m-0 print:p-0 print:border-none print:shadow-none print:w-auto print:max-w-none print:bg-white"
+          className="relative z-10 w-full max-w-[340px] my-auto bg-neutral-900/95 rounded-3xl shadow-2xl border border-neutral-800 p-3 sm:p-4 flex flex-col items-center print:m-0 print:p-0 print:border-none print:shadow-none print:w-auto print:max-w-none print:bg-white"
         >
           {/* Top Actions Bar (Hidden on Print) */}
           <div className="w-full flex items-center justify-between pb-3 mb-2 border-b border-neutral-800 print:hidden">
@@ -115,25 +84,25 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
               <div className="h-7 w-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
                 <Printer className="h-4 w-4" />
               </div>
-              <span className="text-xs font-black tracking-tight">Soliq Cheki (80mm)</span>
+              <span className="text-xs font-black tracking-tight">Kassa Cheki (80mm)</span>
             </div>
 
             <button
               onClick={onClose}
-              className="h-7 w-7 rounded-full bg-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center"
+              className="h-7 w-7 rounded-full bg-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* ========================================================================= */}
-          {/* THERMAL PAPER RECEIPT CONTAINER (Strict 80mm / 72mm printable width)     */}
+          {/* THERMAL PAPER RECEIPT CONTAINER (Strict 80mm / 74mm printable width)     */}
           {/* ========================================================================= */}
           <div className="w-full max-h-[75vh] overflow-y-auto rounded-2xl shadow-inner scrollbar-none print:max-h-none print:overflow-visible">
             <div
               id="thermal-receipt"
               ref={receiptRef}
-              className="w-full bg-white text-black font-mono text-[11px] leading-[1.35] p-3.5 sm:p-4 rounded-xl shadow-lg border border-neutral-200 select-text print:border-none print:shadow-none print:rounded-none print:p-0 print:w-[72mm] print:text-black"
+              className="w-full bg-white text-black font-mono text-[11px] leading-[1.35] p-3.5 sm:p-4 rounded-xl shadow-lg border border-neutral-200 select-text print:border-none print:shadow-none print:rounded-none print:p-0 print:w-[74mm] print:text-black"
               style={{
                 fontFamily: "'Courier New', Courier, monospace",
                 letterSpacing: "-0.2px",
@@ -141,23 +110,11 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
             >
               {/* Header */}
               <div className="text-center space-y-0.5 pb-2">
-                <h1 className="font-black text-sm uppercase tracking-wide">
+                <h1 className="font-black text-sm sm:text-base uppercase tracking-wide text-neutral-900">
                   «FULL FOOD» RESTORAN
                 </h1>
-                <p className="text-[10px] font-bold text-neutral-800">
-                  MCHJ "FULL FOOD HEALTHY DIET"
-                </p>
-                <p className="text-[9px] text-neutral-700">
-                  Qarshi shahar, Mustaqillik shoh ko'chasi 14
-                </p>
-                <p className="text-[10px] font-black pt-0.5">
-                  STIR / INN: 309 876 543
-                </p>
-                <p className="text-[9px] text-neutral-700">
-                  QQS to'lovchi kodi: 309876543001
-                </p>
-                <p className="text-[9px] text-neutral-600">
-                  Terminal: {terminalSn} | Kassa: #01 (Soliq OFD)
+                <p className="text-[10px] text-neutral-600 font-bold">
+                  Sog'lom va parhez taomlar
                 </p>
               </div>
 
@@ -212,7 +169,7 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
               {/* Items Column Header */}
               <div className="flex justify-between font-black text-[9px] text-neutral-700 pb-1 uppercase">
                 <span className="w-1/2">Taom / Mahsulot</span>
-                <span className="w-1/4 text-center">Miq. x Narx</span>
+                <span className="w-1/4 text-center">Miqdor</span>
                 <span className="w-1/4 text-right">Summa</span>
               </div>
 
@@ -226,8 +183,6 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
                   const qty = Number(item.quantity || 1)
                   const unitPrice = Number(item.unitPrice || 0)
                   const lineTotal = qty * unitPrice
-                  // Soliq MXIK code generator for foods
-                  const mxikCode = `1070200100${(idx + 1).toString().padStart(2, "0")}00000`
 
                   return (
                     <div key={idx} className="text-[10px]">
@@ -240,12 +195,7 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
                         </span>
                       </div>
                       <div className="flex justify-between text-[9px] text-neutral-600 pl-2">
-                        <span>MXIK: {mxikCode}</span>
-                        <span>{qty} dona x {unitPrice.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-[8px] text-neutral-500 pl-2">
-                        <span>QQS: 12%</span>
-                        <span>{(Math.round((lineTotal * 12) / 112)).toLocaleString()} so'm</span>
+                        <span>{qty} dona x {unitPrice.toLocaleString()} so'm</span>
                       </div>
                     </div>
                   )
@@ -285,14 +235,9 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
                 {/* Grand Total */}
                 <div className="flex justify-between items-baseline font-black text-xs pt-0.5">
                   <span className="text-[11px]">JAMI TO'LOV:</span>
-                  <span className="text-sm font-black tracking-tight">
+                  <span className="text-sm font-black tracking-tight text-black">
                     {totalAmount.toLocaleString()} SO'M
                   </span>
-                </div>
-
-                <div className="flex justify-between text-[9px] text-neutral-600 pt-0.5">
-                  <span>SHUNDAN QQS (12%):</span>
-                  <span className="font-bold">{qqsAmount.toLocaleString()} so'm</span>
                 </div>
 
                 <div className="flex justify-between text-[9px] text-neutral-700 pt-0.5">
@@ -313,45 +258,17 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
                 ================================
               </div>
 
-              {/* Soliq OFD QR Code & Fiscal Details */}
-              <div className="text-center space-y-1.5 pt-1">
-                {qrCodeUrl && (
-                  <div className="flex flex-col items-center justify-center">
-                    <img
-                      src={qrCodeUrl}
-                      alt="Soliq OFD QR Code"
-                      className="w-28 h-28 mx-auto border border-neutral-200 p-1 rounded-sm bg-white"
-                    />
-                    <span className="text-[8px] text-neutral-600 tracking-tighter mt-0.5">
-                      Soliq ilovasida 1% keshbek oling!
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-0.5 text-[8px] text-neutral-600 leading-tight">
-                  <div className="flex justify-between">
-                    <span>Fiskal belgi (ФП):</span>
-                    <span className="font-bold">{fiscalSign}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Fiskal modul (ФМ):</span>
-                    <span className="font-bold">{fiscalModule}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Chek turi:</span>
-                    <span className="font-bold">Savdo cheki (Fiskal)</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 text-center text-[9px] space-y-0.5 text-neutral-800">
-                  <p className="font-black">XARIDINGIZ UCHUN RAHMAT!</p>
-                  <p className="text-[8px] text-neutral-600 italic">
-                    Salomatligingiz — bizning boyligimiz!
-                  </p>
-                  <p className="text-[8px] font-bold text-neutral-700">
-                    www.fullfood.uz
-                  </p>
-                </div>
+              {/* Customer Greeting Footer */}
+              <div className="text-center space-y-1 pt-1">
+                <p className="font-black text-[10px] text-neutral-900">
+                  XARIDINGIZ UCHUN RAHMAT!
+                </p>
+                <p className="text-[8px] text-neutral-600 italic">
+                  Salomatligingiz — bizning boyligimiz!
+                </p>
+                <p className="text-[8px] font-bold text-neutral-700">
+                  www.fullfood.uz
+                </p>
               </div>
 
               <div className="text-center text-neutral-400 select-none overflow-hidden my-1">
@@ -369,14 +286,14 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700 text-xs font-bold rounded-2xl h-10"
+              className="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700 text-xs font-bold rounded-2xl h-10 cursor-pointer"
             >
               Yopish
             </Button>
             <Button
               type="button"
               onClick={handlePrint}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-1.5 h-10 active:scale-95 transition-all"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-1.5 h-10 active:scale-95 transition-all cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               <span>Chop Etish (80mm)</span>
@@ -415,7 +332,7 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
             width: 74mm !important;
             max-width: 74mm !important;
             margin: 0 auto !important;
-            padding: 3mm 2mm !important;
+            padding: 2mm 1mm !important;
             background: #ffffff !important;
             color: #000000 !important;
             font-family: 'Courier New', Courier, monospace !important;
