@@ -411,19 +411,6 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
                           </div>
                         )}
                       </div>
-
-                      {/* Yandex summary badge */}
-                      <div className="p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <Car className="h-4 w-4 text-purple-600" />
-                          <span className="text-purple-950 dark:text-purple-200 font-bold">
-                            Yandex Taxi yetkazish
-                          </span>
-                        </div>
-                        <span className="font-extrabold text-purple-700 dark:text-purple-300">
-                          {deliveryFee.toLocaleString()} so'm (~25 daqiqa)
-                        </span>
-                      </div>
                     </>
                   )}
 
