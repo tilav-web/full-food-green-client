@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = () => {
               <span className="text-emerald-600 dark:text-emerald-400">Food</span>
               <Leaf className="h-3.5 w-3.5 text-emerald-500 fill-emerald-500" />
             </div>
-            <p className="text-[9px] sm:text-[10px] text-emerald-700 dark:text-emerald-400 font-bold tracking-wide uppercase mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-emerald-700 dark:text-emerald-400 font-bold tracking-tight mt-0.5">
               {t.brandSubtitle}
             </p>
           </div>
