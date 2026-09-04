@@ -144,9 +144,12 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     }
   }
 
-  // Yandex Go deep link for preview
-  const yandexGoPreviewUrl = coords
-    ? `https://3.redirect.appmetrica.yandex.com/route?end-lat=${coords.lat}&end-lon=${coords.lng}&tariffClass=econom&ref=fullfood&appmetrica_tracking_id=1178268795219780156&lang=uz`
+  // Direct Map Pin URLs (open exact location with pin marker, without taxi dispatch)
+  const yandexMapsUrl = coords
+    ? `https://yandex.uz/maps/?pt=${coords.lng},${coords.lat}&z=17&l=map`
+    : null
+  const googleMapsUrl = coords
+    ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
     : null
 
   const handleConfirm = () => {
@@ -392,18 +395,44 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               </div>
             </div>
 
-            {/* Yandex Go verification link button */}
-            {yandexGoPreviewUrl && isGpsLocated && (
-              <a
-                href={yandexGoPreviewUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-bold transition-colors border border-amber-500/20"
-              >
-                <Car className="h-3.5 w-3.5 text-amber-600" />
-                <span>🚕 Yandex Go orqali marshrutni ko'rish</span>
-                <ExternalLink className="h-3 w-3 opacity-60" />
-              </a>
+            {/* Direct Map Pin Preview (Yandex & Google) to verify pinpoint without taxi dispatch */}
+            {coords && (
+              <div className="rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 p-3 border border-emerald-200/80 dark:border-emerald-800/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-emerald-600" />
+                    Joylashuvni xaritada tekshirish (Pin):
+                  </span>
+                  <span className="text-[10px] text-neutral-600 dark:text-neutral-400 font-mono font-semibold">
+                    {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <a
+                    href={yandexMapsUrl!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-red-600 dark:text-red-400 text-xs font-bold transition-all border border-red-200 dark:border-red-900/50 shadow-2xs active:scale-98"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>Yandex Xarita</span>
+                  </a>
+                  <a
+                    href={googleMapsUrl!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-blue-600 dark:text-blue-400 text-xs font-bold transition-all border border-blue-200 dark:border-blue-900/50 shadow-2xs active:scale-98"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>Google Xarita</span>
+                  </a>
+                </div>
+
+                <p className="text-[10.5px] text-neutral-600 dark:text-neutral-400 leading-snug">
+                  📌 Tugmani bosib, qizil nishon (pin) aynan siz turgan bino yoki manzilga to'g'ri tushganini tekshirishingiz mumkin.
+                </p>
+              </div>
             )}
           </div>
 

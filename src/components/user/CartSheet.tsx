@@ -13,6 +13,7 @@ import {
   Upload,
   ArrowRight,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -378,6 +379,37 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
                           </div>
                           <ChevronRight className="h-4 w-4 text-emerald-600 flex-shrink-0" />
                         </div>
+
+                        {/* Direct Map Pin Preview Links (Yandex & Google) during checkout */}
+                        {coords.lat && coords.lng && (
+                          <div className="flex items-center justify-between px-1.5 pt-0.5 text-[11px]">
+                            <span className="text-neutral-600 dark:text-neutral-400 font-medium flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-emerald-600" />
+                              Xaritada tekshirish (Pin):
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`https://yandex.uz/maps/?pt=${coords.lng},${coords.lat}&z=17&l=map`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-red-600 dark:text-red-400 font-bold hover:underline flex items-center gap-0.5"
+                              >
+                                Yandex
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                              <span className="text-neutral-400 dark:text-neutral-600">•</span>
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5"
+                              >
+                                Google
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Yandex summary badge */}
