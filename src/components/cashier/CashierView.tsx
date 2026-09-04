@@ -114,6 +114,19 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; b
   },
 }
 
+export const getCategoryIconSrc = (c: { id?: string; name?: string; slug?: string; imageUrl?: string }) => {
+  const slug = c.slug?.toLowerCase() || ""
+  const name = c.name?.toLowerCase() || ""
+  if (slug.includes("asosiy") || name.includes("asosiy")) return "/categories/cat_asosiy.jpg"
+  if (slug.includes("garnir") || name.includes("garnir")) return "/categories/cat_garnirlar.jpg"
+  if (slug.includes("desert") || name.includes("desert")) return "/categories/cat_desertlar.jpg"
+  if (slug.includes("salat") || name.includes("salat")) return "/categories/cat_salatlar.jpg"
+  if (slug.includes("combo") || slug.includes("set") || name.includes("combo") || name.includes("set")) return "/categories/cat_combo.jpg"
+  if (slug.includes("ichimlik") || name.includes("ichimlik")) return "/categories/cat_ichimliklar.jpg"
+  if (slug.includes("non") || name.includes("non")) return "/categories/cat_nonlar.jpg"
+  return getImageUrl(c.imageUrl)
+}
+
 const renderStatusBadge = (status: string) => {
   const conf = STATUS_CONFIG[status] || {
     label: status,
@@ -1352,33 +1365,33 @@ export const CashierView: React.FC = () => {
                             : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
                         }`}
                       >
-                        {/* Background Image - pointer-events-none & draggable={false} ensure full card is draggable */}
+                        {/* 3D Icon Background */}
                         <img
-                          src={getImageUrl(c.imageUrl)}
-                          alt=""
+                          src={getCategoryIconSrc(c)}
+                          alt={c.name}
                           draggable={false}
                           onError={(e) => {
-                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                            ;(e.currentTarget as HTMLImageElement).src = getImageUrl(c.imageUrl)
                           }}
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-108 transition-transform duration-300 pointer-events-none select-none"
                         />
 
-                        {/* Gradient Overlay for Text Contrast */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/20 pointer-events-none select-none" />
+                        {/* Soft Gradient Overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none select-none" />
 
                         {/* Top Row: Drag Handle & Count Badge */}
                         <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
-                          <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+                          <div className="opacity-60 group-hover:opacity-100 transition-opacity drop-shadow-sm">
                             <GripVertical className="h-3.5 w-3.5 text-white" />
                           </div>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md text-white font-black">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white font-black shadow-xs">
                             {count} ta
                           </span>
                         </div>
 
                         {/* Bottom Label: Category Name */}
                         <div className="relative z-10 pointer-events-none select-none">
-                          <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-md truncate">
+                          <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] truncate">
                             {c.name}
                           </span>
                         </div>

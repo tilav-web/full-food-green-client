@@ -66,6 +66,7 @@ import { useTelegram } from "@/hooks/useTelegram"
 import { useTranslation } from "@/i18n/useTranslation"
 import { generateSlug } from "@/utils/slugify"
 import { getImageUrl } from "@/lib/utils"
+import { getCategoryIconSrc } from "../cashier/CashierView"
 import type { Product, Category, Unit, Banner, BannerItem, Combo, User } from "@/types"
 
 export type AdminPage =
@@ -1396,19 +1397,15 @@ export const AdminView: React.FC = () => {
                             #{index + 1}
                           </span>
                           <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center overflow-hidden border border-emerald-100 dark:border-emerald-900 flex-shrink-0">
-                            {c.imageUrl ? (
-                              <img
-                                src={getImageUrl(c.imageUrl)}
-                                alt=""
-                                onError={(e) => {
-                                  ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
-                                }}
-                                draggable={false}
-                                className="h-full w-full object-cover pointer-events-none select-none"
-                              />
-                            ) : (
-                              <Layers className="h-5 w-5 text-emerald-600" />
-                            )}
+                            <img
+                              src={getCategoryIconSrc(c)}
+                              alt={c.name}
+                              onError={(e) => {
+                                ;(e.currentTarget as HTMLImageElement).src = getImageUrl(c.imageUrl)
+                              }}
+                              draggable={false}
+                              className="h-full w-full object-cover pointer-events-none select-none"
+                            />
                           </div>
                           <div className="min-w-0">
                             <h4 className="font-bold text-xs text-neutral-900 dark:text-white truncate">{c.name}</h4>
