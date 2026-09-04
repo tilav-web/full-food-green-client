@@ -117,15 +117,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     lng: defaultSaved ? defaultSaved.lng : 65.792222,
   })
 
-  const calculateFee = (km: number) => {
-    let fee = 10000
-    if (km > 2) {
-      fee += Math.round((km - 2) * 3000)
-    }
-    return Math.ceil(fee / 500) * 500
-  }
-
-  const [deliveryFee, setDeliveryFee] = useState(calculateFee(distanceKm))
   const [orderType, setOrderType] = useState<"ONLINE_DELIVERY" | "ONLINE_PICKUP">("ONLINE_DELIVERY")
   const [building, setBuilding] = useState("")
   const [floor, setFloor] = useState("")
@@ -230,13 +221,12 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   const handleLocationConfirm = (
     newAddress: string,
     newDistance: number,
-    newFee: number,
+    _newFee: number,
     lat?: number,
     lng?: number
   ) => {
     setDeliveryAddress(newAddress)
     setDistanceKm(newDistance)
-    setDeliveryFee(newFee)
     if (lat && lng) {
       setCoords({ lat, lng })
     }
@@ -246,7 +236,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     triggerHaptic("light")
     setDeliveryAddress(loc.address)
     setDistanceKm(loc.distanceKm)
-    setDeliveryFee(calculateFee(loc.distanceKm))
     setCoords({ lat: loc.lat, lng: loc.lng })
   }
 
@@ -282,7 +271,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
         paymentMethod: selectedPaymentMethod,
         address: orderType === "ONLINE_DELIVERY" ? deliveryAddress : "Restorandan olib ketish",
         distanceKm,
-        deliveryFee: orderType === "ONLINE_DELIVERY" ? deliveryFee : 0,
+        deliveryFee: 0,
         packagingFee,
         latitude: coords.lat,
         longitude: coords.lng,
@@ -951,13 +940,13 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               </div>
 
               {orderType === "ONLINE_DELIVERY" && (
-                <div className="flex items-center justify-between text-purple-700 dark:text-purple-400 font-medium">
+                <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-400 font-medium text-xs">
                   <span className="flex items-center gap-1.5">
-                    <Car className="h-3.5 w-3.5" />
-                    {t.deliveryFeeEstimated || "Yetkazish (Taksiga)"}:
+                    <Car className="h-3.5 w-3.5 text-neutral-500" />
+                    Yetkazib berish:
                   </span>
-                  <span className="font-bold">
-                    ~{deliveryFee.toLocaleString()} {t.currency} ({t.paidToTaxi || "taksiga to'lanadi"})
+                  <span className="font-semibold text-neutral-700 dark:text-neutral-300">
+                    Alohida to'lanadi
                   </span>
                 </div>
               )}
@@ -1003,9 +992,9 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
               {Number(createdOrder.totalAmount || createdOrder.totalPrice || totalAmount).toLocaleString()} {t.currency}
             </p>
-            {createdOrder.type === "ONLINE_DELIVERY" && Number(createdOrder.deliveryFee || 0) > 0 && (
-              <p className="text-[11px] text-purple-700 dark:text-purple-300 font-semibold pt-1">
-                🚗 {t.deliveryFeeEstimated || "Yetkazish (Taksiga)"}: ~{Number(createdOrder.deliveryFee).toLocaleString()} {t.currency} ({t.paidToTaxi || "taksiga to'lanadi"})
+            {createdOrder.type === "ONLINE_DELIVERY" && (
+              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium pt-1">
+                🚗 Yetkazish alohida to'lanadi
               </p>
             )}
           </div>

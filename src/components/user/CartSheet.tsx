@@ -43,7 +43,6 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
   const [customerPhone, setCustomerPhone] = useState(user?.phone || "+998 90 123 45 67")
   const [deliveryAddress, setDeliveryAddress] = useState("Toshkent sh., Yunusobod 4-mavze, 12-uy")
   const [distanceKm, setDistanceKm] = useState(3.2)
-  const [deliveryFee, setDeliveryFee] = useState(14000)
   const [orderType, setOrderType] = useState<"ONLINE_DELIVERY" | "ONLINE_PICKUP">("ONLINE_DELIVERY")
   const [notes, setNotes] = useState("")
 
@@ -75,7 +74,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
   const cardHolder = getSetting("card_holder", "SHAHRIZOD XALIMOV")
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const totalAmount = subtotal + (orderType === "ONLINE_DELIVERY" ? deliveryFee : 0)
+  const totalAmount = subtotal
 
   const handleCopyCard = () => {
     navigator.clipboard.writeText(cardNumber.replace(/\s/g, ""))
@@ -88,13 +87,12 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
   const handleLocationConfirm = (
     newAddress: string,
     newDistance: number,
-    newFee: number,
+    _newFee: number,
     lat?: number,
     lng?: number
   ) => {
     setDeliveryAddress(newAddress)
     setDistanceKm(newDistance)
-    setDeliveryFee(newFee)
     if (lat && lng) {
       setCoords({ lat, lng })
     }
@@ -129,7 +127,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
         paymentMethod: "CARD_TRANSFER",
         address: deliveryAddress,
         distanceKm,
-        deliveryFee: orderType === "ONLINE_DELIVERY" ? deliveryFee : 0,
+        deliveryFee: 0,
         latitude: coords.lat,
         longitude: coords.lng,
         notes,
@@ -557,6 +555,17 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
 
             {step === "LOCATION" && (
               <div className="space-y-3">
+                {orderType === "ONLINE_DELIVERY" && (
+                  <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <Car className="h-3.5 w-3.5 text-neutral-500" />
+                      Yetkazib berish:
+                    </span>
+                    <span className="font-semibold text-neutral-700 dark:text-neutral-300">
+                      Alohida to'lanadi
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-sm font-semibold">
                   <span className="text-neutral-500">{t.totalSum}:</span>
                   <strong className="font-black text-emerald-700 dark:text-emerald-400 text-base">
