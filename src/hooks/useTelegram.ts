@@ -251,63 +251,15 @@ export function useTelegram() {
     return Promise.resolve(window.confirm(message))
   }
 
-  // 1-Tap Location Request using Telegram WebApp 8.0+ LocationManager with browser fallback
+  // 1-Tap Location Request using Telegram WebApp 8.0+ LocationManager with browser fallback & timeout
   const requestLocation = useCallback(
     async (): Promise<{ success: boolean; lat?: number; lng?: number; accuracy?: number; error?: string }> => {
-      const webapp = window.Telegram?.WebApp
-
-      // 1. If Telegram LocationManager is available
-      if (webapp?.LocationManager) {
+      const getBrowserLocation = (): Promise<{ success: boolean; lat?: number; lng?: number; accuracy?: number; error?: string }> => {
         return new Promise((resolve) => {
-          try {
-            webapp.LocationManager.init(() => {
-              if (webapp.LocationManager.isLocationAvailable) {
-                webapp.LocationManager.getLocation((data: any) => {
-                  if (data && typeof data.latitude === "number" && typeof data.longitude === "number") {
-                    resolve({
-                      success: true,
-                      lat: data.latitude,
-                      lng: data.longitude,
-                      accuracy: data.horizontal_accuracy,
-                    })
-                  } else {
-                    resolve({ success: false, error: "Telegram joylashuvni taqdim etmadi" })
-                  }
-                })
-              } else {
-                if (typeof webapp.LocationManager.openSettings === "function") {
-                  webapp.LocationManager.openSettings()
-                }
-                resolve({ success: false, error: "Qurilmangizda geolokatsiya (GPS) o'chiq" })
-              }
-            })
-          } catch (e: any) {
-            console.warn("LocationManager error, fallback to browser:", e)
-            if ("geolocation" in navigator) {
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  resolve({
-                    success: true,
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                  })
-                },
-                (err) => {
-                  resolve({ success: false, error: err.message || "Joylashuvni aniqlab bo'lmadi" })
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-              )
-            } else {
-              resolve({ success: false, error: e?.message || "Geolokatsiyani olib bo'lmadi" })
-            }
+          if (!("geolocation" in navigator)) {
+            resolve({ success: false, error: "Qurilmangizda geolokatsiya qo'llab-quvvatlanmaydi" })
+            return
           }
-        })
-      }
-
-      // 2. Fallback: Browser HTML5 Geolocation API
-      if ("geolocation" in navigator) {
-        return new Promise((resolve) => {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               resolve({
@@ -318,14 +270,70 @@ export function useTelegram() {
               })
             },
             (err) => {
-              resolve({ success: false, error: err.message || "Joylashuvni aniqlab bo'lmadi" })
+              let msg = "Joylashuvni aniqlab bo'lmadi"
+              if (err.code === err.PERMISSION_DENIED) {
+                msg = "Geolokatsiyaga ruxsat berilmadi. Iltimos, sozlamalardan ruxsat bering."
+              }
+              resolve({ success: false, error: msg })
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 10000 }
           )
         })
       }
 
-      return { success: false, error: "Qurilmangizda geolokatsiya qo'llab-quvvatlanmaydi" }
+      const webapp = window.Telegram?.WebApp
+
+      // 1. If Telegram LocationManager is available
+      if (webapp?.LocationManager) {
+        return new Promise((resolve) => {
+          let isResolved = false
+          const safeResolve = (res: any) => {
+            if (!isResolved) {
+              isResolved = true
+              resolve(res)
+            }
+          }
+
+          // Safety guard: If Telegram LocationManager hangs without responding, fallback to browser after 3.5s!
+          const timer = setTimeout(() => {
+            console.warn("[Telegram] LocationManager timed out, trying browser geolocation...")
+            getBrowserLocation().then(safeResolve)
+          }, 3500)
+
+          try {
+            webapp.LocationManager.init(() => {
+              if (webapp.LocationManager.isLocationAvailable) {
+                webapp.LocationManager.getLocation((data: any) => {
+                  clearTimeout(timer)
+                  if (data && typeof data.latitude === "number" && typeof data.longitude === "number") {
+                    safeResolve({
+                      success: true,
+                      lat: data.latitude,
+                      lng: data.longitude,
+                      accuracy: data.horizontal_accuracy,
+                    })
+                  } else {
+                    getBrowserLocation().then(safeResolve)
+                  }
+                })
+              } else {
+                clearTimeout(timer)
+                if (typeof webapp.LocationManager.openSettings === "function") {
+                  webapp.LocationManager.openSettings()
+                }
+                getBrowserLocation().then(safeResolve)
+              }
+            })
+          } catch (e: any) {
+            clearTimeout(timer)
+            console.warn("LocationManager exception, fallback to browser:", e)
+            getBrowserLocation().then(safeResolve)
+          }
+        })
+      }
+
+      // 2. Standalone Browser Geolocation
+      return getBrowserLocation()
     },
     []
   )

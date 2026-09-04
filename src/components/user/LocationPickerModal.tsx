@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   MapPin,
@@ -14,6 +14,7 @@ import {
   Layers,
   DoorClosed,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTelegram } from "@/hooks/useTelegram"
@@ -44,10 +45,11 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const { triggerHaptic, requestLocation } = useTelegram()
   const { addSavedLocation } = useAppStore()
 
-  // State
+  // Coords state
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     currentLat && currentLng ? { lat: currentLat, lng: currentLng } : null
   )
+  const [isGpsLocated, setIsGpsLocated] = useState<boolean>(false)
   const [address, setAddress] = useState(currentAddress || "")
   const [distanceKm, setDistanceKm] = useState(currentDistance || 2.0)
   const [isLocating, setIsLocating] = useState(false)
@@ -111,7 +113,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     }
   }
 
-  // 1-Tap Location Fetch via Telegram WebApp native LocationManager
+  // 1-Tap Location Fetch via Telegram / Browser with instant response
   const handleGetLocation = async () => {
     setIsLocating(true)
     setErrorMsg(null)
@@ -126,6 +128,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
         setCoords({ lat, lng })
         setDistanceKm(dist)
+        setIsGpsLocated(true)
         triggerHaptic("success")
 
         await reverseGeocode(lat, lng)
@@ -141,13 +144,6 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     }
   }
 
-  // Auto-request location if not set on open
-  useEffect(() => {
-    if (isOpen && !coords && !currentAddress) {
-      handleGetLocation()
-    }
-  }, [isOpen])
-
   // Yandex Go deep link for preview
   const yandexGoPreviewUrl = coords
     ? `https://3.redirect.appmetrica.yandex.com/route?end-lat=${coords.lat}&end-lon=${coords.lng}&tariffClass=econom&ref=fullfood&appmetrica_tracking_id=1178268795219780156&lang=uz`
@@ -156,7 +152,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const handleConfirm = () => {
     triggerHaptic("success")
 
-    const finalAddress = address.trim() || (coords ? `Qarshi (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})` : "Qarshi shahar")
+    const finalAddress =
+      address.trim() || (coords ? `Qarshi (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})` : "Qarshi shahar")
 
     // Automatically save to app store for quick reuse
     addSavedLocation({
@@ -201,90 +198,108 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 <h3 className="font-black text-sm text-neutral-900 dark:text-white">
                   Yetkazib Berish Manzili
                 </h3>
-                <p className="text-[10px] text-neutral-400">Telegram orqali tezkor va oson aniqlash</p>
+                <p className="text-[10px] text-neutral-400">Aniq yetkazish va hisob-kitob uchun</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+              className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
           <div className="space-y-4 overflow-y-auto flex-1 pr-0.5">
-            {/* 1-Tap Telegram Location Action Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
-                  <Crosshair className="h-4 w-4 text-emerald-600 animate-pulse" />
-                  Telegram Geolokatsiyasi
-                </span>
-                {coords ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Aniqlangan
+            {/* GPS LOCATION STATUS / DISCOVERY CARD */}
+            {isGpsLocated ? (
+              /* State A: GPS is successfully acquired */
+              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    Joylashuv muvaffaqiyatli aniqlandi
                   </span>
-                ) : (
-                  <span className="text-[10px] text-neutral-400">Kutilmoqda</span>
+                  <button
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={isLocating}
+                    className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isLocating ? "animate-spin" : ""}`} />
+                    <span>Qayta aniqlash</span>
+                  </button>
+                </div>
+                {coords && (
+                  <p className="text-[10px] text-neutral-600 dark:text-neutral-400 font-medium">
+                    GPS: <span className="font-mono font-bold text-neutral-800 dark:text-neutral-200">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
+                  </p>
                 )}
               </div>
+            ) : (
+              /* State B: GPS not triggered yet -> Show Discovery Button */
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
+                    <Crosshair className="h-4 w-4 text-emerald-600 animate-pulse" />
+                    Geolokatsiyani aniqlash
+                  </span>
+                  <span className="text-[10px] text-neutral-400">1 marta bosish</span>
+                </div>
 
-              <Button
-                type="button"
-                onClick={handleGetLocation}
-                disabled={isLocating}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs py-3 shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
-              >
-                {isLocating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Telegram joylashuvni aniqlamoqda...</span>
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="h-4 w-4" />
-                    <span>📍 Mening Joylashuvimni Aniqlash</span>
-                  </>
+                <Button
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={isLocating}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs py-3 shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
+                >
+                  {isLocating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Joylashuv aniqlanmoqda...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="h-4 w-4" />
+                      <span>📍 Mening Joylashuvimni Aniqlash</span>
+                    </>
+                  )}
+                </Button>
+
+                {errorMsg && (
+                  <div className="flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-900">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{errorMsg}</span>
+                  </div>
                 )}
-              </Button>
-
-              {errorMsg && (
-                <div className="flex items-start gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-900">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span>{errorMsg} (Pastda manzilni qo'lda kiritishingiz mumkin)</span>
-                </div>
-              )}
-            </div>
-
-            {/* Location Metrics (Distance, Delivery Fee, Yandex Link) */}
-            {coords && (
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                    Masofa
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Car className="h-4 w-4 text-emerald-600" />
-                    <span className="text-sm font-black text-neutral-900 dark:text-white">
-                      ~{distanceKm} km
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                    Taksi narxi
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-sm font-black text-emerald-600">
-                      ~{deliveryFee.toLocaleString()} so'm
-                    </span>
-                  </div>
-                </div>
               </div>
             )}
+
+            {/* Location Metrics (Distance, Delivery Fee) */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                  Restorandan Masofa
+                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Car className="h-4 w-4 text-emerald-600" />
+                  <span className="text-sm font-black text-neutral-900 dark:text-white">
+                    ~{distanceKm} km
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                  Yetkazish (Taksi) Narxi
+                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-sm font-black text-emerald-600">
+                    ~{deliveryFee.toLocaleString()} so'm
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* Address Input */}
             <div className="space-y-1.5">
@@ -293,7 +308,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 {isGeocoding && (
                   <span className="text-[10px] text-emerald-600 flex items-center gap-1">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    Manzil olinmoqda...
+                    Manzil aniqlanmoqda...
                   </span>
                 )}
               </label>
@@ -362,7 +377,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                       triggerHaptic("light")
                       setSelectedLabel(lbl)
                     }}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       selectedLabel === lbl
                         ? "bg-emerald-600 text-white shadow-xs"
                         : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200"
@@ -378,7 +393,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             </div>
 
             {/* Yandex Go verification link button */}
-            {yandexGoPreviewUrl && (
+            {yandexGoPreviewUrl && isGpsLocated && (
               <a
                 href={yandexGoPreviewUrl}
                 target="_blank"
@@ -397,7 +412,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             <Button
               type="button"
               onClick={handleConfirm}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm py-3.5 shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm py-3.5 shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
             >
               <CheckCircle2 className="h-4 w-4" />
               <span>Manzilni Tasdiqlash</span>
