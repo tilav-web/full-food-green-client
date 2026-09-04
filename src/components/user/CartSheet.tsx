@@ -372,9 +372,6 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
                               <p className="text-xs font-bold text-neutral-900 dark:text-white truncate">
                                 {deliveryAddress}
                               </p>
-                              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
-                                {t.distance}: {distanceKm} km ({t.deliveryFee}: {deliveryFee.toLocaleString()} so'm)
-                              </span>
                             </div>
                           </div>
                           <ChevronRight className="h-4 w-4 text-emerald-600 flex-shrink-0" />
