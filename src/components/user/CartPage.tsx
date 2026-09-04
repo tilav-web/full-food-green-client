@@ -24,7 +24,6 @@ import {
   Package,
   Wallet,
   DoorClosed,
-  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -879,7 +878,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                         triggerHaptic("light")
                         setIsDoorToDoor(!isDoorToDoor)
                       }}
-                      className={`p-3 rounded-2xl border transition-all cursor-pointer select-none space-y-2 ${
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer select-none ${
                         isDoorToDoor
                           ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-1 ring-emerald-600 shadow-xs"
                           : "border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-800/40 hover:border-neutral-300"
@@ -897,24 +896,17 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                             <DoorClosed className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span
-                                className={`font-black text-xs ${
-                                  isDoorToDoor
-                                    ? "text-emerald-950 dark:text-emerald-200"
-                                    : "text-neutral-900 dark:text-white"
-                                }`}
-                              >
-                                {t.doorToDoorTitle || "Eshikdan eshikgacha yetkazish"}
-                              </span>
-                              {isDoorToDoor && (
-                                <span className="text-[9px] font-extrabold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1.5 py-0.2 rounded-full border border-amber-300 dark:border-amber-800">
-                                  {t.doorToDoorBadge || "Qimmatroq tarif"}
-                                </span>
-                              )}
-                            </div>
+                            <span
+                              className={`font-black text-xs block ${
+                                isDoorToDoor
+                                  ? "text-emerald-950 dark:text-emerald-200"
+                                  : "text-neutral-900 dark:text-white"
+                              }`}
+                            >
+                              {t.doorToDoorTitle || "Eshikdan eshikgacha yetkazish"}
+                            </span>
                             <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug mt-0.5">
-                              {t.doorToDoorDesc || "Kuryer taomni pastda qoldirmasdan, to'g'ridan-to'g'ri xonadoningiz / eshigingiz oldigacha olib chiqadi."}
+                              {t.doorToDoorDesc || "Kuryer buyurtmani eshigingizgacha yetkazadi. Bunda to'lov biroz oshadi"}
                             </p>
                           </div>
                         </div>
@@ -930,16 +922,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                           {isDoorToDoor && <Check className="h-3 w-3 stroke-[3]" />}
                         </div>
                       </div>
-
-                      {/* Notice / Warning alert when checked */}
-                      {isDoorToDoor && (
-                        <div className="p-2 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-[10px] text-amber-800 dark:text-amber-200 flex items-start gap-1.5 leading-relaxed">
-                          <AlertCircle className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                          <span>
-                            {t.doorToDoorNotice || "Eslatma: Eshikgacha olib chiqish xizmatida kuryer to'lovi oddiy yetkazishga qaraganda qimmatroq hisoblanadi (yetkazish summasi alohida kuryerga to'lanadi)."}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </>
                 )}
