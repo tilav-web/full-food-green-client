@@ -53,6 +53,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     setAuth,
     setCurrentActiveOrder,
     savedLocations,
+    removeSavedLocation,
   } = useAppStore()
   const { isTelegram, triggerHaptic, requestPhoneContact } = useTelegram()
 
@@ -61,6 +62,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   const [showManualPhoneInput, setShowManualPhoneInput] = useState(false)
   const [manualPhone, setManualPhone] = useState("+998")
   const [isSavingManualPhone, setIsSavingManualPhone] = useState(false)
+  const [locationToDelete, setLocationToDelete] = useState<SavedLocationItem | null>(null)
 
 
 
@@ -682,43 +684,59 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                           {savedLocations.map((loc) => {
                             const isSelected = deliveryAddress === loc.address
                             return (
-                              <button
+                              <div
                                 key={loc.id}
-                                type="button"
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => handleSelectQuickSavedLocation(loc)}
-                                className={`p-2.5 rounded-2xl border text-left flex items-start gap-2 transition-all ${isSelected
+                                className={`p-2.5 rounded-2xl border text-left flex items-start justify-between gap-1.5 transition-all cursor-pointer select-none relative group ${isSelected
                                   ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 shadow-xs"
-                                  : "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/60"
+                                  : "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/60 hover:border-neutral-300 dark:hover:border-neutral-700"
                                   }`}
                               >
-                                <div
-                                  className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 ${isSelected
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
-                                    }`}
-                                >
-                                  {loc.label === "Uy" ? (
-                                    <Home className="h-3.5 w-3.5" />
-                                  ) : loc.label === "Ishxona" ? (
-                                    <Briefcase className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <MapPin className="h-3.5 w-3.5" />
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <span
-                                    className={`font-black text-xs block ${isSelected
-                                      ? "text-emerald-800 dark:text-emerald-300"
-                                      : "text-neutral-900 dark:text-white"
+                                <div className="flex items-start gap-2 min-w-0 flex-1">
+                                  <div
+                                    className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 ${isSelected
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
                                       }`}
                                   >
-                                    {loc.label}
-                                  </span>
-                                  <p className="text-[10px] text-neutral-500 truncate mt-0.5">
-                                    {loc.address}
-                                  </p>
+                                    {loc.label === "Uy" ? (
+                                      <Home className="h-3.5 w-3.5" />
+                                    ) : loc.label === "Ishxona" ? (
+                                      <Briefcase className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <MapPin className="h-3.5 w-3.5" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <span
+                                      className={`font-black text-xs block truncate ${isSelected
+                                        ? "text-emerald-800 dark:text-emerald-300"
+                                        : "text-neutral-900 dark:text-white"
+                                        }`}
+                                    >
+                                      {loc.label}
+                                    </span>
+                                    <p className="text-[10px] text-neutral-500 truncate mt-0.5">
+                                      {loc.address}
+                                    </p>
+                                  </div>
                                 </div>
-                              </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    triggerHaptic("medium")
+                                    setLocationToDelete(loc)
+                                  }}
+                                  className="h-6 w-6 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-950/60 flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer -mr-1 -mt-1"
+                                  title="Manzilni o'chirish"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
                             )
                           })}
                         </div>
@@ -1182,6 +1200,78 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 <p className="text-[11px] text-neutral-400">
                   Botda raqamingiz yuborilgach, buyurtma avtomatik ochiladi...
                 </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE SAVED LOCATION CONFIRMATION DIALOG */}
+      <AnimatePresence>
+        {locationToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+            <div className="absolute inset-0" onClick={() => setLocationToDelete(null)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative z-10 w-full max-w-sm bg-white dark:bg-neutral-900 rounded-3xl p-5 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-500 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-neutral-900 dark:text-white">
+                    Manzilni o'chirish
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    Haqiqatan ham bu manzilni o'chirmoqchimisiz?
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
+                <p className="font-black text-xs text-neutral-900 dark:text-white">
+                  {locationToDelete.label}
+                </p>
+                <p className="text-[11px] text-neutral-500 line-clamp-2 mt-0.5">
+                  {locationToDelete.address}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLocationToDelete(null)}
+                  className="rounded-2xl border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold text-xs h-11"
+                >
+                  Bekor qilish
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("warning")
+                    const targetId = locationToDelete.id
+                    const targetAddr = locationToDelete.address
+                    removeSavedLocation(targetId)
+                    if (deliveryAddress === targetAddr) {
+                      const remaining = savedLocations.filter((l) => l.id !== targetId)
+                      if (remaining.length > 0) {
+                        handleSelectQuickSavedLocation(remaining[0])
+                      } else {
+                        setDeliveryAddress("")
+                      }
+                    }
+                    toast.success("Manzil o'chirildi")
+                    setLocationToDelete(null)
+                  }}
+                  className="rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs h-11 shadow-md shadow-red-500/20 cursor-pointer"
+                >
+                  Ha, o'chirish
+                </Button>
               </div>
             </motion.div>
           </div>
