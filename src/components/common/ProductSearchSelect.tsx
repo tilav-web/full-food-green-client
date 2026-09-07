@@ -219,7 +219,12 @@ export const ProductSearchSelect: React.FC<ProductSearchSelectProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-shrink-0 pl-2">
+                      <div className="flex items-center gap-1.5 flex-shrink-0 pl-2">
+                        {p.isActive === false && (
+                          <Badge className="text-[9px] font-bold bg-amber-500 text-white py-0 px-1.5">
+                            Nofaol
+                          </Badge>
+                        )}
                         <Badge
                           variant="secondary"
                           className="text-[9px] font-bold bg-neutral-100 dark:bg-neutral-800"

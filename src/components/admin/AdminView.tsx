@@ -372,6 +372,7 @@ export const AdminView: React.FC = () => {
   const [newProductCarbs, setNewProductCarbs] = useState<number | string>("")
   const [newProductImageUrl, setNewProductImageUrl] = useState("")
   const [newProductDescription, setNewProductDescription] = useState("")
+  const [newProductIsActive, setNewProductIsActive] = useState(true)
 
   // Search-Select Popovers & Fast Creation State
   const [catSearch, setCatSearch] = useState("")
@@ -659,6 +660,7 @@ export const AdminView: React.FC = () => {
         carbs: newProductCarbs !== "" ? Number(newProductCarbs) : 0,
         unitName: newProductUnit || "pors",
         imageUrl: newProductImageUrl || undefined,
+        isActive: newProductIsActive,
       }
 
       if (editingProductId) {
@@ -693,6 +695,7 @@ export const AdminView: React.FC = () => {
     setNewProductFat("")
     setNewProductCarbs("")
     setNewProductImageUrl("")
+    setNewProductIsActive(true)
     setEditingProductId(null)
   }
 
@@ -713,7 +716,23 @@ export const AdminView: React.FC = () => {
     setNewProductFat(p.fat ?? "")
     setNewProductCarbs(p.carbs ?? "")
     setNewProductImageUrl(p.imageUrl || "")
+    setNewProductIsActive(p.isActive !== false)
     setShowAddProduct(true)
+  }
+
+  const handleToggleProductActive = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    try {
+      triggerHaptic("light")
+      await apiClient.patch(`/products/${id}/toggle-active`)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["adminProducts"] })
+      refetchProducts()
+      toast.success("Taom holati yangilandi")
+    } catch (err) {
+      console.error(err)
+      toast.error("Taom holatini o'zgartirishda xatolik")
+    }
   }
 
   const handleDeleteProduct = async (id: string) => {
@@ -1167,7 +1186,9 @@ export const AdminView: React.FC = () => {
               return (
                 <div
                   key={p.id}
-                  className="rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xs overflow-hidden flex flex-col justify-between"
+                  className={`rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xs overflow-hidden flex flex-col justify-between transition-all ${
+                    p.isActive === false ? "opacity-75 bg-neutral-50/80 dark:bg-neutral-900/60" : ""
+                  }`}
                 >
                   <div>
                     {/* Image */}
@@ -1188,11 +1209,18 @@ export const AdminView: React.FC = () => {
                       )}
 
                       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                        {hasDiscount ? (
-                          <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg shadow-xs">
-                            Skitka
-                          </span>
-                        ) : <span />}
+                        <div className="flex items-center gap-1">
+                          {p.isActive === false && (
+                            <span className="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-xs">
+                              Nofaol
+                            </span>
+                          )}
+                          {hasDiscount && (
+                            <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg shadow-xs">
+                              Skitka
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1">
                           <span className="bg-black/65 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-lg border border-white/20">
                             {p.unitName}
@@ -1231,19 +1259,34 @@ export const AdminView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-2 pt-0 flex items-center justify-between border-t border-neutral-100 dark:border-neutral-800 mt-1">
+                  <div className="p-2 pt-1 flex items-center justify-between border-t border-neutral-100 dark:border-neutral-800 mt-1 gap-1">
                     <button
-                      onClick={() => handleEditProduct(p)}
-                      className="text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-emerald-600 px-2 py-1 rounded-lg"
+                      type="button"
+                      onClick={(e) => handleToggleProductActive(p.id, e)}
+                      className={`text-[10px] font-bold px-2 py-1 rounded-xl flex items-center gap-1 transition-all ${
+                        p.isActive !== false
+                          ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200/50"
+                          : "bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 border border-red-200/50"
+                      }`}
+                      title={p.isActive !== false ? "Nofaol qilish (Stop-list)" : "Faollashtirish"}
                     >
-                      Tahrirlash
+                      <span className={`h-2 w-2 rounded-full ${p.isActive !== false ? "bg-emerald-500" : "bg-red-500"}`} />
+                      <span>{p.isActive !== false ? "Faol" : "Nofaol"}</span>
                     </button>
-                    <button
-                      onClick={() => handleDeleteProduct(p.id)}
-                      className="text-red-500 hover:text-red-600 p-1 rounded-lg"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEditProduct(p)}
+                        className="text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-emerald-600 px-2 py-1 rounded-lg"
+                      >
+                        Tahrirlash
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(p.id)}
+                        className="text-red-500 hover:text-red-600 p-1 rounded-lg"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -3316,6 +3359,31 @@ export const AdminView: React.FC = () => {
                     rows={2}
                     className="w-full text-xs font-medium px-3.5 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 mt-1 bg-neutral-50 dark:bg-neutral-800 outline-none"
                   />
+                </div>
+
+                {/* Active / Inactive Switch */}
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/80 dark:border-neutral-700/80">
+                  <div>
+                    <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 block">
+                      Taom Holati:
+                    </span>
+                    <span className="text-[10px] text-neutral-400">
+                      {newProductIsActive
+                        ? "Menyuda ko'rinadi va buyurtma berish mumkin"
+                        : "Menyuda ko'rinadi, lekin buyurtma qilib bo'lmaydi (Stop-list)"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNewProductIsActive((prev) => !prev)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                      newProductIsActive
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-red-500 text-white shadow-xs"
+                    }`}
+                  >
+                    {newProductIsActive ? "🟢 Faol" : "🔴 Nofaol"}
+                  </button>
                 </div>
               </div>
 

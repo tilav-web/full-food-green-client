@@ -28,6 +28,7 @@ import {
   Loader2,
   Trash2,
   Printer,
+  Ban,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -156,13 +157,13 @@ export const CashierView: React.FC = () => {
   const [audioReady, setAudioReady] = React.useState(audioUnlocked)
 
   // URL State
-  const activeTab = (searchParams.get("tab") as "ORDERS" | "POS" | "KIRIM") || "ORDERS"
+  const activeTab = (searchParams.get("tab") as "ORDERS" | "POS" | "KIRIM" | "STOPLIST") || "ORDERS"
   const orderFilter = searchParams.get("status") || "ALL"
   const activeReceiptId = searchParams.get("receipt") || null
   const activeYandexId = searchParams.get("yandex") || null
   const [soliqPrintingOrder, setSoliqPrintingOrder] = React.useState<Order | null>(null)
 
-  const setActiveTab = (tab: "ORDERS" | "POS" | "KIRIM") => {
+  const setActiveTab = (tab: "ORDERS" | "POS" | "KIRIM" | "STOPLIST") => {
     const next = new URLSearchParams(searchParams)
     next.set("tab", tab)
     setSearchParams(next)
@@ -325,6 +326,78 @@ export const CashierView: React.FC = () => {
   )
 
   const [isDispatchingYandex, setIsDispatchingYandex] = React.useState(false)
+
+  // Stop-List & Availability State
+  const [stopListSearch, setStopListSearch] = React.useState("")
+  const [stopListCategory, setStopListCategory] = React.useState("ALL")
+  const [stopListStatusFilter, setStopListStatusFilter] = React.useState<"ALL" | "INACTIVE" | "ACTIVE">("ALL")
+  const [togglingProductId, setTogglingProductId] = React.useState<string | null>(null)
+
+  const inactiveProducts = useMemo(() => products.filter((p) => p.isActive === false), [products])
+  const inactiveProductsCount = inactiveProducts.length
+
+  const filteredStopListProducts = useMemo(() => {
+    return products.filter((p) => {
+      const q = stopListSearch.toLowerCase().trim()
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.category?.name && p.category.name.toLowerCase().includes(q)) ||
+        (p.description && p.description.toLowerCase().includes(q))
+
+      const matchesCat =
+        stopListCategory === "ALL" ||
+        p.categoryId === stopListCategory ||
+        p.category?.id === stopListCategory
+
+      const matchesStatus =
+        stopListStatusFilter === "ALL" ||
+        (stopListStatusFilter === "INACTIVE" && p.isActive === false) ||
+        (stopListStatusFilter === "ACTIVE" && p.isActive !== false)
+
+      return matchesSearch && matchesCat && matchesStatus
+    })
+  }, [products, stopListSearch, stopListCategory, stopListStatusFilter])
+
+  const handleToggleProductActive = async (productId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const target = products.find((p) => p.id === productId)
+    if (!target) return
+    const newActiveState = target.isActive === false
+
+    try {
+      setTogglingProductId(productId)
+      triggerHaptic("medium")
+
+      // Optimistic cache update
+      queryClient.setQueryData<Product[]>(["cashierProducts"], (old) => {
+        if (!old) return []
+        return old.map((p) => (p.id === productId ? { ...p, isActive: newActiveState } : p))
+      })
+      queryClient.setQueryData<Product[]>(["products"], (old) => {
+        if (!old) return []
+        return old.map((p) => (p.id === productId ? { ...p, isActive: newActiveState } : p))
+      })
+
+      await apiClient.patch(`/products/${productId}/toggle-active`)
+
+      await queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["adminProducts"] })
+
+      if (newActiveState) {
+        toast.success(`"${target.name}" yana menyuga qo'shildi (Faol)`)
+      } else {
+        toast.warning(`"${target.name}" stop-listga kiritildi (Nofaol)`)
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Holatni o'zgartirishda xatolik yuz berdi")
+      refetchProducts()
+    } finally {
+      setTogglingProductId(null)
+    }
+  }
 
   // POS State (Walk-in customer order)
   const [posCart, setPosCart] = React.useState<Array<{ product: Product; quantity: number }>>([])
@@ -746,6 +819,21 @@ export const CashierView: React.FC = () => {
               }`}
             >
               Kirim Qabul
+            </button>
+            <button
+              onClick={() => setActiveTab("STOPLIST")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                activeTab === "STOPLIST"
+                  ? "bg-white text-emerald-950 shadow-md"
+                  : "text-emerald-200 hover:text-white"
+              }`}
+            >
+              <span>Stop-List</span>
+              {inactiveProductsCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500 text-white font-black">
+                  {inactiveProductsCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -1315,6 +1403,26 @@ export const CashierView: React.FC = () => {
                   ))}
                 </div>
 
+                {/* Quick Stop-List Button */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("STOPLIST")}
+                  className={`px-3 py-1.5 rounded-2xl text-xs font-black flex items-center gap-1.5 border shadow-xs transition-all active:scale-95 ${
+                    inactiveProductsCount > 0
+                      ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-100"
+                      : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50"
+                  }`}
+                  title="Stop-List boshqaruvi"
+                >
+                  <Ban className="h-3.5 w-3.5 text-red-500" />
+                  <span className="hidden sm:inline">Stop-List</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    inactiveProductsCount > 0 ? "bg-red-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
+                  }`}>
+                    {inactiveProductsCount}
+                  </span>
+                </button>
+
                 {/* Quick Search Input */}
                 <div className="relative w-full sm:w-56">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
@@ -1553,6 +1661,24 @@ export const CashierView: React.FC = () => {
                             </span>
                           )}
                         </div>
+
+                        {/* Fast 1-tap Stop-List Toggle Button on Card Image */}
+                        {qty === 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleProductActive(p.id, e)}
+                            disabled={togglingProductId === p.id}
+                            className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20 h-6 sm:h-7 px-1.5 sm:px-2 rounded-xl backdrop-blur-md flex items-center gap-1 font-bold text-[9px] sm:text-[10px] shadow-md transition-all active:scale-90 ${
+                              p.isActive === false
+                                ? "bg-red-600 text-white hover:bg-red-700 ring-2 ring-white/50"
+                                : "bg-black/50 text-white/80 hover:bg-black/80 hover:text-white"
+                            }`}
+                            title={p.isActive === false ? "Sotuvga chiqarish (Faollashtirish)" : "Stop-listga kiritish (Nofaol qilish)"}
+                          >
+                            <span className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${p.isActive === false ? "bg-white" : "bg-emerald-400"}`} />
+                            <span>{p.isActive === false ? "Stop-list" : "Faol"}</span>
+                          </button>
+                        )}
 
                         {qty > 0 && (
                           <div
@@ -2009,6 +2135,229 @@ export const CashierView: React.FC = () => {
               {isSubmittingKirim ? "Qabul qilinmoqda..." : "Kirimni Qabul Qilish"}
             </Button>
           </form>
+        </div>
+      )}
+
+      {/* TAB 4: STOP-LIST & DISH AVAILABILITY MANAGEMENT FOR CASHIER */}
+      {activeTab === "STOPLIST" && (
+        <div className="space-y-4 max-w-5xl mx-auto">
+          {/* Header Summary & Filters */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 shadow-xs space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black text-sm sm:text-base text-neutral-900 dark:text-white flex items-center gap-2">
+                  <Ban className="h-5 w-5 text-red-600" />
+                  <span>Taomlar Holati & Stop-List Boshqaruvi</span>
+                </h3>
+                <p className="text-[11px] text-neutral-400 mt-0.5">
+                  Tugagan taomlarni 1 bosishda to'xtatish. Mijozlarga menyuda ko'rinadi, lekin buyurtma qilib bo'lmaydi.
+                </p>
+              </div>
+
+              {/* Status Counters */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Sotuvda: {products.length - inactiveProductsCount} ta
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 text-xs font-bold">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  Stop-listda: {inactiveProductsCount} ta
+                </span>
+              </div>
+            </div>
+
+            {/* Search + Filter Row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <input
+                  type="text"
+                  value={stopListSearch}
+                  onChange={(e) => setStopListSearch(e.target.value)}
+                  placeholder="Taom yoki kategoriya nomini qidirish..."
+                  className="w-full pl-10 pr-8 py-2.5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 text-xs font-bold text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                {stopListSearch && (
+                  <button
+                    onClick={() => setStopListSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Segment */}
+              <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 p-1 rounded-2xl gap-1 shrink-0 overflow-x-auto">
+                {(
+                  [
+                    { id: "ALL", label: `Barchasi (${products.length})` },
+                    { id: "INACTIVE", label: `🔴 Stop-list (${inactiveProductsCount})` },
+                    { id: "ACTIVE", label: `🟢 Faol (${products.length - inactiveProductsCount})` },
+                  ] as const
+                ).map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setStopListStatusFilter(f.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                      stopListStatusFilter === f.id
+                        ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs"
+                        : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category Filter Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setStopListCategory("ALL")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                  stopListCategory === "ALL"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200"
+                }`}
+              >
+                Barcha kategoriyalar
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setStopListCategory(c.id)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                    stopListCategory === c.id
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200"
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dishes Grid */}
+          {filteredStopListProducts.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-white dark:bg-neutral-900 border border-dashed border-neutral-300 dark:border-neutral-800 space-y-2">
+              <Package className="h-10 w-10 text-neutral-300 dark:text-neutral-600 mx-auto" />
+              <p className="text-xs font-bold text-neutral-500">Hech qanday taom topilmadi</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {filteredStopListProducts.map((p) => {
+                const isInactive = p.isActive === false
+                const isToggling = togglingProductId === p.id
+
+                return (
+                  <div
+                    key={p.id}
+                    className={`p-3.5 rounded-3xl border bg-white dark:bg-neutral-900 flex items-center justify-between gap-3 shadow-xs transition-all ${
+                      isInactive
+                        ? "border-red-200 dark:border-red-900/50 bg-red-50/20 dark:bg-red-950/10"
+                        : "border-neutral-200/90 dark:border-neutral-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Image Thumbnail */}
+                      <div className="relative h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-neutral-100 dark:bg-neutral-800 overflow-hidden shrink-0 border border-neutral-200/60 dark:border-neutral-700/60">
+                        <img
+                          src={getImageUrl(p.imageUrl)}
+                          alt={p.name}
+                          onError={(e) => {
+                            ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                          }}
+                          className={`h-full w-full object-cover ${isInactive ? "grayscale-[40%] opacity-75" : ""}`}
+                        />
+                        {isInactive && (
+                          <div className="absolute inset-0 bg-red-600/30 flex items-center justify-center">
+                            <Ban className="h-5 w-5 text-white drop-shadow-md" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-black text-xs sm:text-sm text-neutral-900 dark:text-white truncate">
+                            {p.name}
+                          </h4>
+                          {p.category?.name && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500 font-bold">
+                              {p.category.name}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-baseline gap-1 text-xs">
+                          <span className="font-black text-emerald-700 dark:text-emerald-400">
+                            {p.price.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-neutral-400 font-semibold">so'm</span>
+                          <span className="text-[10px] text-neutral-400">• {p.unitName || "pors"}</span>
+                          {p.type === "FIXED_COUNT" && (
+                            <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 ml-1">
+                              (Qoldiq: {p.stockQuantity ?? 0})
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Status Label */}
+                        <div className="pt-0.5">
+                          {isInactive ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-red-600 dark:text-red-400">
+                              <span className="h-2 w-2 rounded-full bg-red-500" />
+                              Stop-listda (Buyurtma qilib bo'lmaydi)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 dark:text-emerald-400">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                              Sotuvda faol (Mijozlar buyurtma bera oladi)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Big 1-Tap Toggle Button */}
+                    <div className="shrink-0">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isToggling}
+                        onClick={(e) => handleToggleProductActive(p.id, e)}
+                        className={`rounded-2xl text-xs font-black h-10 px-3.5 gap-1.5 transition-all active:scale-95 shadow-xs ${
+                          isInactive
+                            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
+                            : "bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
+                        }`}
+                      >
+                        {isToggling ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isInactive ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            <span>Faollashtirish</span>
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="h-4 w-4 text-red-600" />
+                            <span>Nofaol qilish</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 

@@ -12,6 +12,7 @@ import {
   PackagePlus,
   Store,
   BarChart3,
+  Ban,
 } from "lucide-react"
 import { useTranslation } from "@/i18n/useTranslation"
 import { useAppStore } from "@/store/useAppStore"
@@ -64,6 +65,12 @@ export const BottomNav: React.FC = () => {
         label: "Kirim Qabul",
         icon: PackagePlus,
         isActive: location.pathname.startsWith("/cashier") && currentTab === "KIRIM",
+      },
+      {
+        path: "/cashier?tab=STOPLIST",
+        label: "Stop-List",
+        icon: Ban,
+        isActive: location.pathname.startsWith("/cashier") && currentTab === "STOPLIST",
       },
       {
         path: "/profile",

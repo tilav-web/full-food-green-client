@@ -42,5 +42,10 @@
   "top10Badge": "Топ 10",
   "top10Filter": "Топ 10 Блюд",
   "mostSoldTitle": "Самые продаваемые блюда",
-  "soldCountLabel": "продано"
+  "soldCountLabel": "продано",
+  "outOfStock": "Нет в наличии",
+  "temporarilyUnavailable": "Временно нет в наличии",
+  "stopList": "Стоп-лист",
+  "active": "Активно",
+  "inactive": "Неактивно"
 }

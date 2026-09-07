@@ -1,6 +1,7 @@
 import React, { useMemo } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 import { Plus, Minus, Sparkles, Layers, ArrowRight, Tag, Search, X, Flame } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/i18n/useTranslation"
@@ -90,6 +91,10 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({
 
   const handleIncrement = (product: Product, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (product.isActive === false) {
+      toast.warning(t.temporarilyUnavailable || "Ushbu taom hozirda vaqtincha mavjud emas")
+      return
+    }
     triggerHaptic("light")
     const existing = getCartEntry(product.id, undefined)
     if (existing) {
@@ -461,6 +466,7 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({
 
           // STANDARD 2-COLUMN DISH CARD
           const product = entry.data
+          const isInactive = product.isActive === false
           const cartItem = getCartEntry(product.id, undefined)
           const qty = cartItem ? cartItem.quantity : 0
           const hasDiscount = product.oldPrice && product.oldPrice > product.price
@@ -473,7 +479,9 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({
               key={`product_${product.id}_${index}`}
               whileTap={{ scale: 0.98 }}
               onClick={() => handleOpenDish(product)}
-              className="bg-white dark:bg-neutral-900 rounded-3xl overflow-hidden shadow-xs hover:shadow-md border border-neutral-200/80 dark:border-neutral-800/80 flex flex-col justify-between cursor-pointer group transition-all"
+              className={`bg-white dark:bg-neutral-900 rounded-3xl overflow-hidden shadow-xs hover:shadow-md border border-neutral-200/80 dark:border-neutral-800/80 flex flex-col justify-between cursor-pointer group transition-all ${
+                isInactive ? "opacity-65 grayscale-[35%] bg-neutral-50/70 dark:bg-neutral-900/60" : ""
+              }`}
             >
               <div className="space-y-2">
                 {/* Product Image Box */}
@@ -490,19 +498,25 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({
 
                   {/* Top Badges */}
                   <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-black/60 text-white backdrop-blur-md">
-                        {product.calories} kkal
+                    {isInactive ? (
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded-lg bg-neutral-900/85 text-white/95 backdrop-blur-md border border-white/20 shadow-xs">
+                        {t.temporarilyUnavailable || "Vaqtincha mavjud emas"}
                       </span>
-                      {top10PopularIds.has(product.id) && (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5">
-                          <Flame className="h-3 w-3 fill-white" />
-                          {t.top10Badge || "Top 10"}
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-black/60 text-white backdrop-blur-md">
+                          {product.calories} kkal
                         </span>
-                      )}
-                    </div>
+                        {top10PopularIds.has(product.id) && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5">
+                            <Flame className="h-3 w-3 fill-white" />
+                            {t.top10Badge || "Top 10"}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                    {hasDiscount && (
+                    {!isInactive && hasDiscount && (
                       <span className="text-[10px] font-black px-1.5 py-0.5 rounded-lg bg-red-600 text-white shadow-xs">
                         -{discountPercent}%
                       </span>
@@ -544,7 +558,11 @@ export const MenuCatalog: React.FC<MenuCatalogProps> = ({
                   </div>
 
                   {/* Add to Cart Stepper */}
-                  {qty === 0 ? (
+                  {isInactive ? (
+                    <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                      {t.outOfStock || "Mavjud emas"}
+                    </span>
+                  ) : qty === 0 ? (
                     <button
                       onClick={(e) => handleIncrement(product, e)}
                       className="h-8 w-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 active:scale-90 transition-all flex-shrink-0"

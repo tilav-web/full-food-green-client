@@ -42,5 +42,10 @@
   "top10Badge": "Top 10",
   "top10Filter": "Top 10 Taomlar",
   "mostSoldTitle": "Eng ko'p sotilayotgan taomlar",
-  "soldCountLabel": "ta sotilgan"
+  "soldCountLabel": "ta sotilgan",
+  "outOfStock": "Mavjud emas",
+  "temporarilyUnavailable": "Vaqtincha mavjud emas",
+  "stopList": "Stop-list",
+  "active": "Faol",
+  "inactive": "Nofaol"
 }

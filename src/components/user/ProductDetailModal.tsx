@@ -1,6 +1,6 @@
 import React, { useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Minus, ShoppingBag, Package, Tag, Sparkles, Flame } from "lucide-react"
+import { X, Plus, Minus, ShoppingBag, Package, Tag, Sparkles, Flame, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/i18n/useTranslation"
@@ -48,8 +48,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   )
   const countInCart = cartItem?.quantity || 0
 
+  const isInactive = item.isActive === false
   const isFixed = !isCombo && (item as Product).type === "FIXED_COUNT"
-  const isOutOfStock = isFixed && ((item as Product).stockQuantity || 0) <= 0
+  const isOutOfStock = isInactive || (isFixed && ((item as Product).stockQuantity || 0) <= 0)
 
   const hasDiscount = item.oldPrice && item.oldPrice > item.price
   const discountPercent = hasDiscount
@@ -187,6 +188,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           {/* Scrollable details */}
           <div className="p-5 overflow-y-auto space-y-4 flex-1">
+            {isInactive && (
+              <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs font-bold">
+                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                <span>{t.temporarilyUnavailable || "Ushbu taom hozirda vaqtincha mavjud emas"}</span>
+              </div>
+            )}
+
             {/* Description */}
             <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
               {item.description || "Yangi va sifatli masalliqlardan tayyorlangan mazali taom."}
@@ -253,10 +261,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <Button
                 onClick={handleInitialAdd}
                 disabled={isOutOfStock}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl px-6 py-3 text-xs shadow-md shadow-emerald-600/20 active:scale-98 flex items-center gap-1.5"
+                className={`font-bold rounded-2xl px-6 py-3 text-xs flex items-center gap-1.5 transition-all ${
+                  isOutOfStock
+                    ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed border border-neutral-300 dark:border-neutral-700 shadow-none"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-98"
+                }`}
               >
                 <Plus className="h-4 w-4" />
-                {isOutOfStock ? t.outOfStock : t.addToCart}
+                {isInactive
+                  ? (t.temporarilyUnavailable || "Vaqtincha mavjud emas")
+                  : isOutOfStock
+                  ? (t.outOfStock || "Mavjud emas")
+                  : t.addToCart}
               </Button>
             ) : (
               <div className="flex items-center gap-2 bg-emerald-600 text-white rounded-2xl p-1 shadow-md shadow-emerald-600/25">
