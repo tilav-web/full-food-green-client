@@ -381,7 +381,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             {step === "CART" && `${cart.length} ${t.selectedDishesCount || "xil taom tanlangan"}`}
             {step === "LOCATION" && (t.locationStepDesc || "Taom yetkazilishi uchun manzilingizni tanlang")}
             {step === "PAYMENT" && (t.paymentDesc || "Karta to'lovi va chek yuklash")}
-            {step === "SUCCESS" && (t.checkingReceipt || "Kassir chekingizni tekshirmoqda")}
+            {step === "SUCCESS" && (t.checkingReceipt || "Operator chekingizni tekshirmoqda")}
           </p>
         </div>
 
@@ -1025,7 +1025,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
             {selectedPaymentMethod === "BALANCE" && (
               <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
-                💡 <b>Balans to'lovi:</b> Chek yuklash talab qilinmaydi. Kassir buyurtmangizni tasdiqlashi bilan hisobingizdan <b>{totalAmount.toLocaleString()} {t.currency}</b> yechiladi.
+                💡 <b>Balans to'lovi:</b> Chek yuklash talab qilinmaydi. Operator buyurtmangizni tasdiqlashi bilan hisobingizdan <b>{totalAmount.toLocaleString()} {t.currency}</b> yechiladi.
               </div>
             )}
           </div>
@@ -1214,13 +1214,13 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   Shaxsiy balans orqali to'lov ({Number(createdOrder.totalAmount || totalAmount).toLocaleString()} {t.currency})
                 </p>
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
-                  Kassir tasdiqlashi bilan hisobingizdan yechiladi va taom tayyorlanadi.
+                  Operator tasdiqlashi bilan hisobingizdan yechiladi va taom tayyorlanadi.
                 </p>
               </div>
             ) : (
               <div className="pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/60 text-neutral-600 dark:text-neutral-400">
                 <p className="font-semibold">To'lov cheki qabul qilindi.</p>
-                <p className="text-[11px] text-neutral-400">Kassir tekshirgach buyurtma tayyorlashga o'tadi.</p>
+                <p className="text-[11px] text-neutral-400">Operator tekshirgach buyurtma tayyorlashga o'tadi.</p>
               </div>
             )}
           </div>

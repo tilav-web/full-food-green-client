@@ -380,7 +380,7 @@ export const OrderTracker: React.FC = () => {
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-200">
                           <Clock className="h-4 w-4 text-blue-600" />
-                          <span>To'lov cheki yuborilgan — Kassir tekshirmoqda</span>
+                          <span>To'lov cheki yuborilgan — Operator tekshirmoqda</span>
                         </div>
                         {order.receiptImageUrl && (
                           <button
