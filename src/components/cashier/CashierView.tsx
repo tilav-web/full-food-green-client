@@ -37,6 +37,12 @@ import { useTelegram } from "@/hooks/useTelegram"
 import { ProductSearchSelect } from "@/components/common/ProductSearchSelect"
 import { getImageUrl } from "@/lib/utils"
 import { SoliqReceiptModal } from "./SoliqReceiptModal"
+import { PrinterSettingsModal } from "./PrinterSettingsModal"
+import {
+  getPrinterSettings,
+  quickPrintOrder,
+  type PrinterSettings,
+} from "@/lib/thermalPrintService"
 import type { Order, Product, Category, OrderStatus, User } from "@/types"
 
 import { socket } from "@/api/socket"
@@ -162,6 +168,34 @@ export const CashierView: React.FC = () => {
   const activeReceiptId = searchParams.get("receipt") || null
   const activeYandexId = searchParams.get("yandex") || null
   const [soliqPrintingOrder, setSoliqPrintingOrder] = React.useState<Order | null>(null)
+  const [printerSettingsOpen, setPrinterSettingsOpen] = React.useState(false)
+  const [printerSettings, setPrinterSettings] = React.useState<PrinterSettings>(getPrinterSettings())
+
+  // 1-Click Direct Print to Xprinter with automatic fallback to SoliqReceiptModal
+  const handlePrintOrder = async (order: Order, forcePreview: boolean = false) => {
+    triggerHaptic("light")
+    if (!order) return
+
+    // If forcePreview or quickPrint is disabled, open SoliqReceiptModal preview
+    if (forcePreview || !printerSettings.quickPrintEnabled) {
+      setSoliqPrintingOrder(order)
+      return
+    }
+
+    try {
+      toast.info(`Chek #${order.orderNumber} Xprinterga yuborilmoqda...`, { duration: 1500 })
+      const ok = await quickPrintOrder(order, printerSettings)
+      if (ok) {
+        toast.success(`Xprinter: #${order.orderNumber} cheki chop etishga yuborildi!`)
+      } else {
+        console.warn("Direct print failed, falling back to modal preview")
+        setSoliqPrintingOrder(order)
+      }
+    } catch (err) {
+      console.error("Direct print exception, falling back to modal:", err)
+      setSoliqPrintingOrder(order)
+    }
+  }
 
   const setActiveTab = (tab: "ORDERS" | "POS" | "KIRIM" | "STOPLIST") => {
     const next = new URLSearchParams(searchParams)
@@ -646,7 +680,7 @@ export const CashierView: React.FC = () => {
         unitPrice: i.product.price,
       }))
 
-      await apiClient.post("/orders", {
+      const createdOrderRes = await apiClient.post("/orders", {
         userId: posSelectedCustomer?.id,
         customerName: posCustomerName,
         customerPhone: posSelectedCustomer?.phone || "+998 00 000 00 00",
@@ -655,6 +689,7 @@ export const CashierView: React.FC = () => {
         items,
       })
 
+      const createdOrder = createdOrderRes?.data
       triggerHaptic("success")
       setPosCart([])
       setPosSelectedCustomer(null)
@@ -664,6 +699,10 @@ export const CashierView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
       queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
       toast.success("POS Buyurtma muvaffaqiyatli saqlandi!")
+
+      if (printerSettings.autoPrintPosOrder && createdOrder) {
+        handlePrintOrder(createdOrder)
+      }
     } catch (err: any) {
       console.error(err)
       toast.error("Xatolik yuz berdi: " + (err.response?.data?.message || err.message))
@@ -775,6 +814,20 @@ export const CashierView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setPrinterSettingsOpen(true)}
+            title="Xprinter (Chek apparati) sozlamalari va sinov cheki"
+            className={`px-3 py-2 rounded-2xl border flex items-center gap-1.5 text-xs font-black transition-all cursor-pointer shadow-xs ${
+              printerSettings.quickPrintEnabled
+                ? "bg-emerald-950/70 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900"
+                : "bg-neutral-800/80 border-neutral-700 text-neutral-300 hover:text-white"
+            }`}
+          >
+            <Printer className="h-4 w-4" />
+            <span>{printerSettings.quickPrintEnabled ? "Xprinter: 1-Bosish" : "Chek: Standart"}</span>
+          </button>
+
           <button
             type="button"
             onClick={enableSound}
@@ -1005,11 +1058,10 @@ export const CashierView: React.FC = () => {
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    triggerHaptic("light")
-                                    setSoliqPrintingOrder(order)
+                                    handlePrintOrder(order)
                                   }}
                                   className="h-7 w-7 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 flex items-center justify-center transition-all shadow-2xs group cursor-pointer"
-                                  title="Soliq chekini chop etish (80mm)"
+                                  title="Xprinter chekini chiqarish (80mm)"
                                 >
                                   <Printer className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300 group-hover:text-white transition-colors" />
                                 </button>
@@ -1150,14 +1202,12 @@ export const CashierView: React.FC = () => {
                             <div className="flex items-center justify-between py-1 px-1.5 text-xs bg-neutral-50 dark:bg-neutral-800/40 rounded-xl gap-2 flex-wrap">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  triggerHaptic("light")
-                                  setSoliqPrintingOrder(order)
-                                }}
+                                onClick={() => handlePrintOrder(order)}
                                 className="inline-flex items-center gap-1.5 font-bold text-xs text-neutral-700 dark:text-neutral-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                                title="Xprinter kassa cheki (80mm)"
                               >
                                 <Printer className="h-3.5 w-3.5 text-emerald-600" />
-                                <span>Soliq cheki (80mm)</span>
+                                <span>Kassa Cheki (80mm)</span>
                               </button>
 
                               {order.receiptImageUrl && (
@@ -2466,11 +2516,11 @@ export const CashierView: React.FC = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setSoliqPrintingOrder(selectedReceiptOrder)}
+                  onClick={() => selectedReceiptOrder && handlePrintOrder(selectedReceiptOrder)}
                   className="w-full rounded-2xl text-xs font-bold border-neutral-300 dark:border-neutral-700 flex items-center justify-center gap-1.5 h-10 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
                 >
                   <Printer className="h-4 w-4 text-emerald-600" />
-                  <span>Soliq Chekini Chiqarish (80mm)</span>
+                  <span>Xprinter Chekini Chiqarish (80mm)</span>
                 </Button>
 
                 <div className="flex gap-2">
@@ -2564,6 +2614,13 @@ export const CashierView: React.FC = () => {
         isOpen={!!soliqPrintingOrder}
         order={soliqPrintingOrder}
         onClose={() => setSoliqPrintingOrder(null)}
+      />
+
+      {/* XPRINTER SETTINGS MODAL */}
+      <PrinterSettingsModal
+        isOpen={printerSettingsOpen}
+        onClose={() => setPrinterSettingsOpen(false)}
+        onSettingsChanged={(newSettings) => setPrinterSettings(newSettings)}
       />
     </div>
   )
