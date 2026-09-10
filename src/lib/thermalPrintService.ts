@@ -421,7 +421,7 @@ export async function checkPrinterStatus(): Promise<PrinterStatusInfo> {
   // 1. Check local hardware agent on Windows (127.0.0.1:18181)
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 700)
+    const timeoutId = setTimeout(() => controller.abort(), 2500)
     const res = await fetch(`${LOCAL_AGENT_URL}/status`, {
       method: "GET",
       signal: controller.signal,
@@ -488,7 +488,7 @@ export async function quickPrintOrder(
   // Primary: Try direct silent print via local Windows agent
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 1200)
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
     const plainText = generateReceiptPlainText(order, settings)
     const agentRes = await fetch(`${LOCAL_AGENT_URL}/print`, {
       method: "POST",
