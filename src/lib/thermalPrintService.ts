@@ -364,7 +364,7 @@ export function createTestOrder(): Order {
 export function generateReceiptPlainText(order: Order, settings: PrinterSettings): string {
   const { date, time } = formatDateTime(order.createdAt)
   const is80mm = settings.paperWidth === "80mm"
-  const width = is80mm ? 36 : 28
+  const width = is80mm ? 44 : 32
   const separator = "-".repeat(width)
   const doubleSep = "=".repeat(width)
 
@@ -410,7 +410,7 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   out += row("To'lov usuli:", order.paymentMethod === "CASH" ? "NAQD PUL" : order.paymentMethod === "TERMINAL" ? "TERMINAL" : order.paymentMethod === "BALANCE" ? "MIJOZ BALANSI" : "KARTA") + "\n"
   out += doubleSep + "\n"
   out += center(settings.footerNote) + "\n"
-  out += center("*** RAHMAT! ***") + "\n\n\n\n\n"
+  out += center("*** RAHMAT! ***") + "\n\n\n\n\n\n\n\n\n"
   return out
 }
 
