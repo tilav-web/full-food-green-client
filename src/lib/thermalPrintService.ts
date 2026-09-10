@@ -23,10 +23,10 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   quickPrintEnabled: true,
   autoPrintPosOrder: true, // Sukut bo'yicha Zaldan buyurtmada avtomatik chek chiqadi!
   paperWidth: "80mm",
-  restaurantName: "«FULL FOOD» RESTORAN",
-  restaurantPhone: "+998 71 200 00 00",
-  restaurantAddress: "Toshkent sh., Markaz",
-  footerNote: "Salomatligingiz — bizning boyligimiz!",
+  restaurantName: "FULL FOOD",
+  restaurantPhone: "",
+  restaurantAddress: "",
+  footerNote: "Yoqimli ishtaha!",
 }
 
 const STORAGE_KEY = "fullfood_pos_printer_settings"
@@ -205,7 +205,7 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
       <div style="font-size: ${is80mm ? "10px" : "8.5px"}; color: #333;">
         Sog'lom va parhez taomlar
       </div>
-      ${settings.restaurantPhone ? `<div style="font-size: 9px; color: #444;">Tel: ${settings.restaurantPhone}</div>` : ""}
+      ${settings.restaurantPhone && !settings.restaurantPhone.includes("200 00 00") ? `<div style="font-size: 9px; color: #444;">Tel: ${settings.restaurantPhone}</div>` : ""}
     </div>
 
     <div class="separator">${doubleSeparator}</div>
@@ -224,17 +224,17 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
         <span>BUYURTMA TURI:</span>
         <span>${orderType}</span>
       </div>
-      ${order.customerName && order.customerName !== "Mijoz" ? `
+      ${order.customerName && order.customerName !== "Mijoz" && order.customerName !== "Mijoz (Zal)" ? `
       <div class="row">
         <span>MIJOZ:</span>
         <span>${order.customerName}</span>
       </div>` : ""}
-      ${order.customerPhone && order.customerPhone !== "+998 00 000 00 00" ? `
+      ${order.customerPhone && order.customerPhone !== "+998 00 000 00 00" && order.customerPhone !== "+998 71 200 00 00" && order.type !== "DINE_IN" ? `
       <div class="row">
         <span>TELEFON:</span>
         <span>${order.customerPhone}</span>
       </div>` : ""}
-      ${order.address && order.type !== "DINE_IN" ? `
+      ${order.address && order.type !== "DINE_IN" && !order.address.toLowerCase().includes("toshkent sh., markaz") ? `
       <div style="font-size: ${is80mm ? "9.5px" : "8.5px"}; margin-top: 2px;">
         <span class="font-bold">MANZIL:</span> ${order.address}
       </div>` : ""}
@@ -364,9 +364,9 @@ export function createTestOrder(): Order {
 export function generateReceiptPlainText(order: Order, settings: PrinterSettings): string {
   const { date, time } = formatDateTime(order.createdAt)
   const is80mm = settings.paperWidth === "80mm"
-  const width = is80mm ? 44 : 32
-  const separator = "-".repeat(width)
-  const doubleSep = "=".repeat(width)
+  const width = is80mm ? 40 : 30
+  const separator = " " + "-".repeat(width - 2)
+  const doubleSep = " " + "=".repeat(width - 2)
 
   const center = (text: string) => {
     const pad = Math.max(0, Math.floor((width - text.length) / 2))
@@ -374,14 +374,19 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   }
 
   const row = (left: string, right: string) => {
-    const space = Math.max(1, width - left.length - right.length)
-    return left + " ".repeat(space) + right
+    const available = width - 2
+    const space = Math.max(1, available - left.length - right.length)
+    return " " + left + " ".repeat(space) + right
   }
 
-  let out = "\n"
-  out += center(settings.restaurantName) + "\n"
-  out += center(settings.restaurantAddress) + "\n"
-  out += center(settings.restaurantPhone) + "\n"
+  let out = ""
+  out += center(settings.restaurantName.replace(/[«»]/g, '"')) + "\n"
+  if (settings.restaurantAddress && !settings.restaurantAddress.toLowerCase().includes("toshkent") && !settings.restaurantAddress.toLowerCase().includes("markaz")) {
+    out += center(settings.restaurantAddress) + "\n"
+  }
+  if (settings.restaurantPhone && !settings.restaurantPhone.includes("200 00 00")) {
+    out += center(settings.restaurantPhone) + "\n"
+  }
   out += doubleSep + "\n"
   out += center(`CHEK #${order.orderNumber}`) + "\n"
   out += center(`${date}  ${time}`) + "\n"
@@ -390,18 +395,24 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   if (order.tableNumber) {
     out += row("Stol raqami:", `#${order.tableNumber}`) + "\n"
   }
-  if (order.customerName) {
+  if (order.customerName && order.customerName !== "Mijoz" && order.customerName !== "Mijoz (Zal)" && order.customerName !== "Noma'lum") {
     out += row("Mijoz:", order.customerName) + "\n"
   }
+  if (order.customerPhone && order.customerPhone !== "+998 00 000 00 00" && order.customerPhone !== "+998 71 200 00 00" && order.type !== "DINE_IN") {
+    out += row("Telefon:", order.customerPhone) + "\n"
+  }
+  if (order.address && order.type !== "DINE_IN" && !order.address.toLowerCase().includes("toshkent sh., markaz")) {
+    out += row("Manzil:", order.address) + "\n"
+  }
   out += separator + "\n"
-  out += "MAHSULOTLAR:\n"
+  out += "  MAHSULOTLAR:\n"
 
   const items = order.items || []
   items.forEach((item, idx) => {
     const qty = Number(item.quantity || 1)
     const unitPrice = Number(item.unitPrice || 0)
     const lineTotal = qty * unitPrice
-    out += `${idx + 1}. ${item.name}\n`
+    out += `  ${idx + 1}. ${item.name}\n`
     out += row(`  ${qty} x ${unitPrice.toLocaleString()}`, `${lineTotal.toLocaleString()} so'm`) + "\n"
   })
 
@@ -409,8 +420,10 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   out += row("JAMI TO'LOV:", `${Number(order.totalAmount || 0).toLocaleString()} SO'M`) + "\n"
   out += row("To'lov usuli:", order.paymentMethod === "CASH" ? "NAQD PUL" : order.paymentMethod === "TERMINAL" ? "TERMINAL" : order.paymentMethod === "BALANCE" ? "MIJOZ BALANSI" : "KARTA") + "\n"
   out += doubleSep + "\n"
-  out += center(settings.footerNote) + "\n"
-  out += center("*** RAHMAT! ***") + "\n"
+  if (settings.footerNote) {
+    out += center(settings.footerNote.replace(/[—–]/g, "-")) + "\n"
+  }
+  out += center("*** RAHMAT! ***")
   return out
 }
 
