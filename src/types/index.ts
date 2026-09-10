@@ -177,6 +177,7 @@ export interface Order {
   customerName: string
   customerPhone: string
   type: "ONLINE_DELIVERY" | "ONLINE_PICKUP" | "DINE_IN"
+  tableNumber?: string
   status: OrderStatus
   subtotal: number
   deliveryFee: number

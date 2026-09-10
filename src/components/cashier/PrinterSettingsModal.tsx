@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   X,
@@ -8,6 +8,10 @@ import {
   Layers,
   Terminal,
   Copy,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Cpu,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -15,29 +19,63 @@ import {
   getPrinterSettings,
   savePrinterSettings,
   printTestReceipt,
+  checkPrinterStatus,
   type PrinterSettings,
+  type PrinterStatusInfo,
 } from "@/lib/thermalPrintService"
 
 interface PrinterSettingsModalProps {
   isOpen: boolean
   onClose: () => void
   onSettingsChanged?: (settings: PrinterSettings) => void
+  currentStatus?: PrinterStatusInfo
+  onRefreshStatus?: () => void
 }
 
 export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   isOpen,
   onClose,
   onSettingsChanged,
+  currentStatus,
+  onRefreshStatus,
 }) => {
   const [settings, setSettings] = useState<PrinterSettings>(getPrinterSettings())
   const [isTesting, setIsTesting] = useState(false)
   const [copiedKioskCmd, setCopiedKioskCmd] = useState(false)
+  const [hwStatus, setHwStatus] = useState<PrinterStatusInfo>(
+    currentStatus || {
+      online: false,
+      connected: false,
+      printerName: "Xprinter XP-Q890K",
+      source: "fallback",
+      statusText: "Tekshirilmoqda...",
+    }
+  )
+  const [isCheckingHw, setIsCheckingHw] = useState(false)
+
+  const checkHw = useCallback(async () => {
+    setIsCheckingHw(true)
+    try {
+      const st = await checkPrinterStatus()
+      setHwStatus(st)
+      onRefreshStatus?.()
+    } finally {
+      setIsCheckingHw(false)
+    }
+  }, [onRefreshStatus])
 
   useEffect(() => {
     if (isOpen) {
       setSettings(getPrinterSettings())
+      checkHw()
     }
-  }, [isOpen])
+  }, [isOpen, checkHw])
+
+  useEffect(() => {
+    if (currentStatus) {
+      setHwStatus(currentStatus)
+    }
+  }, [currentStatus])
 
   if (!isOpen) return null
 
@@ -132,6 +170,72 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
           </div>
 
           <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Live Hardware Status Banner */}
+            <div
+              className={`p-4 rounded-2xl border transition-all ${
+                hwStatus.connected
+                  ? "bg-emerald-950/40 border-emerald-500/60 shadow-md shadow-emerald-950/20"
+                  : "bg-rose-950/30 border-rose-600/50 shadow-md shadow-rose-950/20"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      hwStatus.connected ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                    }`}
+                  >
+                    {hwStatus.connected ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black tracking-wide text-white">
+                        {hwStatus.connected ? "Xprinter: Ulangan (Faol)" : "Xprinter: Ulanmagan"}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          hwStatus.connected
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        }`}
+                      >
+                        {hwStatus.connected ? "TAYYOR" : "KABELNI TEKSHIRING"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">
+                      {hwStatus.connected
+                        ? `${hwStatus.printerName} (${hwStatus.statusText})`
+                        : "USB kabel yoki printer quvvati yoqilmagan. Ulaganingizdan so'ng yangilang."}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={checkHw}
+                  disabled={isCheckingHw}
+                  title="Qayta tekshirish"
+                  className="h-8 px-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white flex items-center gap-1 text-[11px] font-bold border border-neutral-700 transition-all cursor-pointer flex-shrink-0"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isCheckingHw ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">Tekshirish</span>
+                </button>
+              </div>
+
+              {!hwStatus.connected && (
+                <div className="mt-3 pt-2.5 border-t border-rose-900/40 text-[11px] text-rose-200/80 leading-relaxed flex items-center gap-1.5">
+                  <Cpu className="h-3.5 w-3.5 text-rose-400 flex-shrink-0" />
+                  <span>
+                    Maslahat: Printerni USB portga ulang. To'g'ridan-to'g'ri 0.05s da chiqarish uchun <b>start_agent.bat</b> ni ishga tushirib qo'yishingiz mumkin.
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Setting 1: 1-Click Quick Print */}
             <div
               onClick={handleToggleQuickPrint}

@@ -10,9 +10,18 @@ export interface PrinterSettings {
   footerNote: string
 }
 
+export interface PrinterStatusInfo {
+  online: boolean
+  connected: boolean
+  printerName: string
+  port?: string
+  source: "agent" | "webusb" | "fallback"
+  statusText: string
+}
+
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   quickPrintEnabled: true,
-  autoPrintPosOrder: false,
+  autoPrintPosOrder: true, // Sukut bo'yicha Zaldan buyurtmada avtomatik chek chiqadi!
   paperWidth: "80mm",
   restaurantName: "«FULL FOOD» RESTORAN",
   restaurantPhone: "+998 71 200 00 00",
@@ -21,12 +30,19 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
 }
 
 const STORAGE_KEY = "fullfood_pos_printer_settings"
+const LOCAL_AGENT_URL = "http://127.0.0.1:18181"
 
 export function getPrinterSettings(): PrinterSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      return { ...DEFAULT_PRINTER_SETTINGS, ...JSON.parse(raw) }
+      const parsed = JSON.parse(raw)
+      return { 
+        ...DEFAULT_PRINTER_SETTINGS, 
+        ...parsed,
+        // Ensure autoPrintPosOrder defaults to true if not explicitly false by user
+        autoPrintPosOrder: parsed.autoPrintPosOrder !== undefined ? parsed.autoPrintPosOrder : true
+      }
     }
   } catch (e) {
     console.warn("Failed to read printer settings from localStorage", e)
@@ -343,20 +359,160 @@ export function createTestOrder(): Order {
 }
 
 /**
- * Triggers 1-click silent/direct print via invisible iframe.
- * If Chrome has --kiosk-printing enabled, it prints immediately with 0 prompts.
- * Otherwise, it instantly opens the native 80mm print dialog.
+ * Generates clean plain text formatted for 80mm thermal receipt printer (Out-Printer / raw spooler)
  */
-export function quickPrintOrder(
+export function generateReceiptPlainText(order: Order, settings: PrinterSettings): string {
+  const { date, time } = formatDateTime(order.createdAt)
+  const is80mm = settings.paperWidth === "80mm"
+  const width = is80mm ? 36 : 28
+  const separator = "-".repeat(width)
+  const doubleSep = "=".repeat(width)
+
+  const center = (text: string) => {
+    const pad = Math.max(0, Math.floor((width - text.length) / 2))
+    return " ".repeat(pad) + text
+  }
+
+  const row = (left: string, right: string) => {
+    const space = Math.max(1, width - left.length - right.length)
+    return left + " ".repeat(space) + right
+  }
+
+  let out = "\n"
+  out += center(settings.restaurantName) + "\n"
+  out += center(settings.restaurantAddress) + "\n"
+  out += center(settings.restaurantPhone) + "\n"
+  out += doubleSep + "\n"
+  out += center(`CHEK #${order.orderNumber}`) + "\n"
+  out += center(`${date}  ${time}`) + "\n"
+  out += separator + "\n"
+  out += row("Buyurtma turi:", order.type === "DINE_IN" ? "ZALDA (POS)" : order.type === "ONLINE_PICKUP" ? "OLIB KETISH" : "YETKAZIB BERISH") + "\n"
+  if (order.tableNumber) {
+    out += row("Stol raqami:", `#${order.tableNumber}`) + "\n"
+  }
+  if (order.customerName) {
+    out += row("Mijoz:", order.customerName) + "\n"
+  }
+  out += separator + "\n"
+  out += "MAHSULOTLAR:\n"
+
+  const items = order.items || []
+  items.forEach((item, idx) => {
+    const qty = Number(item.quantity || 1)
+    const unitPrice = Number(item.unitPrice || 0)
+    const lineTotal = qty * unitPrice
+    out += `${idx + 1}. ${item.name}\n`
+    out += row(`  ${qty} x ${unitPrice.toLocaleString()}`, `${lineTotal.toLocaleString()} so'm`) + "\n"
+  })
+
+  out += separator + "\n"
+  out += row("JAMI TO'LOV:", `${Number(order.totalAmount || 0).toLocaleString()} SO'M`) + "\n"
+  out += row("To'lov usuli:", order.paymentMethod === "CASH" ? "NAQD PUL" : order.paymentMethod === "TERMINAL" ? "TERMINAL" : order.paymentMethod === "BALANCE" ? "MIJOZ BALANSI" : "KARTA") + "\n"
+  out += doubleSep + "\n"
+  out += center(settings.footerNote) + "\n"
+  out += center("*** RAHMAT! ***") + "\n\n\n\n\n"
+  return out
+}
+
+/**
+ * Checks physical printer connection via local agent (127.0.0.1:18181) or WebUSB.
+ */
+export async function checkPrinterStatus(): Promise<PrinterStatusInfo> {
+  // 1. Check local hardware agent on Windows (127.0.0.1:18181)
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 700)
+    const res = await fetch(`${LOCAL_AGENT_URL}/status`, {
+      method: "GET",
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+
+    if (res.ok) {
+      const data = await res.json()
+      return {
+        online: !!data.online && !!data.connected,
+        connected: !!data.connected,
+        printerName: data.printerName || "Xprinter XP-Q890K",
+        port: data.port || "USB001",
+        source: "agent",
+        statusText: data.statusText || (data.connected ? "Tayyor (Normal)" : "Ulanmagan"),
+      }
+    }
+  } catch {
+    // Agent is not running, proceed to fallback
+  }
+
+  // 2. Check WebUSB API in browser if available
+  try {
+    if (typeof navigator !== "undefined" && "usb" in (navigator as any)) {
+      const devices = await (navigator as any).usb.getDevices()
+      if (devices && devices.length > 0) {
+        const dev = devices[0]
+        const name = dev.productName || "Xprinter USB"
+        return {
+          online: true,
+          connected: true,
+          printerName: name,
+          port: "USB",
+          source: "webusb",
+          statusText: "USB orqali ulangan",
+        }
+      }
+    }
+  } catch {
+    // Ignore WebUSB errors
+  }
+
+  // 3. Fallback: Agent not active
+  return {
+    online: false,
+    connected: false,
+    printerName: "Xprinter XP-Q890K",
+    source: "fallback",
+    statusText: "Agent yoki USB aniqlanmadi",
+  }
+}
+
+/**
+ * Triggers 1-click silent/direct print.
+ * 1) If local print agent is running, prints directly in 0.05s without any dialog.
+ * 2) Fallback: Uses invisible iframe (instant with Chrome --kiosk-printing or standard dialog).
+ */
+export async function quickPrintOrder(
   order: Order,
   customSettings?: Partial<PrinterSettings>
 ): Promise<boolean> {
+  const settings = { ...getPrinterSettings(), ...customSettings }
+
+  // Primary: Try direct silent print via local Windows agent
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 1200)
+    const plainText = generateReceiptPlainText(order, settings)
+    const agentRes = await fetch(`${LOCAL_AGENT_URL}/print`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: plainText }),
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+
+    if (agentRes.ok) {
+      const data = await agentRes.json()
+      if (data.success) {
+        return true
+      }
+    }
+  } catch {
+    // Agent offline or timeout: gracefully continue to iframe printing
+  }
+
+  // Fallback: Invisible iframe printing (compatible with Chrome --kiosk-printing)
   return new Promise((resolve) => {
     try {
-      const settings = { ...getPrinterSettings(), ...customSettings }
       const html = generateReceiptHtml(order, settings)
 
-      // Look for existing print iframe or create a new one
       let iframe = document.getElementById("thermal-print-iframe") as HTMLIFrameElement | null
       if (!iframe) {
         iframe = document.createElement("iframe")

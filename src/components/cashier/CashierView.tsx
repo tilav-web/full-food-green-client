@@ -41,7 +41,9 @@ import { PrinterSettingsModal } from "./PrinterSettingsModal"
 import {
   getPrinterSettings,
   quickPrintOrder,
+  checkPrinterStatus,
   type PrinterSettings,
+  type PrinterStatusInfo,
 } from "@/lib/thermalPrintService"
 import type { Order, Product, Category, OrderStatus, User } from "@/types"
 
@@ -170,6 +172,28 @@ export const CashierView: React.FC = () => {
   const [soliqPrintingOrder, setSoliqPrintingOrder] = React.useState<Order | null>(null)
   const [printerSettingsOpen, setPrinterSettingsOpen] = React.useState(false)
   const [printerSettings, setPrinterSettings] = React.useState<PrinterSettings>(getPrinterSettings())
+  const [printerStatus, setPrinterStatus] = React.useState<PrinterStatusInfo>({
+    online: false,
+    connected: false,
+    printerName: "Xprinter XP-Q890K",
+    source: "fallback",
+    statusText: "Tekshirilmoqda...",
+  })
+
+  const refreshPrinterStatus = React.useCallback(async () => {
+    try {
+      const st = await checkPrinterStatus()
+      setPrinterStatus(st)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  React.useEffect(() => {
+    refreshPrinterStatus()
+    const timer = setInterval(refreshPrinterStatus, 7000)
+    return () => clearInterval(timer)
+  }, [refreshPrinterStatus])
 
   // 1-Click Direct Print to Xprinter with automatic fallback to SoliqReceiptModal
   const handlePrintOrder = async (order: Order, forcePreview: boolean = false) => {
@@ -690,6 +714,13 @@ export const CashierView: React.FC = () => {
       })
 
       const createdOrder = createdOrderRes?.data
+      const orderToPrint = createdOrder
+        ? {
+            ...createdOrder,
+            items: createdOrder.items && createdOrder.items.length > 0 ? createdOrder.items : items,
+          }
+        : null
+
       triggerHaptic("success")
       setPosCart([])
       setPosSelectedCustomer(null)
@@ -700,8 +731,9 @@ export const CashierView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
       toast.success("POS Buyurtma muvaffaqiyatli saqlandi!")
 
-      if (printerSettings.autoPrintPosOrder && createdOrder) {
-        handlePrintOrder(createdOrder)
+      // Kassir hech narsani bosishi shart emas: Zaldan yangi buyurtma yaratilganda chek avtomatik chiqadi
+      if (printerSettings.autoPrintPosOrder && orderToPrint) {
+        handlePrintOrder(orderToPrint)
       }
     } catch (err: any) {
       console.error(err)
@@ -817,15 +849,36 @@ export const CashierView: React.FC = () => {
           <button
             type="button"
             onClick={() => setPrinterSettingsOpen(true)}
-            title="Xprinter (Chek apparati) sozlamalari va sinov cheki"
-            className={`px-3 py-2 rounded-2xl border flex items-center gap-1.5 text-xs font-black transition-all cursor-pointer shadow-xs ${
-              printerSettings.quickPrintEnabled
-                ? "bg-emerald-950/70 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900"
-                : "bg-neutral-800/80 border-neutral-700 text-neutral-300 hover:text-white"
+            title={`${printerStatus.printerName} (${printerStatus.statusText}) - Sozlamalar va sinov cheki`}
+            className={`px-3 py-1.5 sm:py-2 rounded-2xl border flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 ${
+              printerStatus.connected
+                ? "bg-emerald-950/80 border-emerald-500/70 text-emerald-300 hover:bg-emerald-900 shadow-emerald-950/30"
+                : "bg-rose-950/80 border-rose-500/70 text-rose-300 hover:bg-rose-900 shadow-rose-950/30"
             }`}
           >
-            <Printer className="h-4 w-4" />
-            <span>{printerSettings.quickPrintEnabled ? "Xprinter: 1-Bosish" : "Chek: Standart"}</span>
+            <div className="relative flex items-center justify-center">
+              <Printer className={`h-4 w-4 ${printerStatus.connected ? "text-emerald-300" : "text-rose-300"}`} />
+              <span
+                className={`absolute -top-1 -right-1 flex h-2 w-2 rounded-full ${
+                  printerStatus.connected ? "bg-emerald-400" : "bg-rose-500"
+                }`}
+              >
+                {printerStatus.connected && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                )}
+              </span>
+            </div>
+            <div className="flex flex-col text-left leading-tight">
+              <span className="font-black text-[11px] sm:text-xs flex items-center gap-1">
+                <span>Xprinter:</span>
+                <span className={printerStatus.connected ? "text-emerald-200" : "text-rose-200"}>
+                  {printerStatus.connected ? "Ulangan" : "Ulanmagan"}
+                </span>
+              </span>
+              <span className="text-[9px] sm:text-[9.5px] opacity-80 font-medium">
+                {printerStatus.connected ? "Tayyor • Avtomatik chek" : "Kabel / Quvvatni tekshiring"}
+              </span>
+            </div>
           </button>
 
           <button
@@ -2621,6 +2674,8 @@ export const CashierView: React.FC = () => {
         isOpen={printerSettingsOpen}
         onClose={() => setPrinterSettingsOpen(false)}
         onSettingsChanged={(newSettings) => setPrinterSettings(newSettings)}
+        currentStatus={printerStatus}
+        onRefreshStatus={refreshPrinterStatus}
       />
     </div>
   )
