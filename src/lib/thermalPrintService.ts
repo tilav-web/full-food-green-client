@@ -410,7 +410,7 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   out += row("To'lov usuli:", order.paymentMethod === "CASH" ? "NAQD PUL" : order.paymentMethod === "TERMINAL" ? "TERMINAL" : order.paymentMethod === "BALANCE" ? "MIJOZ BALANSI" : "KARTA") + "\n"
   out += doubleSep + "\n"
   out += center(settings.footerNote) + "\n"
-  out += center("*** RAHMAT! ***") + "\n\n\n\n\n\n\n\n\n"
+  out += center("*** RAHMAT! ***") + "\n\n"
   return out
 }
 
