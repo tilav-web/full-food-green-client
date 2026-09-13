@@ -1,7 +1,7 @@
 import axios from "axios"
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://bluebird-fancy-painfully.ngrok-free.app/api",
+  baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "69420",
@@ -79,7 +79,7 @@ apiClient.interceptors.response.use(
 
       try {
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL || "https://bluebird-fancy-painfully.ngrok-free.app/api"}/auth/refresh`,
+          "/api/auth/refresh",
           { refreshToken },
           { headers: { "ngrok-skip-browser-warning": "69420" } }
         )

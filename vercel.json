@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/:match*",
+      "destination": "https://bluebird-fancy-painfully.ngrok-free.app/api/:match*"
+    },
+    {
       "source": "/uploads/:match*",
       "destination": "https://bluebird-fancy-painfully.ngrok-free.app/uploads/:match*"
     },
