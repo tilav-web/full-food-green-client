@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/uploads/:match*",
-      "destination": "https://api.full-food.hotel-familyhouse.uz/uploads/:match*"
+      "destination": "https://bluebird-fancy-painfully.ngrok-free.app/uploads/:match*"
     },
     {
       "source": "/(.*)",
