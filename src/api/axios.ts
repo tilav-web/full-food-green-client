@@ -4,6 +4,7 @@ export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "https://bluebird-fancy-painfully.ngrok-free.app/api",
   headers: {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "69420",
   },
   timeout: 10000,
 })
@@ -25,9 +26,12 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = []
 }
 
-// Request interceptor: attach Access Token
+// Request interceptor: attach Access Token & Ngrok header
 apiClient.interceptors.request.use(
   (config) => {
+    if (config.headers) {
+      config.headers["ngrok-skip-browser-warning"] = "69420"
+    }
     const accessToken = localStorage.getItem("fullfood_access_token")
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`
@@ -75,8 +79,9 @@ apiClient.interceptors.response.use(
 
       try {
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/refresh`,
-          { refreshToken }
+          `${import.meta.env.VITE_API_URL || "https://bluebird-fancy-painfully.ngrok-free.app/api"}/auth/refresh`,
+          { refreshToken },
+          { headers: { "ngrok-skip-browser-warning": "69420" } }
         )
 
         const { accessToken, refreshToken: newRefreshToken } = response.data
