@@ -17,6 +17,14 @@ export function getImageUrl(url?: string): string {
     }
     return url
   }
-  const cleanPath = url.startsWith("/") ? url : `/${url}`
-  return cleanPath
+  if (url.startsWith("/uploads/")) {
+    return url
+  }
+  if (url.startsWith("uploads/")) {
+    return `/${url}`
+  }
+  if (url.startsWith("/")) {
+    return url
+  }
+  return `/uploads/${url}`
 }

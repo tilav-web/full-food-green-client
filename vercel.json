@@ -1,12 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/api/:match*",
-      "destination": "https://bluebird-fancy-painfully.ngrok-free.app/api/:match*"
+      "source": "/uploads/:file*",
+      "destination": "/api/img?file=:file*"
     },
     {
-      "source": "/uploads/:match*",
-      "destination": "https://bluebird-fancy-painfully.ngrok-free.app/uploads/:match*"
+      "source": "/api/img",
+      "destination": "/api/img"
+    },
+    {
+      "source": "/api/:match*",
+      "destination": "https://bluebird-fancy-painfully.ngrok-free.app/api/:match*"
     },
     {
       "source": "/(.*)",
