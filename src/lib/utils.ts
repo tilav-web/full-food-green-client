@@ -10,7 +10,7 @@ export function getImageUrl(url?: string): string {
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
     return url
   }
-  const apiUrl = import.meta.env.VITE_API_URL || "https://api.full-food.hotel-familyhouse.uz/api"
+  const apiUrl = import.meta.env.VITE_API_URL || "https://bluebird-fancy-painfully.ngrok-free.app/api"
   const backendBase = apiUrl.replace(/\/api\/?$/, "")
   const cleanPath = url.startsWith("/") ? url : `/${url}`
   return `${backendBase}${cleanPath}`

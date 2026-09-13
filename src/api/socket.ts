@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client"
 
 const getSocketUrl = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+  const apiUrl = import.meta.env.VITE_API_URL || "https://bluebird-fancy-painfully.ngrok-free.app/api"
   return apiUrl.replace(/\/api\/?$/, "")
 }
 
