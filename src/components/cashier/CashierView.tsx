@@ -463,6 +463,7 @@ export const CashierView: React.FC = () => {
   const [posPaymentMethod, setPosPaymentMethod] = React.useState<"CASH" | "TERMINAL" | "BALANCE">("CASH")
   const [posSelectedCategory, setPosSelectedCategory] = React.useState<string>("")
   const [posSearchQuery, setPosSearchQuery] = React.useState<string>("")
+  const [posSortBy, setPosSortBy] = React.useState<"SALES" | "NAME" | "PRICE_ASC" | "PRICE_DESC">("SALES")
   const [posSelectedCustomer, setPosSelectedCustomer] = React.useState<User | null>(null)
   const [customerSearchQuery, setCustomerSearchQuery] = React.useState("")
   const [customerSearchResults, setCustomerSearchResults] = React.useState<User[]>([])
@@ -611,8 +612,42 @@ export const CashierView: React.FC = () => {
     }
   }
 
+  // Hisoblangan sotuvlar statistikasi: barcha buyurtmalardagi mahsulotlar miqdori
+  const productSalesStats = useMemo(() => {
+    const idCountMap = new Map<string, number>()
+    const nameCountMap = new Map<string, number>()
+
+    if (Array.isArray(orders)) {
+      for (const order of orders) {
+        if (order.status === "CANCELLED") continue
+        if (Array.isArray(order.items)) {
+          for (const item of order.items) {
+            const qty = Math.max(1, Number(item.quantity) || 1)
+            if (item.productId) {
+              idCountMap.set(item.productId, (idCountMap.get(item.productId) || 0) + qty)
+            }
+            if (item.name) {
+              const normalizedName = item.name.trim().toLowerCase()
+              nameCountMap.set(normalizedName, (nameCountMap.get(normalizedName) || 0) + qty)
+            }
+          }
+        }
+      }
+    }
+
+    return { idCountMap, nameCountMap }
+  }, [orders])
+
+  const getProductSoldTotal = (p: Product): number => {
+    const fromId = productSalesStats.idCountMap.get(p.id) || 0
+    const fromName = p.name ? productSalesStats.nameCountMap.get(p.name.trim().toLowerCase()) || 0 : 0
+    const fromOrders = Math.max(fromId, fromName)
+    const dbSoldCount = Number(p.soldCount) || 0
+    return Math.max(fromOrders, dbSoldCount)
+  }
+
   const filteredPosProducts = useMemo(() => {
-    return products.filter((p) => {
+    const list = products.filter((p) => {
       const matchesCategory =
         !posSelectedCategory ||
         p.categoryId === posSelectedCategory ||
@@ -624,7 +659,30 @@ export const CashierView: React.FC = () => {
 
       return matchesCategory && matchesSearch
     })
-  }, [products, posSelectedCategory, posSearchQuery])
+
+    return list.sort((a, b) => {
+      if (posSortBy === "SALES") {
+        const soldA = getProductSoldTotal(a)
+        const soldB = getProductSoldTotal(b)
+        // 1. Eng ko'p sotilgan taomlar boshida
+        if (soldB !== soldA) {
+          return soldB - soldA
+        }
+        // 2. Agar sotuv teng bo'lsa, mashhur (isPopular) taomlar oldinroq
+        if (a.isPopular !== b.isPopular) {
+          return a.isPopular ? -1 : 1
+        }
+        return (a.name || "").localeCompare(b.name || "", "uz")
+      } else if (posSortBy === "NAME") {
+        return (a.name || "").localeCompare(b.name || "", "uz")
+      } else if (posSortBy === "PRICE_ASC") {
+        return (a.price || 0) - (b.price || 0)
+      } else if (posSortBy === "PRICE_DESC") {
+        return (b.price || 0) - (a.price || 0)
+      }
+      return 0
+    })
+  }, [products, posSelectedCategory, posSearchQuery, posSortBy, productSalesStats])
 
   // Kirim Modal State
   const [kirimProductId, setKirimProductId] = React.useState("")
@@ -1475,12 +1533,21 @@ export const CashierView: React.FC = () => {
                   <UtensilsCrossed className="h-4 w-4 text-emerald-600" />
                   Taomlar Menusi (Tezkor POS)
                 </h3>
-                <p className="text-[11px] text-neutral-400">
-                  {filteredPosProducts.length} ta taom ko'rsatilmoqda
+                <p className="text-[11px] text-neutral-400 flex items-center gap-1.5 flex-wrap">
+                  <span>{filteredPosProducts.length} ta taom</span>
+                  {posSortBy === "SALES" && (
+                    <>
+                      <span>•</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
+                        <Flame className="h-3 w-3 fill-amber-500 text-amber-500" />
+                        Eng ko'p sotilganlar birinchi
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 sm:gap-2.5">
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
                 {/* Grid Column Switcher (3, 4, 5 qator) */}
                 <div className="flex items-center bg-white dark:bg-neutral-900 p-1 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-xs">
                   <div className="flex items-center gap-1 pl-2 pr-1.5 text-neutral-400">
@@ -1504,6 +1571,48 @@ export const CashierView: React.FC = () => {
                       {cols}
                     </button>
                   ))}
+                </div>
+
+                {/* Sort Mode Buttons */}
+                <div className="flex items-center bg-white dark:bg-neutral-900 p-1 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPosSortBy("SALES")}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 transition-all ${
+                      posSortBy === "SALES"
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs"
+                        : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    }`}
+                    title="Eng ko'p sotilayotgan taomlar boshida chiqadi"
+                  >
+                    <Flame className="h-3.5 w-3.5 fill-current" />
+                    <span>Top sotuv</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPosSortBy((prev) => (prev === "PRICE_ASC" ? "PRICE_DESC" : "PRICE_ASC"))}
+                    className={`px-2 py-1 rounded-xl text-xs font-black flex items-center gap-0.5 transition-all ${
+                      posSortBy === "PRICE_ASC" || posSortBy === "PRICE_DESC"
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    }`}
+                    title="Narxi bo'yicha saralash"
+                  >
+                    <span>Narx</span>
+                    <span className="text-[10px] font-mono">{posSortBy === "PRICE_DESC" ? "↓" : "↑"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPosSortBy("NAME")}
+                    className={`px-2 py-1 rounded-xl text-xs font-black transition-all ${
+                      posSortBy === "NAME"
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    }`}
+                    title="Alifbo tartibida (A-Z)"
+                  >
+                    A-Z
+                  </button>
                 </div>
 
                 {/* Quick Stop-List Button */}
@@ -1699,9 +1808,10 @@ export const CashierView: React.FC = () => {
                     : undefined
                 }
               >
-                {filteredPosProducts.map((p) => {
+                {filteredPosProducts.map((p, pIndex) => {
                   const inCartItem = posCart.find((i) => i.product.id === p.id)
                   const qty = inCartItem?.quantity || 0
+                  const soldTotal = getProductSoldTotal(p)
 
                   return (
                     <div
@@ -1745,7 +1855,7 @@ export const CashierView: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />
-                        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex items-center gap-1 pointer-events-none">
+                        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-wrap items-center gap-1 pointer-events-none z-10 max-w-[85%]">
                           <span
                             className={`${
                               posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-2 py-0.5"
@@ -1753,16 +1863,31 @@ export const CashierView: React.FC = () => {
                           >
                             {p.calories} kkal
                           </span>
-                          {p.isPopular && (
+                          {soldTotal > 0 ? (
+                            <span
+                              className={`${
+                                posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-1.5 py-0.5"
+                              } font-black rounded-lg ${
+                                pIndex === 0
+                                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs ring-1 ring-white/40"
+                                  : "bg-emerald-600/90 text-white backdrop-blur-md"
+                              } flex items-center gap-0.5`}
+                              title={`${soldTotal} ta sotilgan`}
+                            >
+                              <Flame className="h-2.5 w-2.5 fill-current" />
+                              {pIndex === 0 && soldTotal >= 5 ? "Top 1 • " : ""}
+                              {soldTotal} ta
+                            </span>
+                          ) : p.isPopular ? (
                             <span
                               className={`${
                                 posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-2 py-0.5"
                               } font-black rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5`}
                             >
                               <Flame className="h-3 w-3 fill-white" />
-                              Top 10
+                              Top
                             </span>
-                          )}
+                          ) : null}
                         </div>
 
                         {/* Fast 1-tap Stop-List Toggle Button on Card Image */}
