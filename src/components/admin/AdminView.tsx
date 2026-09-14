@@ -232,7 +232,7 @@ export const AdminView: React.FC = () => {
           ? appSettings.find((s: any) => s.key === key)?.value
           : (appSettings as Record<string, string>)[key]
       }
-      const phone = getVal("support_phone")
+      const phone = getVal("restaurant_phone") || getVal("support_phone")
       const tg = getVal("support_telegram")
       const hours = getVal("support_hours")
 
@@ -247,6 +247,7 @@ export const AdminView: React.FC = () => {
     try {
       setIsSavingSupportSettings(true)
       await apiClient.post("/settings", {
+        restaurant_phone: supportPhoneInput.trim(),
         support_phone: supportPhoneInput.trim(),
         support_telegram: supportTelegramInput.trim(),
         support_hours: supportHoursInput.trim(),
@@ -1820,10 +1821,10 @@ export const AdminView: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-neutral-900 dark:text-white">
-                      Qo'llab-quvvatlash va Aloqa Sozlamalari
+                      Restoran va Aloqa Sozlamalari (Chek va Profil uchun)
                     </h3>
                     <p className="text-xs text-neutral-400">
-                      Mijozlar profilidagi "Qo'llab-quvvatlash" oynasida chiqadigan telefon, Telegram bot va ish vaqti
+                      Kassa cheklarida va Mijozlar profilida chiqadigan restoran telefoni, Telegram bot va ish vaqti
                     </p>
                   </div>
                 </div>
@@ -1831,7 +1832,7 @@ export const AdminView: React.FC = () => {
                 <form onSubmit={handleSaveSupportSettings} className="space-y-3.5 max-w-lg">
                   <div>
                     <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block mb-1">
-                      Telefon raqamimiz:
+                      Restoran telefon raqami (Chek va Mijozlar uchun):
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
