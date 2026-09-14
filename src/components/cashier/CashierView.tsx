@@ -40,6 +40,7 @@ import { SoliqReceiptModal } from "./SoliqReceiptModal"
 import { PrinterSettingsModal } from "./PrinterSettingsModal"
 import {
   getPrinterSettings,
+  savePrinterSettings,
   quickPrintOrder,
   checkPrinterStatus,
   type PrinterSettings,
@@ -364,6 +365,27 @@ export const CashierView: React.FC = () => {
     queryKey: ["cashierCategories"],
     queryFn: async () => (await apiClient.get("/products/categories")).data,
   })
+
+  const { data: dbSettings } = useQuery<Record<string, string>>({
+    queryKey: ["appSettings"],
+    queryFn: async () => (await apiClient.get("/settings")).data,
+  })
+
+  useEffect(() => {
+    if (dbSettings) {
+      const phone = dbSettings.restaurant_phone || dbSettings.support_phone || "+998 71 200 00 20 / +998 33 888 60 60"
+      const name = dbSettings.restaurant_name || "FULL FOOD"
+      savePrinterSettings({
+        restaurantName: name,
+        restaurantPhone: phone,
+      })
+      setPrinterSettings((prev) => ({
+        ...prev,
+        restaurantName: name,
+        restaurantPhone: phone,
+      }))
+    }
+  }, [dbSettings])
 
   // Helper to find image for dish
   const getDishImage = (productId?: string) => {
@@ -2787,10 +2809,14 @@ export const CashierView: React.FC = () => {
         </div>
       )}
 
-      {/* SOLIQ FISCAL RECEIPT MODAL (80mm Thermal Printer) */}
+      {/* SOLIQ FISCAL RECEIPT MODAL (80mm & 58mm Thermal Printer) */}
       <SoliqReceiptModal
         isOpen={!!soliqPrintingOrder}
         order={soliqPrintingOrder}
+        printerSettings={printerSettings}
+        onUpdatePaperWidth={(width) => {
+          setPrinterSettings((prev) => ({ ...prev, paperWidth: width }))
+        }}
         onClose={() => setSoliqPrintingOrder(null)}
       />
 

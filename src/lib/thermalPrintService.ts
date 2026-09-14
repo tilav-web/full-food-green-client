@@ -1,3 +1,4 @@
+import QRCode from "qrcode"
 import type { Order } from "@/types"
 
 export interface PrinterSettings {
@@ -6,7 +7,7 @@ export interface PrinterSettings {
   paperWidth: "80mm" | "58mm" // Lenta o'lchami
   restaurantName: string
   restaurantPhone: string
-  restaurantAddress: string
+  restaurantAddress?: string
   footerNote: string
 }
 
@@ -24,9 +25,9 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   autoPrintPosOrder: true, // Sukut bo'yicha Zaldan buyurtmada avtomatik chek chiqadi!
   paperWidth: "80mm",
   restaurantName: "FULL FOOD",
-  restaurantPhone: "",
+  restaurantPhone: "+998 71 200 00 20 / +998 33 888 60 60",
   restaurantAddress: "",
-  footerNote: "Yoqimli ishtaha!",
+  footerNote: "Salomatligingiz — bizning boyligimiz!",
 }
 
 const STORAGE_KEY = "fullfood_pos_printer_settings"
@@ -82,7 +83,7 @@ function formatDateTime(dateStr?: string | Date) {
 /**
  * Generates clean, printer-optimized HTML for 80mm (or 58mm) thermal receipt paper
  */
-export function generateReceiptHtml(order: Order, settings: PrinterSettings): string {
+export function generateReceiptHtml(order: Order, settings: PrinterSettings, qrDataUrl?: string): string {
   const { date, time } = formatDateTime(order.createdAt)
   const is80mm = settings.paperWidth === "80mm"
   const printableWidth = is80mm ? "72mm" : "48mm"
@@ -93,13 +94,15 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
 
   const orderType =
     order.type === "DINE_IN"
-      ? "ZALDA / ICHKARIDA"
+      ? (order.tableNumber ? `ZALDA (STOL #${order.tableNumber})` : "ZALDA (POS)")
       : order.type === "ONLINE_PICKUP"
       ? "OLIB KETISH (PICKUP)"
       : "YETKAZIB BERISH (DELIVERY)"
 
   const paymentMethod =
-    order.paymentMethod === "CASH"
+    order.paymentMethod === "CARD_TRANSFER"
+      ? "KARTA O'TKAZMASI"
+      : order.paymentMethod === "CASH"
       ? "NAQD PUL"
       : order.paymentMethod === "TERMINAL"
       ? "BANK TERMINALI"
@@ -118,13 +121,13 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
       const unitPrice = Number(item.unitPrice || 0)
       const lineTotal = qty * unitPrice
       return `
-        <div style="margin-bottom: 4px;">
+        <div style="margin-bottom: 3.5px;">
           <div style="display: flex; justify-content: space-between; font-weight: bold;">
             <span style="flex: 1; padding-right: 4px; word-break: break-word;">${idx + 1}. ${item.name}</span>
             <span style="white-space: nowrap;">${lineTotal.toLocaleString()}</span>
           </div>
-          <div style="color: #444; font-size: ${is80mm ? "10px" : "8.5px"}; padding-left: 8px;">
-            ${qty} dona x ${unitPrice.toLocaleString()} so'm
+          <div style="color: #444; font-size: ${is80mm ? "10px" : "8px"}; padding-left: 8px;">
+            ${qty} ${item.portionCount && item.portionCount > 1 ? `x ${item.portionCount} pors` : 'dona'} x ${unitPrice.toLocaleString()} so'm
           </div>
         </div>
       `
@@ -161,7 +164,7 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
     .receipt-container {
       width: ${printableWidth};
       margin: 0 auto;
-      padding: 3mm 1mm;
+      padding: ${is80mm ? "3mm 1mm" : "1.5mm 0.5mm"};
     }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
@@ -176,7 +179,7 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
     .separator {
       text-align: center;
       overflow: hidden;
-      margin: 3px 0;
+      margin: 2.5px 0;
       white-space: nowrap;
       color: #333;
     }
@@ -197,15 +200,28 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
 </head>
 <body>
   <div class="receipt-container">
-    <!-- RESTAURANT HEADER -->
-    <div class="text-center" style="margin-bottom: 4px;">
-      <div style="font-size: ${is80mm ? "14px" : "12px"}; font-weight: 900; text-transform: uppercase;">
-        ${settings.restaurantName}
+    <!-- RESTAURANT LOGO & BRAND HEADER -->
+    <div class="text-center" style="margin-bottom: 3px;">
+      <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 2px;">
+        <img
+          src="/logo.jpg"
+          alt="FULL FOOD"
+          style="height: ${is80mm ? '46px' : '36px'}; width: auto; object-fit: contain; filter: grayscale(100%) contrast(170%); display: block; margin: 0 auto;"
+          onerror="this.style.display='none'"
+        />
       </div>
-      <div style="font-size: ${is80mm ? "10px" : "8.5px"}; color: #333;">
+      <div style="font-size: ${is80mm ? '15px' : '12.5px'}; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;">
+        ${settings.restaurantName || "FULL FOOD"}
+      </div>
+      <div style="font-size: ${is80mm ? '9.5px' : '8px'}; font-weight: bold; color: #222; margin-top: 1px;">
         Sog'lom va parhez taomlar
       </div>
-      ${settings.restaurantPhone && !settings.restaurantPhone.includes("200 00 00") ? `<div style="font-size: 9px; color: #444;">Tel: ${settings.restaurantPhone}</div>` : ""}
+      <div style="font-size: ${is80mm ? '9.5px' : '8px'}; color: #111; margin-top: 2px; font-weight: 600;">
+        Tel: ${settings.restaurantPhone || "+998 71 200 00 20 / +998 33 888 60 60"}
+      </div>
+      <div style="font-size: ${is80mm ? '9px' : '7.5px'}; color: #222;">
+        Telegram: @fullfoodbot
+      </div>
     </div>
 
     <div class="separator">${doubleSeparator}</div>
@@ -214,36 +230,36 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
     <div>
       <div class="row font-black">
         <span>CHEK №:</span>
-        <span style="font-size: ${is80mm ? "13px" : "11px"};">#${order.orderNumber}</span>
+        <span style="font-size: ${is80mm ? '13px' : '11px'};">#${order.orderNumber}</span>
       </div>
       <div class="row">
         <span>SANA / VAQT:</span>
         <span>${date} ${time}</span>
       </div>
+      <div class="row">
+        <span>KASSIR:</span>
+        <span>Kassir</span>
+      </div>
       <div class="row font-bold">
         <span>BUYURTMA TURI:</span>
         <span>${orderType}</span>
       </div>
-      ${order.customerName && order.customerName !== "Mijoz" && order.customerName !== "Mijoz (Zal)" ? `
+      ${order.customerName && order.customerName !== "Mijoz" && order.customerName !== "Mijoz (Zal)" && order.customerName !== "Zal Mijoz" ? `
       <div class="row">
         <span>MIJOZ:</span>
         <span>${order.customerName}</span>
       </div>` : ""}
       ${order.customerPhone && order.customerPhone !== "+998 00 000 00 00" && order.customerPhone !== "+998 71 200 00 00" && order.type !== "DINE_IN" ? `
       <div class="row">
-        <span>TELEFON:</span>
+        <span>MIJOZ TEL:</span>
         <span>${order.customerPhone}</span>
-      </div>` : ""}
-      ${order.address && order.type !== "DINE_IN" && !order.address.toLowerCase().includes("toshkent sh., markaz") ? `
-      <div style="font-size: ${is80mm ? "9.5px" : "8.5px"}; margin-top: 2px;">
-        <span class="font-bold">MANZIL:</span> ${order.address}
       </div>` : ""}
     </div>
 
     <div class="separator">${separator}</div>
 
     <!-- ITEMS TABLE HEADER -->
-    <div class="row font-black" style="font-size: ${is80mm ? "10px" : "8.5px"}; text-transform: uppercase;">
+    <div class="row font-black" style="font-size: ${is80mm ? '10px' : '8.5px'}; text-transform: uppercase;">
       <span style="width: 50%;">Nomi</span>
       <span style="width: 25%; text-align: center;">Soni</span>
       <span style="width: 25%; text-align: right;">Summa</span>
@@ -278,30 +294,44 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
       <div class="separator">${separator}</div>
 
       <!-- GRAND TOTAL -->
-      <div class="row font-black" style="font-size: ${is80mm ? "13px" : "11px"}; margin: 4px 0;">
+      <div class="row font-black" style="font-size: ${is80mm ? '13px' : '11px'}; margin: 3px 0;">
         <span>JAMI TO'LOV:</span>
         <span>${totalAmount.toLocaleString()} SO'M</span>
       </div>
 
-      <div class="row" style="font-size: ${is80mm ? "10px" : "8.5px"};">
+      <div class="row" style="font-size: ${is80mm ? '10px' : '8.5px'};">
         <span>TO'LOV USULI:</span>
         <span class="font-bold">${paymentMethod}</span>
       </div>
-      <div class="row font-bold" style="font-size: ${is80mm ? "10px" : "8.5px"};">
+      <div class="row font-bold" style="font-size: ${is80mm ? '10px' : '8.5px'};">
         <span>TO'LOV HOLATI:</span>
         <span>[V] TO'LANDI</span>
       </div>
     </div>
 
+    ${qrDataUrl ? `
+    <div class="separator">${separator}</div>
+    <div class="text-center" style="margin: 4px auto 2px auto;">
+      <img
+        src="${qrDataUrl}"
+        alt="QR"
+        style="width: ${is80mm ? '82px' : '68px'}; height: ${is80mm ? '82px' : '68px'}; margin: 0 auto; display: block;"
+      />
+      <div style="font-size: ${is80mm ? '8.5px' : '7.5px'}; color: #333; margin-top: 2px; font-weight: bold;">
+        Elektron menyu & Telegram bot
+      </div>
+    </div>
+    ` : ''}
+
     <div class="separator">${doubleSeparator}</div>
 
     <!-- FOOTER -->
-    <div class="text-center" style="margin-top: 4px;">
-      <div class="font-black" style="font-size: ${is80mm ? "11px" : "9.5px"};">
+    <div class="text-center" style="margin-top: 3px;">
+      <div class="font-black" style="font-size: ${is80mm ? '11px' : '9.5px'};">
         XARIDINGIZ UCHUN RAHMAT!
       </div>
-      <div style="font-size: ${is80mm ? "9px" : "8px"}; font-style: italic; margin-top: 1px;">
-        ${settings.footerNote}
+      <div style="font-size: ${is80mm ? '9px' : '8px'}; font-style: italic; margin-top: 1px;">
+        ${settings.footerNote || "Salomatligingiz — bizning boyligimiz!"}
       </div>
       <div style="font-size: 8px; font-weight: bold; margin-top: 2px;">
         www.fullfood.uz
@@ -309,10 +339,10 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings): st
     </div>
 
     <div class="separator">${doubleSeparator}</div>
-    <div class="text-center" style="font-size: 8px; color: #777; margin-top: 2px;">
+    <div class="text-center" style="font-size: 7.5px; color: #777; margin-top: 1px;">
       *** CHEK OXIRI ***
     </div>
-    <div style="height: 12mm;"></div>
+    <div style="height: ${is80mm ? '10mm' : '7mm'};"></div>
   </div>
 </body>
 </html>
@@ -380,32 +410,37 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   }
 
   let out = ""
-  out += center(settings.restaurantName.replace(/[«»]/g, '"')) + "\n"
-  if (settings.restaurantAddress && !settings.restaurantAddress.toLowerCase().includes("toshkent") && !settings.restaurantAddress.toLowerCase().includes("markaz")) {
-    out += center(settings.restaurantAddress) + "\n"
-  }
-  if (settings.restaurantPhone && !settings.restaurantPhone.includes("200 00 00")) {
-    out += center(settings.restaurantPhone) + "\n"
+  if (is80mm) {
+    out += center("+----------------------------------+") + "\n"
+    out += center("|          * FULL FOOD *           |") + "\n"
+    out += center("|    SOG'LOM VA PARHEZ TAOMLAR     |") + "\n"
+    out += center("+----------------------------------+") + "\n"
+    out += center("Tel: +998 71 200 00 20") + "\n"
+    out += center("+998 33 888 60 60") + "\n"
+    out += center("Telegram: @fullfoodbot") + "\n"
+  } else {
+    out += center("+--------------------------+") + "\n"
+    out += center("|      * FULL FOOD *       |") + "\n"
+    out += center("|    SOG'LOM VA PARHEZ     |") + "\n"
+    out += center("+--------------------------+") + "\n"
+    out += center("Tel: +998 71 200 00 20") + "\n"
+    out += center("Telegram: @fullfoodbot") + "\n"
   }
   out += doubleSep + "\n"
   out += center(`CHEK #${order.orderNumber}`) + "\n"
   out += center(`${date}  ${time}`) + "\n"
   out += separator + "\n"
-  out += row("Buyurtma turi:", order.type === "DINE_IN" ? "ZALDA (POS)" : order.type === "ONLINE_PICKUP" ? "OLIB KETISH" : "YETKAZIB BERISH") + "\n"
-  if (order.tableNumber) {
-    out += row("Stol raqami:", `#${order.tableNumber}`) + "\n"
-  }
-  if (order.customerName && order.customerName !== "Mijoz" && order.customerName !== "Mijoz (Zal)" && order.customerName !== "Noma'lum") {
+  out += row("Buyurtma turi:", order.type === "DINE_IN" ? (order.tableNumber ? `ZALDA (#${order.tableNumber})` : "ZALDA (POS)") : order.type === "ONLINE_PICKUP" ? "OLIB KETISH" : "YETKAZIB BERISH") + "\n"
+  out += row("Kassir:", "Kassir") + "\n"
+  if (order.customerName && order.customerName !== "Mijoz" && order.customerName !== "Mijoz (Zal)" && order.customerName !== "Zal Mijoz") {
     out += row("Mijoz:", order.customerName) + "\n"
   }
   if (order.customerPhone && order.customerPhone !== "+998 00 000 00 00" && order.customerPhone !== "+998 71 200 00 00" && order.type !== "DINE_IN") {
     out += row("Telefon:", order.customerPhone) + "\n"
   }
-  if (order.address && order.type !== "DINE_IN" && !order.address.toLowerCase().includes("toshkent sh., markaz")) {
-    out += row("Manzil:", order.address) + "\n"
-  }
   out += separator + "\n"
-  out += "  MAHSULOTLAR:\n"
+  out += is80mm ? row(" Nomi", "Soni   Narxi   Summa") + "\n" : row(" Nomi", "Soni   Summa") + "\n"
+  out += separator + "\n"
 
   const items = order.items || []
   items.forEach((item, idx) => {
@@ -417,13 +452,26 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   })
 
   out += separator + "\n"
-  out += row("JAMI TO'LOV:", `${Number(order.totalAmount || 0).toLocaleString()} SO'M`) + "\n"
-  out += row("To'lov usuli:", order.paymentMethod === "CASH" ? "NAQD PUL" : order.paymentMethod === "TERMINAL" ? "TERMINAL" : order.paymentMethod === "BALANCE" ? "MIJOZ BALANSI" : "KARTA") + "\n"
-  out += doubleSep + "\n"
-  if (settings.footerNote) {
-    out += center(settings.footerNote.replace(/[—–]/g, "-")) + "\n"
+  const subtotal = Number(order.subtotal || order.totalAmount)
+  const packagingFee = Number(order.packagingFee || 0)
+  const deliveryFee = Number(order.deliveryFee || 0)
+  out += row("Oraliq jami:", `${subtotal.toLocaleString()} so'm`) + "\n"
+  if (packagingFee > 0) {
+    out += row("Qadoqlash (Boks):", `${packagingFee.toLocaleString()} so'm`) + "\n"
   }
-  out += center("*** RAHMAT! ***")
+  if (deliveryFee > 0) {
+    out += row("Yetkazib berish:", `${deliveryFee.toLocaleString()} so'm`) + "\n"
+  }
+  out += separator + "\n"
+  out += row("JAMI TO'LOV:", `${Number(order.totalAmount || 0).toLocaleString()} SO'M`) + "\n"
+  out += row("To'lov usuli:", order.paymentMethod === "CARD_TRANSFER" ? "KARTA" : order.paymentMethod === "CASH" ? "NAQD PUL" : order.paymentMethod === "TERMINAL" ? "TERMINAL" : order.paymentMethod === "BALANCE" ? "MIJOZ BALANSI" : "KARTA") + "\n"
+  out += row("To'lov holati:", "[V] TO'LANDI") + "\n"
+  out += doubleSep + "\n"
+  out += center("Salomatligingiz - boyligimiz!") + "\n"
+  out += center("Xaridingiz uchun rahmat!") + "\n"
+  out += center("www.fullfood.uz") + "\n"
+  out += doubleSep + "\n"
+  out += center("*** CHEK OXIRI ***")
   return out
 }
 
@@ -498,6 +546,18 @@ export async function quickPrintOrder(
 ): Promise<boolean> {
   const settings = { ...getPrinterSettings(), ...customSettings }
 
+  // Generate QR code for telegram bot / e-menu
+  let qrDataUrl = ""
+  try {
+    qrDataUrl = await QRCode.toDataURL("https://t.me/fullfoodbot", {
+      margin: 1,
+      width: settings.paperWidth === "58mm" ? 95 : 125,
+      color: { dark: "#000000", light: "#ffffff" },
+    })
+  } catch (e) {
+    console.warn("QR code generation error:", e)
+  }
+
   // Primary: Try direct silent print via local Windows agent
   try {
     const controller = new AbortController()
@@ -524,7 +584,7 @@ export async function quickPrintOrder(
   // Fallback: Invisible iframe printing (compatible with Chrome --kiosk-printing)
   return new Promise((resolve) => {
     try {
-      const html = generateReceiptHtml(order, settings)
+      const html = generateReceiptHtml(order, settings, qrDataUrl)
 
       let iframe = document.getElementById("thermal-print-iframe") as HTMLIFrameElement | null
       if (!iframe) {
