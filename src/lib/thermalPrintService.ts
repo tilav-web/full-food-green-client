@@ -542,9 +542,17 @@ export async function checkPrinterStatus(): Promise<PrinterStatusInfo> {
  */
 export async function quickPrintOrder(
   order: Order,
-  customSettings?: Partial<PrinterSettings>
+  customSettings?: Partial<PrinterSettings>,
+  options?: { openDrawer?: boolean }
 ): Promise<boolean> {
   const settings = { ...getPrinterSettings(), ...customSettings }
+
+  // Pul qutisi (Cash Drawer) qoidasi:
+  // Faqat NAQD (CASH) to'lovda pul qutisi ochiladi.
+  // Online Mini App, BALANCE, TERMINAL, KARTA to'lovlarida pul qutisi OCHILMAYDI.
+  const shouldOpenDrawer = options?.openDrawer !== undefined
+    ? options.openDrawer
+    : order.paymentMethod === "CASH"
 
   // Generate QR code for telegram bot / e-menu
   let qrDataUrl = ""
@@ -566,7 +574,10 @@ export async function quickPrintOrder(
     const agentRes = await fetch(`${LOCAL_AGENT_URL}/print`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: plainText }),
+      body: JSON.stringify({ 
+        text: plainText,
+        openDrawer: shouldOpenDrawer,
+      }),
       signal: controller.signal,
     })
     clearTimeout(timeoutId)

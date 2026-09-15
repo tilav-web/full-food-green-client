@@ -197,7 +197,7 @@ export const CashierView: React.FC = () => {
   }, [refreshPrinterStatus])
 
   // 1-Click Direct Print to Xprinter with automatic fallback to SoliqReceiptModal
-  const handlePrintOrder = async (order: Order, forcePreview: boolean = false) => {
+  const handlePrintOrder = async (order: Order, forcePreview: boolean = false, options?: { openDrawer?: boolean }) => {
     triggerHaptic("light")
     if (!order) return
 
@@ -209,7 +209,7 @@ export const CashierView: React.FC = () => {
 
     try {
       toast.info(`Chek #${order.orderNumber} Xprinterga yuborilmoqda...`, { duration: 1500 })
-      const ok = await quickPrintOrder(order, printerSettings)
+      const ok = await quickPrintOrder(order, printerSettings, options)
       if (ok) {
         toast.success(`Xprinter: #${order.orderNumber} cheki chop etishga yuborildi!`)
       } else {
@@ -323,18 +323,26 @@ export const CashierView: React.FC = () => {
     refetchInterval: 15000,
   })
 
-  // 2. Real-Time WebSocket Connection & Instant Audio Alert
+  // 2. Real-Time WebSocket Connection & Instant Audio Alert & Auto-Printing for Online Orders
   useEffect(() => {
     socket.emit("join_cashier")
 
     const handleNewOrder = (order: Order) => {
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
-      // Kassir o'zi zal uchun yaratgan buyurtmalar uchun tovush chalinmasin!
+      // Kassir o'zi zal uchun yaratgan buyurtmalar uchun tovush va auto-print bu yerda emas (POS checkout'da)
       if (order?.type === "DINE_IN") {
         return
       }
       triggerHaptic("heavy")
       playNotificationChime()
+
+      // Online Telegram Mini App dan kelgan buyurtmalar uchun avtomatik chek chiqarish:
+      // Bunda pul qutisi ochilmaydi (openDrawer: false)
+      if (printerSettings.quickPrintEnabled && order) {
+        quickPrintOrder(order, printerSettings, { openDrawer: false }).catch((err) => {
+          console.warn("Auto-print online order error:", err)
+        })
+      }
     }
 
     const handleOrderUpdated = (order: Order) => {
@@ -353,7 +361,7 @@ export const CashierView: React.FC = () => {
       socket.off("new_order", handleNewOrder)
       socket.off("order_updated", handleOrderUpdated)
     }
-  }, [queryClient, triggerHaptic])
+  }, [queryClient, triggerHaptic, printerSettings])
 
   // 3. Products & Categories data
   const { data: products = [], isLoading: isProductsLoading, refetch: refetchProducts } = useQuery<Product[]>({
