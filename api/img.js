@@ -12,7 +12,8 @@ export default async function handler(request) {
 
   // Strip leading slashes or redundant uploads/ prefix
   const cleanFile = file.replace(/^\/?(uploads\/)?/, '');
-  const targetUrl = `https://bluebird-fancy-painfully.ngrok-free.app/uploads/${cleanFile}`;
+  const targetUrl = `https://api.full-food.hotel-familyhouse.uz/uploads/${cleanFile}`;
+
 
   try {
     const upstream = await fetch(targetUrl, {

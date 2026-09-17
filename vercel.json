@@ -2,15 +2,11 @@
   "rewrites": [
     {
       "source": "/uploads/:file*",
-      "destination": "/api/img?file=:file*"
-    },
-    {
-      "source": "/api/img",
-      "destination": "/api/img"
+      "destination": "https://api.full-food.hotel-familyhouse.uz/uploads/:file*"
     },
     {
       "source": "/api/:match*",
-      "destination": "https://bluebird-fancy-painfully.ngrok-free.app/api/:match*"
+      "destination": "https://api.full-food.hotel-familyhouse.uz/api/:match*"
     },
     {
       "source": "/(.*)",
@@ -18,3 +14,4 @@
     }
   ]
 }
+
