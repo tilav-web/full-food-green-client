@@ -329,20 +329,14 @@ export const CashierView: React.FC = () => {
 
     const handleNewOrder = (order: Order) => {
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
-      // Kassir o'zi zal uchun yaratgan buyurtmalar uchun tovush va auto-print bu yerda emas (POS checkout'da)
+      // Kassir o'zi zal uchun yaratgan buyurtmalar uchun tovush bu yerda emas (POS checkout'da)
       if (order?.type === "DINE_IN") {
         return
       }
       triggerHaptic("heavy")
       playNotificationChime()
-
-      // Online Telegram Mini App dan kelgan buyurtmalar uchun avtomatik chek chiqarish:
-      // Bunda pul qutisi ochilmaydi (openDrawer: false)
-      if (printerSettings.quickPrintEnabled && order) {
-        quickPrintOrder(order, printerSettings, { openDrawer: false }).catch((err) => {
-          console.warn("Auto-print online order error:", err)
-        })
-      }
+      // Eslatma: Online buyurtmalar cheki to'g'ridan-to'g'ri Backend -> Printer Agenti (Socket.IO)
+      // orqali bir lahzada chop etiladi. Brauzer dublikat chek chiqarmaydi.
     }
 
     const handleOrderUpdated = (order: Order) => {
