@@ -510,16 +510,16 @@ export const CashierView: React.FC = () => {
     }
   }
 
-  // POS Grid Columns State (3, 4, 5) - Default 4, remembered in localStorage
-  const [posGridCols, setPosGridCols] = React.useState<3 | 4 | 5>(() => {
+  // POS Grid Columns State (5, 6, 7) - Default 5, remembered in localStorage
+  const [posGridCols, setPosGridCols] = React.useState<5 | 6 | 7>(() => {
     try {
       const saved = localStorage.getItem("fullfood_pos_grid_cols")
-      if (saved === "3" || saved === "4" || saved === "5") return Number(saved) as 3 | 4 | 5
+      if (saved === "5" || saved === "6" || saved === "7") return Number(saved) as 5 | 6 | 7
     } catch (_) {}
-    return 3
+    return 5
   })
 
-  const handleSetPosGridCols = (cols: 3 | 4 | 5) => {
+  const handleSetPosGridCols = (cols: 5 | 6 | 7) => {
     triggerHaptic("light")
     setPosGridCols(cols)
     try {
@@ -1572,7 +1572,7 @@ export const CashierView: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-                {/* Grid Column Switcher (3, 4, 5 qator) */}
+                {/* Grid Column Switcher (5, 6, 7 qator) */}
                 <div className="flex items-center bg-white dark:bg-neutral-900 p-1 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-xs">
                   <div className="flex items-center gap-1 pl-2 pr-1.5 text-neutral-400">
                     <LayoutGrid className="h-3.5 w-3.5" />
@@ -1580,7 +1580,7 @@ export const CashierView: React.FC = () => {
                       {t.posColsWord || "Qator"}:
                     </span>
                   </div>
-                  {([3, 4, 5] as const).map((cols) => (
+                  {([5, 6, 7] as const).map((cols) => (
                     <button
                       key={cols}
                       type="button"
@@ -1681,120 +1681,128 @@ export const CashierView: React.FC = () => {
               </div>
             </div>
 
-            {/* Category Filter Square Cards with Photos (Mobile-Friendly & Touch-Optimized for POS) */}
-            {isCategoriesLoading ? (
-              <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-2 scrollbar-none">
-                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <Skeleton key={i} className="w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl" />
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-2.5 px-2 scrollbar-none snap-x">
-                {orderedCategories.map((c, index) => {
-                  const count = products.filter((p) => p.categoryId === c.id).length
-                  const isSelected = posSelectedCategory === c.id
-                  const isDragging = draggedCatIndex === index
-                  const showLeftIndicator =
-                    dropInsertPosition?.index === index &&
-                    dropInsertPosition.side === "left" &&
-                    draggedCatIndex !== null &&
-                    draggedCatIndex !== index &&
-                    draggedCatIndex !== index - 1
-                  const showRightIndicator =
-                    dropInsertPosition?.index === index &&
-                    dropInsertPosition.side === "right" &&
-                    draggedCatIndex !== null &&
-                    draggedCatIndex !== index &&
-                    draggedCatIndex !== index + 1
+            {/* Category Filter Square Cards with Photos - Fixed/Sticky on scroll */}
+            <div className="sticky top-0 z-20 bg-neutral-50/95 dark:bg-neutral-950/95 backdrop-blur-md py-1.5 px-1 -mx-1 rounded-2xl border-b border-neutral-200/60 dark:border-neutral-800/60 shadow-xs">
+              {isCategoriesLoading ? (
+                <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-none">
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <Skeleton key={i} className="w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl" />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-1 px-1 scrollbar-none snap-x">
+                  {orderedCategories.map((c, index) => {
+                    const count = products.filter((p) => p.categoryId === c.id).length
+                    const isSelected = posSelectedCategory === c.id
+                    const isDragging = draggedCatIndex === index
+                    const showLeftIndicator =
+                      dropInsertPosition?.index === index &&
+                      dropInsertPosition.side === "left" &&
+                      draggedCatIndex !== null &&
+                      draggedCatIndex !== index &&
+                      draggedCatIndex !== index - 1
+                    const showRightIndicator =
+                      dropInsertPosition?.index === index &&
+                      dropInsertPosition.side === "right" &&
+                      draggedCatIndex !== null &&
+                      draggedCatIndex !== index &&
+                      draggedCatIndex !== index + 1
 
-                  return (
-                    <div
-                      key={c.id}
-                      onDragOver={(e) => handleCategoryDragOver(e, index)}
-                      onDrop={(e) => handleCategoryDrop(e, index)}
-                      className="relative shrink-0 flex items-center"
-                    >
-                      {/* Insertion Line Before (Left) */}
-                      {showLeftIndicator && (
-                        <div className="absolute -left-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
-                          <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        draggable
-                        onDragStart={(e) => handleCategoryDragStart(e, index)}
-                        onDragEnd={handleCategoryDragEnd}
-                        onClick={() => setPosSelectedCategory(c.id)}
-                        className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group my-1 ${
-                          isDragging ? "opacity-25 scale-95 border-2 border-dashed border-emerald-400" : ""
-                        } ${
-                          isSelected
-                            ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
-                            : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
-                        }`}
+                    return (
+                      <div
+                        key={c.id}
+                        onDragOver={(e) => handleCategoryDragOver(e, index)}
+                        onDrop={(e) => handleCategoryDrop(e, index)}
+                        className="relative shrink-0 flex items-center"
                       >
-                        {/* 3D Icon Background */}
-                        <img
-                          src={getCategoryIconSrc(c)}
-                          alt={c.name}
-                          draggable={false}
-                          onError={(e) => {
-                            ;(e.currentTarget as HTMLImageElement).src = getImageUrl(c.imageUrl)
-                          }}
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-108 transition-transform duration-300 pointer-events-none select-none"
-                        />
-
-                        {/* Soft Gradient Overlay for text readability */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none select-none" />
-
-                        {/* Top Row: Drag Handle & Count Badge */}
-                        <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
-                          <div className="opacity-60 group-hover:opacity-100 transition-opacity drop-shadow-sm">
-                            <GripVertical className="h-3.5 w-3.5 text-white" />
+                        {/* Insertion Line Before (Left) */}
+                        {showLeftIndicator && (
+                          <div className="absolute -left-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
+                            <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            </div>
                           </div>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white font-black shadow-xs">
-                            {count} ta
-                          </span>
-                        </div>
+                        )}
 
-                        {/* Bottom Label: Category Name */}
-                        <div className="relative z-10 pointer-events-none select-none">
-                          <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] truncate">
-                            {c.name}
-                          </span>
-                        </div>
-                      </button>
+                        <button
+                          type="button"
+                          draggable
+                          onDragStart={(e) => handleCategoryDragStart(e, index)}
+                          onDragEnd={handleCategoryDragEnd}
+                          onClick={() => setPosSelectedCategory(c.id)}
+                          className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group my-1 ${
+                            isDragging ? "opacity-25 scale-95 border-2 border-dashed border-emerald-400" : ""
+                          } ${
+                            isSelected
+                              ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
+                              : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
+                          }`}
+                        >
+                          {/* 3D Icon Background */}
+                          <img
+                            src={getCategoryIconSrc(c)}
+                            alt={c.name}
+                            draggable={false}
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).src = getImageUrl(c.imageUrl)
+                            }}
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-108 transition-transform duration-300 pointer-events-none select-none"
+                          />
 
-                      {/* Insertion Line After (Right) */}
-                      {showRightIndicator && (
-                        <div className="absolute -right-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
-                          <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                          {/* Soft Gradient Overlay for text readability */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none select-none" />
+
+                          {/* Top Row: Drag Handle & Count Badge */}
+                          <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
+                            <div className="opacity-60 group-hover:opacity-100 transition-opacity drop-shadow-sm">
+                              <GripVertical className="h-3.5 w-3.5 text-white" />
+                            </div>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white font-black shadow-xs">
+                              {count} ta
+                            </span>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+
+                          {/* Bottom Label: Category Name */}
+                          <div className="relative z-10 pointer-events-none select-none">
+                            <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] truncate">
+                              {c.name}
+                            </span>
+                          </div>
+                        </button>
+
+                        {/* Insertion Line After (Right) */}
+                        {showRightIndicator && (
+                          <div className="absolute -right-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
+                            <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Products Grid */}
             {isProductsLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="rounded-3xl border border-neutral-100 dark:border-neutral-800 p-2.5 space-y-2 bg-white dark:bg-neutral-900">
-                    <Skeleton className="h-32 sm:h-36 w-full rounded-2xl" />
-                    <Skeleton className="h-4 w-3/4 rounded-md" />
+              <div
+                className="grid gap-2"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${posGridCols}, minmax(0, 1fr))`,
+                }}
+              >
+                {Array.from({ length: posGridCols * 2 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 p-2 space-y-2 bg-white dark:bg-neutral-900">
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-3.5 w-3/4 rounded-md" />
                     <div className="flex items-center justify-between pt-1">
-                      <Skeleton className="h-4 w-1/3 rounded-md" />
-                      <Skeleton className="h-8 w-8 rounded-xl" />
+                      <Skeleton className="h-3.5 w-1/3 rounded-md" />
+                      <Skeleton className="h-6 w-6 rounded-lg" />
                     </div>
                   </div>
                 ))}
@@ -1817,20 +1825,13 @@ export const CashierView: React.FC = () => {
               </div>
             ) : (
               <div
-                className={
-                  posGridCols === 5
-                    ? "grid gap-2 sm:gap-2.5"
-                    : posGridCols === 4
-                    ? "grid gap-2.5 sm:gap-3"
-                    : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5"
-                }
-                style={
-                  posGridCols === 5
-                    ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }
-                    : posGridCols === 4
-                    ? { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }
-                    : undefined
-                }
+                className={`grid ${
+                  posGridCols === 7 ? "gap-1.5" : posGridCols === 6 ? "gap-1.5 sm:gap-2" : "gap-2 sm:gap-2.5"
+                }`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${posGridCols}, minmax(0, 1fr))`,
+                }}
               >
                 {filteredPosProducts.map((p, pIndex) => {
                   const inCartItem = posCart.find((i) => i.product.id === p.id)
@@ -1853,7 +1854,7 @@ export const CashierView: React.FC = () => {
                         })
                       }}
                       className={`${
-                        posGridCols === 5 ? "rounded-2xl" : "rounded-3xl"
+                        posGridCols === 7 ? "rounded-xl" : "rounded-2xl"
                       } bg-white dark:bg-neutral-900 border overflow-hidden cursor-pointer transition-all shadow-xs flex flex-col justify-between group active:scale-98 ${
                         qty > 0
                           ? "border-emerald-600 ring-2 ring-emerald-500/30 shadow-md"
@@ -1863,11 +1864,11 @@ export const CashierView: React.FC = () => {
                       {/* Visual Dish Image Header: Large, prominent, clear */}
                       <div
                         className={`relative w-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden ${
-                          posGridCols === 5
-                            ? "h-24 sm:h-28"
-                            : posGridCols === 4
-                            ? "h-28 sm:h-32"
-                            : "h-36 sm:h-40"
+                          posGridCols === 7
+                            ? "h-20 sm:h-22"
+                            : posGridCols === 6
+                            ? "h-22 sm:h-25"
+                            : "h-24 sm:h-28"
                         }`}
                       >
                         <img
@@ -1879,36 +1880,35 @@ export const CashierView: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />
-                        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-wrap items-center gap-1 pointer-events-none z-10 max-w-[85%]">
+                        <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 flex flex-wrap items-center gap-0.5 pointer-events-none z-10 max-w-[85%]">
                           <span
                             className={`${
-                              posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-2 py-0.5"
-                            } font-black rounded-lg bg-black/60 text-white backdrop-blur-md`}
+                              posGridCols >= 6 ? "text-[8.5px] px-1 py-0.1" : "text-[9px] px-1 py-0.2"
+                            } font-black rounded-md bg-black/60 text-white backdrop-blur-md`}
                           >
                             {p.calories} kkal
                           </span>
                           {soldTotal > 0 ? (
                             <span
                               className={`${
-                                posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-1.5 py-0.5"
-                              } font-black rounded-lg ${
+                                posGridCols >= 6 ? "text-[8.5px] px-1 py-0.1" : "text-[9px] px-1 py-0.2"
+                              } font-black rounded-md ${
                                 pIndex === 0
                                   ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs ring-1 ring-white/40"
                                   : "bg-emerald-600/90 text-white backdrop-blur-md"
                               } flex items-center gap-0.5`}
                               title={`${soldTotal} ta sotilgan`}
                             >
-                              <Flame className="h-2.5 w-2.5 fill-current" />
-                              {pIndex === 0 && soldTotal >= 5 ? "Top 1 • " : ""}
+                              <Flame className="h-2 w-2 fill-current" />
                               {soldTotal} ta
                             </span>
                           ) : p.isPopular ? (
                             <span
                               className={`${
-                                posGridCols === 5 ? "text-[9px] px-1 py-0.2" : "text-[10px] px-2 py-0.5"
-                              } font-black rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5`}
+                                posGridCols >= 6 ? "text-[8.5px] px-1 py-0.1" : "text-[9px] px-1 py-0.2"
+                              } font-black rounded-md bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md flex items-center gap-0.5`}
                             >
-                              <Flame className="h-3 w-3 fill-white" />
+                              <Flame className="h-2 w-2 fill-white" />
                               Top
                             </span>
                           ) : null}
@@ -1920,22 +1920,22 @@ export const CashierView: React.FC = () => {
                             type="button"
                             onClick={(e) => handleToggleProductActive(p.id, e)}
                             disabled={togglingProductId === p.id}
-                            className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20 h-6 sm:h-7 px-1.5 sm:px-2 rounded-xl backdrop-blur-md flex items-center gap-1 font-bold text-[9px] sm:text-[10px] shadow-md transition-all active:scale-90 ${
+                            className={`absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-20 h-5 sm:h-5.5 px-1 sm:px-1.5 rounded-lg backdrop-blur-md flex items-center gap-0.5 font-bold text-[8.5px] shadow-md transition-all active:scale-90 ${
                               p.isActive === false
-                                ? "bg-red-600 text-white hover:bg-red-700 ring-2 ring-white/50"
+                                ? "bg-red-600 text-white hover:bg-red-700 ring-1 ring-white/50"
                                 : "bg-black/50 text-white/80 hover:bg-black/80 hover:text-white"
                             }`}
                             title={p.isActive === false ? "Sotuvga chiqarish (Faollashtirish)" : "Stop-listga kiritish (Nofaol qilish)"}
                           >
-                            <span className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${p.isActive === false ? "bg-white" : "bg-emerald-400"}`} />
-                            <span>{p.isActive === false ? "Stop-list" : "Faol"}</span>
+                            <span className={`h-1.5 w-1.5 rounded-full ${p.isActive === false ? "bg-white" : "bg-emerald-400"}`} />
+                            <span className={posGridCols === 7 ? "hidden sm:inline" : ""}>{p.isActive === false ? "Stop" : "Faol"}</span>
                           </button>
                         )}
 
                         {qty > 0 && (
                           <div
                             onClick={(e) => e.stopPropagation()}
-                            className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20 flex items-center bg-emerald-600 text-white rounded-full shadow-lg ring-2 ring-white dark:ring-neutral-900 p-0.5 animate-in zoom-in-50"
+                            className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-20 flex items-center bg-emerald-600 text-white rounded-full shadow-lg ring-1.5 ring-white dark:ring-neutral-900 p-0.5 animate-in zoom-in-50"
                           >
                             <button
                               type="button"
@@ -1953,13 +1953,13 @@ export const CashierView: React.FC = () => {
                                   )
                                 })
                               }}
-                              className="h-6 w-6 rounded-full hover:bg-emerald-700 active:scale-90 flex items-center justify-center text-white transition-all"
+                              className="h-5 w-5 sm:h-5.5 sm:w-5.5 rounded-full hover:bg-emerald-700 active:scale-90 flex items-center justify-center text-white transition-all"
                               title="Kamaytirish (-)"
                             >
-                              <Minus className="h-3 w-3 stroke-[3]" />
+                              <Minus className="h-2.5 w-2.5 stroke-[3]" />
                             </button>
 
-                            <span className="px-1 text-xs font-black min-w-[16px] text-center select-none">
+                            <span className="px-1 text-[11px] font-black min-w-[14px] text-center select-none">
                               {qty}
                             </span>
 
@@ -1974,35 +1974,37 @@ export const CashierView: React.FC = () => {
                                   )
                                 })
                               }}
-                              className="h-6 w-6 rounded-full hover:bg-emerald-700 active:scale-90 flex items-center justify-center text-white transition-all"
+                              className="h-5 w-5 sm:h-5.5 sm:w-5.5 rounded-full hover:bg-emerald-700 active:scale-90 flex items-center justify-center text-white transition-all"
                               title="Ko'paytirish (+)"
                             >
-                              <Plus className="h-3 w-3 stroke-[3]" />
+                              <Plus className="h-2.5 w-2.5 stroke-[3]" />
                             </button>
                           </div>
                         )}
                       </div>
 
                       {/* Dish Info: Large BOLD name and Price */}
-                      <div className={`${posGridCols === 5 ? "p-2 space-y-0.5" : "p-3 space-y-1"}`}>
+                      <div className={`${posGridCols >= 6 ? "p-1.5 space-y-0.5" : "p-2 space-y-0.5"}`}>
                         <h4
                           className={`font-black ${
-                            posGridCols === 5
-                              ? "text-xs leading-snug"
-                              : posGridCols === 4
-                              ? "text-xs sm:text-sm leading-tight"
-                              : "text-sm sm:text-base leading-tight"
+                            posGridCols === 7
+                              ? "text-[10.5px] leading-tight"
+                              : posGridCols === 6
+                              ? "text-[11px] leading-tight"
+                              : "text-xs leading-snug"
                           } text-neutral-900 dark:text-white line-clamp-1`}
                           title={p.name}
                         >
                           {p.name}
                         </h4>
                         <div className="flex items-center justify-between gap-1 pt-0.5">
-                          <span className="font-black text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-400">
+                          <span className={`font-black ${
+                            posGridCols === 7 ? "text-[10px]" : posGridCols === 6 ? "text-[10.5px]" : "text-[11px] sm:text-xs"
+                          } text-emerald-700 dark:text-emerald-400`}>
                             {p.price.toLocaleString()} so'm
                           </span>
                           {p.unit?.name && (
-                            <span className="text-[10px] text-neutral-400 font-semibold truncate">
+                            <span className="text-[9px] text-neutral-400 font-semibold truncate">
                               {p.unit.name}
                             </span>
                           )}
