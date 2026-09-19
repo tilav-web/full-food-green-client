@@ -1681,8 +1681,8 @@ export const CashierView: React.FC = () => {
               </div>
             </div>
 
-            {/* Category Filter Square Cards with Photos - Fixed/Sticky on scroll */}
-            <div className="sticky top-0 z-20 bg-neutral-50/95 dark:bg-neutral-950/95 backdrop-blur-md py-1.5 px-1 -mx-1 rounded-2xl border-b border-neutral-200/60 dark:border-neutral-800/60 shadow-xs">
+            {/* Category Filter Square Cards with Photos - Fixed/Sticky on scroll below navbar */}
+            <div className="sticky top-[56px] sm:top-[64px] z-30 bg-neutral-50/95 dark:bg-neutral-950/95 backdrop-blur-md py-1.5 px-1 -mx-1 rounded-2xl border-b border-neutral-200/60 dark:border-neutral-800/60 shadow-xs">
               {isCategoriesLoading ? (
                 <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-none">
                   {[1, 2, 3, 4, 5, 6, 7].map((i) => (
@@ -2018,7 +2018,7 @@ export const CashierView: React.FC = () => {
           </div>
 
           {/* POS Cart Sidebar: Sticky on Desktop/Tablet right next to the menu! */}
-          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] lg:sticky lg:top-3 z-20 flex-shrink-0 space-y-4">
+          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] lg:sticky lg:top-[72px] z-20 flex-shrink-0 space-y-4">
             <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 space-y-3.5 shadow-sm">
               {/* Header with Dish Counter & Clear Cart */}
               <div className="flex items-center justify-between">
