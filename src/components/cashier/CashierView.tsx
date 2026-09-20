@@ -127,6 +127,9 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; b
 }
 
 export const getCategoryIconSrc = (c: { id?: string; name?: string; slug?: string; imageUrl?: string }) => {
+  if (c.imageUrl && c.imageUrl.trim() !== "") {
+    return getImageUrl(c.imageUrl)
+  }
   const slug = c.slug?.toLowerCase() || ""
   const name = c.name?.toLowerCase() || ""
   if (slug.includes("asosiy") || name.includes("asosiy")) return "/categories/cat_asosiy.jpg"

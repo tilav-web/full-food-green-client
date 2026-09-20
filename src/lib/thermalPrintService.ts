@@ -84,7 +84,7 @@ function formatDateTime(dateStr?: string | Date) {
 /**
  * Generates clean, printer-optimized HTML for 80mm (or 58mm) thermal receipt paper
  */
-export function generateReceiptHtml(order: Order, settings: PrinterSettings, qrDataUrl?: string): string {
+export function generateReceiptHtml(order: Order, settings: PrinterSettings, _qrDataUrl?: string): string {
   const { date, time } = formatDateTime(order.createdAt)
   const is80mm = settings.paperWidth === "80mm"
   const printableWidth = is80mm ? "72mm" : "48mm"

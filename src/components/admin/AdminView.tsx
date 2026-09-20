@@ -557,6 +557,7 @@ export const AdminView: React.FC = () => {
       }
 
       await queryClient.invalidateQueries({ queryKey: ["adminCategories"] })
+      await queryClient.invalidateQueries({ queryKey: ["cashierCategories"] })
       await queryClient.invalidateQueries({ queryKey: ["categories"] })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       await queryClient.invalidateQueries({ queryKey: ["adminProducts"] })
