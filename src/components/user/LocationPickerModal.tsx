@@ -169,8 +169,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     const created = addSavedLocation({
       label: selectedLabel,
       address: finalAddress,
-      lat: coords?.lat || RESTAURANT_COORDS[0],
-      lng: coords?.lng || RESTAURANT_COORDS[1],
+      lat: coords?.lat || 0,
+      lng: coords?.lng || 0,
       distanceKm,
     })
 
