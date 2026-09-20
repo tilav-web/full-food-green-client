@@ -190,7 +190,7 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
                   Sog'lom va parhez taomlar
                 </p>
                 <p className={`${is80mm ? "text-[10px]" : "text-[8px]"} text-neutral-800 font-semibold pt-0.5`}>
-                  Tel: +998 71 200 00 20 / +998 33 888 60 60
+                  Tel: +998 33 888 60 60
                 </p>
                 <p className={`${is80mm ? "text-[9px]" : "text-[7.5px]"} text-neutral-600`}>
                   Telegram: @fullfoodbot

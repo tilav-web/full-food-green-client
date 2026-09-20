@@ -375,7 +375,7 @@ export const CashierView: React.FC = () => {
 
   useEffect(() => {
     if (dbSettings) {
-      const phone = dbSettings.restaurant_phone || dbSettings.support_phone || "+998 71 200 00 20 / +998 33 888 60 60"
+      const phone = dbSettings.restaurant_phone || dbSettings.support_phone || "+998 33 888 60 60"
       const name = dbSettings.restaurant_name || "FULL FOOD"
       savePrinterSettings({
         restaurantName: name,
