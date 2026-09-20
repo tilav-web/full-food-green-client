@@ -1,5 +1,6 @@
 import QRCode from "qrcode"
 import type { Order } from "@/types"
+import { BISTRO_LOGO_80MM, BISTRO_LOGO_58MM } from "./receipt.logo"
 
 export interface PrinterSettings {
   quickPrintEnabled: boolean // 1-bosishda tezkor chop etish
@@ -202,11 +203,12 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings, qrD
   <div class="receipt-container">
     <!-- RESTAURANT LOGO & BRAND HEADER -->
     <div class="text-center" style="margin-bottom: 3px;">
-      <div style="font-size: ${is80mm ? '18px' : '15px'}; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">
-        BISTRO!
-      </div>
-      <div style="font-size: ${is80mm ? '13px' : '11px'}; font-weight: bold; margin-top: 1px;">
-        Cafe
+      <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 4px;">
+        <img
+          src="/image.png"
+          alt="BISTRO Cafe"
+          style="width: ${is80mm ? '170px' : '130px'}; max-width: 90%; height: auto; object-fit: contain; display: block; margin: 0 auto;"
+        />
       </div>
       <div style="font-size: ${is80mm ? '9.5px' : '8px'}; color: #111; margin-top: 2px; font-weight: 600;">
         Tel: +998 33 888 60 60
@@ -375,10 +377,7 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   }
 
   let out = ""
-  const bistroPad = Math.max(0, Math.floor((width - 14) / 2))
-  const cafePad = Math.max(0, Math.floor((width - 4) / 2))
-  out += " ".repeat(bistroPad) + "\x1bE\x01\x1d!\x11BISTRO!\x1d!\x00\x1bE\x00\n"
-  out += " ".repeat(cafePad) + "\x1bE\x01\x1d!\x01Cafe\x1d!\x00\x1bE\x00\n"
+  out += is80mm ? BISTRO_LOGO_80MM : BISTRO_LOGO_58MM
   out += center("Tel: +998 33 888 60 60") + "\n"
   out += center("Telegram: @fullfoodbot") + "\n"
   out += doubleSep + "\n"
