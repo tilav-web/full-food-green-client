@@ -202,22 +202,14 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings, qrD
   <div class="receipt-container">
     <!-- RESTAURANT LOGO & BRAND HEADER -->
     <div class="text-center" style="margin-bottom: 3px;">
-      <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 2px;">
-        <img
-          src="/logo.jpg"
-          alt="FULL FOOD"
-          style="height: ${is80mm ? '46px' : '36px'}; width: auto; object-fit: contain; filter: grayscale(100%) contrast(170%); display: block; margin: 0 auto;"
-          onerror="this.style.display='none'"
-        />
+      <div style="font-size: ${is80mm ? '18px' : '15px'}; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">
+        BISTRO!
       </div>
-      <div style="font-size: ${is80mm ? '15px' : '12.5px'}; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;">
-        ${settings.restaurantName || "FULL FOOD"}
-      </div>
-      <div style="font-size: ${is80mm ? '9.5px' : '8px'}; font-weight: bold; color: #222; margin-top: 1px;">
-        Sog'lom va parhez taomlar
+      <div style="font-size: ${is80mm ? '13px' : '11px'}; font-weight: bold; margin-top: 1px;">
+        Cafe
       </div>
       <div style="font-size: ${is80mm ? '9.5px' : '8px'}; color: #111; margin-top: 2px; font-weight: 600;">
-        Tel: ${settings.restaurantPhone || "+998 33 888 60 60"}
+        Tel: +998 33 888 60 60
       </div>
       <div style="font-size: ${is80mm ? '9px' : '7.5px'}; color: #222;">
         Telegram: @fullfoodbot
@@ -258,6 +250,26 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings, qrD
 
     <div class="separator">${separator}</div>
 
+    <!-- SUBTOTAL & FEES -->
+    <div>
+      <div class="row">
+        <span>Oraliq jami:</span>
+        <span class="font-bold">${subtotal.toLocaleString()} so'm</span>
+      </div>
+      ${packagingFee > 0 ? `
+      <div class="row">
+        <span>Qadoqlash (Boks):</span>
+        <span class="font-bold">${packagingFee.toLocaleString()} so'm</span>
+      </div>` : ""}
+      ${deliveryFee > 0 ? `
+      <div class="row">
+        <span>Yetkazib berish:</span>
+        <span class="font-bold">${deliveryFee.toLocaleString()} so'm</span>
+      </div>` : ""}
+    </div>
+
+    <div class="separator">${separator}</div>
+
     <!-- ITEMS TABLE HEADER -->
     <div class="row font-black" style="font-size: ${is80mm ? '10px' : '8.5px'}; text-transform: uppercase;">
       <span style="width: 50%;">Nomi</span>
@@ -272,29 +284,11 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings, qrD
       ${itemsHtml}
     </div>
 
-    <div class="separator">${separator}</div>
+    <div class="separator">${doubleSeparator}</div>
 
-    <!-- TOTALS -->
+    <!-- GRAND TOTAL -->
     <div>
-      <div class="row">
-        <span>Oraliq jami:</span>
-        <span class="font-bold">${subtotal.toLocaleString()} so'm</span>
-      </div>
-      ${packagingFee > 0 ? `
-      <div class="row">
-        <span>Qadoqlash (Bokslar):</span>
-        <span class="font-bold">${packagingFee.toLocaleString()} so'm</span>
-      </div>` : ""}
-      ${deliveryFee > 0 ? `
-      <div class="row">
-        <span>Yetkazib berish:</span>
-        <span class="font-bold">${deliveryFee.toLocaleString()} so'm</span>
-      </div>` : ""}
-
-      <div class="separator">${separator}</div>
-
-      <!-- GRAND TOTAL -->
-      <div class="row font-black" style="font-size: ${is80mm ? '13px' : '11px'}; margin: 3px 0;">
+      <div class="row font-black" style="font-size: ${is80mm ? '14px' : '12px'}; margin: 3px 0;">
         <span>JAMI TO'LOV:</span>
         <span>${totalAmount.toLocaleString()} SO'M</span>
       </div>
@@ -309,37 +303,8 @@ export function generateReceiptHtml(order: Order, settings: PrinterSettings, qrD
       </div>
     </div>
 
-    ${qrDataUrl ? `
-    <div class="separator">${separator}</div>
-    <div class="text-center" style="margin: 4px auto 2px auto;">
-      <img
-        src="${qrDataUrl}"
-        alt="QR"
-        style="width: ${is80mm ? '82px' : '68px'}; height: ${is80mm ? '82px' : '68px'}; margin: 0 auto; display: block;"
-      />
-      <div style="font-size: ${is80mm ? '8.5px' : '7.5px'}; color: #333; margin-top: 2px; font-weight: bold;">
-        Elektron menyu & Telegram bot
-      </div>
-    </div>
-    ` : ''}
-
     <div class="separator">${doubleSeparator}</div>
-
-    <!-- FOOTER -->
-    <div class="text-center" style="margin-top: 3px;">
-      <div class="font-black" style="font-size: ${is80mm ? '11px' : '9.5px'};">
-        XARIDINGIZ UCHUN RAHMAT!
-      </div>
-      <div style="font-size: ${is80mm ? '9px' : '8px'}; font-style: italic; margin-top: 1px;">
-        ${settings.footerNote || "Salomatligingiz — bizning boyligimiz!"}
-      </div>
-      <div style="font-size: 8px; font-weight: bold; margin-top: 2px;">
-        www.fullfood.uz
-      </div>
-    </div>
-
-    <div class="separator">${doubleSeparator}</div>
-    <div class="text-center" style="font-size: 7.5px; color: #777; margin-top: 1px;">
+    <div class="text-center" style="font-size: 8.5px; color: #555; margin-top: 3px;">
       *** CHEK OXIRI ***
     </div>
     <div style="height: ${is80mm ? '10mm' : '7mm'};"></div>
@@ -410,8 +375,10 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   }
 
   let out = ""
-  out += "\x1bE\x01" + center("* FULL FOOD *") + "\x1bE\x00\n"
-  out += center("SOG'LOM VA PARHEZ TAOMLAR") + "\n"
+  const bistroPad = Math.max(0, Math.floor((width - 14) / 2))
+  const cafePad = Math.max(0, Math.floor((width - 4) / 2))
+  out += " ".repeat(bistroPad) + "\x1bE\x01\x1d!\x11BISTRO!\x1d!\x00\x1bE\x00\n"
+  out += " ".repeat(cafePad) + "\x1bE\x01\x1d!\x01Cafe\x1d!\x00\x1bE\x00\n"
   out += center("Tel: +998 33 888 60 60") + "\n"
   out += center("Telegram: @fullfoodbot") + "\n"
   out += doubleSep + "\n"
@@ -427,19 +394,6 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
     out += row("Telefon:", order.customerPhone) + "\n"
   }
   out += separator + "\n"
-  out += is80mm ? row(" Nomi", "Soni   Narxi   Summa") + "\n" : row(" Nomi", "Soni   Summa") + "\n"
-  out += separator + "\n"
-
-  const items = order.items || []
-  items.forEach((item, idx) => {
-    const qty = Number(item.quantity || 1)
-    const unitPrice = Number(item.unitPrice || 0)
-    const lineTotal = qty * unitPrice
-    out += `  ${idx + 1}. ${item.name}\n`
-    out += row(`  ${qty} x ${unitPrice.toLocaleString()}`, `${lineTotal.toLocaleString()} so'm`) + "\n"
-  })
-
-  out += separator + "\n"
   const subtotal = Number(order.subtotal || order.totalAmount)
   const packagingFee = Number(order.packagingFee || 0)
   const deliveryFee = Number(order.deliveryFee || 0)
@@ -450,15 +404,46 @@ export function generateReceiptPlainText(order: Order, settings: PrinterSettings
   if (deliveryFee > 0) {
     out += row("Yetkazib berish:", `${deliveryFee.toLocaleString()} so'm`) + "\n"
   }
+  out += separator + "\n"
+  if (is80mm) {
+    const h_nomi = " Nomi".padEnd(14, " ")
+    const h_soni = "Soni".padStart(5, " ")
+    const h_narxi = "Narxi".padStart(9, " ")
+    const h_summa = "Summa".padStart(9, " ")
+    out += `${h_nomi} ${h_soni} ${h_narxi} ${h_summa}\n`
+  } else {
+    const h_nomi = " Nomi".padEnd(12, " ")
+    const h_soni = "Soni".padStart(6, " ")
+    const h_summa = "Summa".padStart(10, " ")
+    out += `${h_nomi} ${h_soni} ${h_summa}\n`
+  }
+  out += separator + "\n"
+
+  const items = order.items || []
+  items.forEach((item, idx) => {
+    const qty = Number(item.quantity || 1)
+    const unitPrice = Number(item.unitPrice || 0)
+    const lineTotal = qty * unitPrice
+    out += ` ${idx + 1}. ${item.name}\n`
+    if (is80mm) {
+      const r_empty = " ".repeat(14)
+      const s_qty = `${qty} x`.padStart(5, " ")
+      const s_pr = unitPrice.toLocaleString().padStart(9, " ")
+      const s_tot = lineTotal.toLocaleString().padStart(9, " ")
+      out += `${r_empty} ${s_qty} ${s_pr} ${s_tot}\n`
+    } else {
+      const r_empty = " ".repeat(12)
+      const s_qty = `${qty} x`.padStart(6, " ")
+      const s_tot = lineTotal.toLocaleString().padStart(10, " ")
+      out += `${r_empty} ${s_qty} ${s_tot}\n`
+    }
+  })
+
   out += doubleSep + "\n"
   out += "\x1bE\x01\x1d!\x01" + row("JAMI TO'LOV:", `${Number(order.totalAmount || 0).toLocaleString()} SO'M`) + "\x1d!\x00\x1bE\x00\n"
   out += doubleSep + "\n"
   out += row("To'lov usuli:", order.paymentMethod === "CARD_TRANSFER" ? "KARTA" : order.paymentMethod === "CASH" ? "NAQD PUL" : order.paymentMethod === "TERMINAL" ? "TERMINAL" : order.paymentMethod === "BALANCE" ? "MIJOZ BALANSI" : "KARTA") + "\n"
   out += row("To'lov holati:", "[V] TO'LANDI") + "\n"
-  out += doubleSep + "\n"
-  out += center("Salomatligingiz - boyligimiz!") + "\n"
-  out += center("Xaridingiz uchun rahmat!") + "\n"
-  out += center("www.fullfood.uz") + "\n"
   out += doubleSep + "\n"
   out += center("*** CHEK OXIRI ***")
   return out
