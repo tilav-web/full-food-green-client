@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/i18n/useTranslation"
 import { useTelegram } from "@/hooks/useTelegram"
 import { getImageUrl } from "@/lib/utils"
+import { compressImage } from "@/lib/imageCompression"
 import { useAppStore } from "@/store/useAppStore"
 import { Link } from "react-router-dom"
 import { SoliqReceiptModal } from "@/components/cashier/SoliqReceiptModal"
@@ -111,17 +112,16 @@ export const OrderTracker: React.FC = () => {
     setTimeout(() => setCopiedOrderId(null), 2500)
   }
 
-  const handleUploadReceipt = async (orderId: string, file?: File) => {
-    if (!file) return
+  const handleUploadReceipt = async (orderId: string, rawFile?: File) => {
+    if (!rawFile) return
 
     try {
       setUploadingOrderId(orderId)
+      const file = await compressImage(rawFile, { maxWidth: 1400, maxHeight: 1400, quality: 0.85 })
       const formData = new FormData()
       formData.append("file", file)
 
-      const uploadRes = await apiClient.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      const uploadRes = await apiClient.post("/uploads", formData)
 
       const uploadedUrl = uploadRes.data.url
 

@@ -52,13 +52,21 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const { triggerHaptic, requestLocation } = useTelegram()
   const { addSavedLocation } = useAppStore()
 
-  // Coords state
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-    currentLat && currentLng ? { lat: currentLat, lng: currentLng } : null
-  )
-  const [isGpsLocated, setIsGpsLocated] = useState<boolean>(false)
-  const [address, setAddress] = useState(currentAddress || "")
-  const [distanceKm, setDistanceKm] = useState(currentDistance || 2.0)
+  // Coords state: filter out restaurant coords if passed
+  const isInitialRestCoords =
+    Boolean(currentLat && currentLng) &&
+    Math.abs(Number(currentLat) - RESTAURANT_COORDS[0]) < 0.0002 &&
+    Math.abs(Number(currentLng) - RESTAURANT_COORDS[1]) < 0.0002
+
+  const validInitialCoords =
+    currentLat && currentLng && !isInitialRestCoords
+      ? { lat: Number(currentLat), lng: Number(currentLng) }
+      : null
+
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(validInitialCoords)
+  const [isGpsLocated, setIsGpsLocated] = useState<boolean>(Boolean(validInitialCoords))
+  const [address, setAddress] = useState(isInitialRestCoords ? "" : (currentAddress || ""))
+  const [distanceKm, setDistanceKm] = useState(validInitialCoords ? (currentDistance || 2.0) : 0)
   const [isLocating, setIsLocating] = useState(false)
   const [isGeocoding, setIsGeocoding] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -160,17 +168,37 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     : null
 
   const handleConfirm = () => {
+    if (!coords || !coords.lat || !coords.lng || coords.lat === 0 || coords.lng === 0) {
+      setErrorMsg("Iltimos, avval 'Mening Joylashuvimni Aniqlash' tugmasini bosib, GPS orqali lokatsiyangizni tasdiqlang!")
+      triggerHaptic("error")
+      return
+    }
+
+    if (
+      Math.abs(coords.lat - RESTAURANT_COORDS[0]) < 0.0002 &&
+      Math.abs(coords.lng - RESTAURANT_COORDS[1]) < 0.0002
+    ) {
+      setErrorMsg("Restoran lokatsiyasi tanlangan. Iltimos, o'zingizning yetkazib berish manzilingizni GPS orqali aniqlang!")
+      triggerHaptic("error")
+      return
+    }
+
+    if (!address.trim()) {
+      setErrorMsg("Iltimos, yetkazish manzilini yoki mo'ljalni kiriting!")
+      triggerHaptic("error")
+      return
+    }
+
     triggerHaptic("success")
 
-    const finalAddress =
-      address.trim() || (coords ? `Qarshi (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})` : "Qarshi shahar")
+    const finalAddress = address.trim()
 
     // Automatically save to app store for quick reuse
     const created = addSavedLocation({
       label: selectedLabel,
       address: finalAddress,
-      lat: coords?.lat || 0,
-      lng: coords?.lng || 0,
+      lat: coords.lat,
+      lng: coords.lng,
       distanceKm,
     })
 
@@ -178,8 +206,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       finalAddress,
       distanceKm,
       deliveryFee,
-      coords?.lat,
-      coords?.lng,
+      coords.lat,
+      coords.lng,
       created?.id
     )
     onClose()

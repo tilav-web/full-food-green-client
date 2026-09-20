@@ -21,6 +21,7 @@ import { useTranslation } from "@/i18n/useTranslation"
 import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
+import { compressImage } from "@/lib/imageCompression"
 import { LocationPickerModal } from "./LocationPickerModal"
 import { useQuery } from "@tanstack/react-query"
 
@@ -148,17 +149,16 @@ export const CartSheet: React.FC<CartSheetProps> = ({ isOpen, onClose }) => {
 
   // Upload receipt
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !createdOrder) return
+    const rawFile = e.target.files?.[0]
+    if (!rawFile || !createdOrder) return
 
     try {
       setIsUploading(true)
+      const file = await compressImage(rawFile, { maxWidth: 1400, maxHeight: 1400, quality: 0.85 })
       const formData = new FormData()
       formData.append("file", file)
 
-      const uploadRes = await apiClient.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      const uploadRes = await apiClient.post("/uploads", formData)
 
       const uploadedUrl = uploadRes.data.url
 

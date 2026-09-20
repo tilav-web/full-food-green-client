@@ -1410,8 +1410,10 @@ export const UserProfile: React.FC = () => {
       {isLocationModalOpen && (
         <LocationPickerModal
           isOpen={isLocationModalOpen}
-          currentAddress="Toshkent sh."
-          currentDistance={3.5}
+          currentAddress=""
+          currentDistance={0}
+          currentLat={0}
+          currentLng={0}
           onConfirm={() => {
             // Location is automatically saved inside the modal
           }}

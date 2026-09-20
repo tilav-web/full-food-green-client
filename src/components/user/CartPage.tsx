@@ -24,6 +24,7 @@ import {
   Package,
   Wallet,
   DoorClosed,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,7 @@ import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
 import { LocationPickerModal } from "./LocationPickerModal"
 import { getImageUrl } from "@/lib/utils"
+import { compressImage } from "@/lib/imageCompression"
 import { useQuery } from "@tanstack/react-query"
 
 interface CartPageProps {
@@ -107,33 +109,14 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   const [sessionBotUrl, setSessionBotUrl] = useState<string | null>(null)
   const [isWaitingAuth, setIsWaitingAuth] = useState(false)
 
-  // Customer & Location state
-  const defaultSaved = savedLocations[0]
-  const [selectedLocationId, setSelectedLocationId] = useState<string>(
-    defaultSaved ? defaultSaved.id : ""
-  )
-  const [deliveryAddress, setDeliveryAddress] = useState(
-    defaultSaved ? defaultSaved.address : ""
-  )
-  const [distanceKm, setDistanceKm] = useState(defaultSaved ? defaultSaved.distanceKm : 1.5)
+  // Customer & Location state: STRICTLY NO DEFAULT LOCATION!
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("")
+  const [deliveryAddress, setDeliveryAddress] = useState<string>("")
+  const [distanceKm, setDistanceKm] = useState<number>(0)
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
-    lat: defaultSaved ? defaultSaved.lat : 0,
-    lng: defaultSaved ? defaultSaved.lng : 0,
+    lat: 0,
+    lng: 0,
   })
-
-  // Auto-select first saved location if none currently selected
-  useEffect(() => {
-    if (savedLocations.length > 0) {
-      const match = savedLocations.find((l) => l.id === selectedLocationId)
-      if (!match) {
-        handleSelectQuickSavedLocation(savedLocations[0])
-      }
-    } else {
-      setSelectedLocationId("")
-      setDeliveryAddress("")
-      setCoords({ lat: 0, lng: 0 })
-    }
-  }, [savedLocations, selectedLocationId])
 
   const [orderType, setOrderType] = useState<"ONLINE_DELIVERY" | "ONLINE_PICKUP">("ONLINE_DELIVERY")
   const [building, setBuilding] = useState("")
@@ -141,6 +124,20 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   const [apartment, setApartment] = useState("")
   const [notes, setNotes] = useState("")
   const [isDoorToDoor, setIsDoorToDoor] = useState(false)
+
+  const RESTAURANT_LAT = 38.83825
+  const RESTAURANT_LNG = 65.792222
+
+  const hasValidDeliveryLocation =
+    orderType !== "ONLINE_DELIVERY" ||
+    (Boolean(deliveryAddress.trim()) &&
+      Boolean(coords.lat && coords.lng) &&
+      coords.lat !== 0 &&
+      coords.lng !== 0 &&
+      !(
+        Math.abs(coords.lat - RESTAURANT_LAT) < 0.0002 &&
+        Math.abs(coords.lng - RESTAURANT_LNG) < 0.0002
+      ))
 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
 
@@ -256,10 +253,22 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   }
 
   const handleSelectQuickSavedLocation = (loc: SavedLocationItem) => {
+    if (
+      !loc.lat ||
+      !loc.lng ||
+      loc.lat === 0 ||
+      loc.lng === 0 ||
+      (Math.abs(loc.lat - RESTAURANT_LAT) < 0.0002 &&
+        Math.abs(loc.lng - RESTAURANT_LNG) < 0.0002)
+    ) {
+      toast.warning("Ushbu saqlangan manzilda GPS koordinatasi mavjud emas. Iltimos, xaritadan qayta tanlang!")
+      setIsLocationModalOpen(true)
+      return
+    }
     triggerHaptic("light")
     setSelectedLocationId(loc.id)
     setDeliveryAddress(loc.address)
-    setDistanceKm(loc.distanceKm)
+    setDistanceKm(loc.distanceKm || 0)
     setCoords({ lat: loc.lat, lng: loc.lng })
   }
 
@@ -270,8 +279,9 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       return
     }
 
-    if (orderType === "ONLINE_DELIVERY" && !deliveryAddress.trim()) {
-      toast.warning("Iltimos, yetkazib berish manzilini tanlang!")
+    if (orderType === "ONLINE_DELIVERY" && !hasValidDeliveryLocation) {
+      toast.error("Yetkazib berish manzilini tanlash majburiy! Iltimos, xarita yoki GPS orqali manzilingizni tasdiqlang.")
+      triggerHaptic("error")
       setIsLocationModalOpen(true)
       return
     }
@@ -332,17 +342,16 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   }
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !createdOrder) return
+    const rawFile = e.target.files?.[0]
+    if (!rawFile || !createdOrder) return
 
     try {
       setIsUploading(true)
+      const file = await compressImage(rawFile, { maxWidth: 1400, maxHeight: 1400, quality: 0.85 })
       const formData = new FormData()
       formData.append("file", file)
 
-      const uploadRes = await apiClient.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      const uploadRes = await apiClient.post("/uploads", formData)
 
       const uploadedUrl = uploadRes.data.url
 
@@ -435,7 +444,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                         src={getImageUrl(item.imageUrl)}
                         alt={item.name}
                         onError={(e) => {
-                          ;(e.currentTarget as HTMLImageElement).src = "/logo.jpg"
+                          ; (e.currentTarget as HTMLImageElement).src = "/logo.jpg"
                         }}
                         className="h-13 w-13 rounded-2xl object-cover flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 shadow-2xs"
                       />
@@ -574,13 +583,13 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                     onClick={() => setShowManualPhoneInput(true)}
                     className="text-[11px] text-neutral-500 hover:text-emerald-600 font-bold underline block mx-auto pt-1"
                   >
-                    Telefon raqamni qo'lda kiritish
+                    {t.enterPhoneManually || "Telefon raqamni qo'lda kiritish"}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2.5 pt-2 text-left">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block">
-                    Telefon raqamingiz:
+                    {t.yourPhone || "Telefon raqamingiz"}:
                   </label>
                   <input
                     type="tel"
@@ -596,7 +605,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                       onClick={() => setShowManualPhoneInput(false)}
                       className="w-1/3 rounded-xl text-xs font-bold"
                     >
-                      Bekor qilish
+                      {t.cancel || "Bekor qilish"}
                     </Button>
                     <Button
                       type="button"
@@ -604,7 +613,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                       onClick={async () => {
                         const clean = manualPhone.trim()
                         if (clean.replace(/\D/g, "").length < 9) {
-                          toast.warning("Iltimos, to'liq telefon raqamingizni kiriting")
+                          toast.warning(t.fullPhoneRequired || "Iltimos, to'liq telefon raqamingizni kiriting")
                           return
                         }
                         try {
@@ -625,17 +634,17 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                             } else {
                               setUser(updatedUser)
                             }
-                            toast.success("Telefon raqamingiz muvaffaqiyatli saqlandi!")
+                            toast.success(t.phoneSavedSuccess || "Telefon raqamingiz muvaffaqiyatli saqlandi!")
                           }
                         } catch (err: any) {
-                          toast.error(err?.response?.data?.message || "Raqamni saqlashda xatolik")
+                          toast.error(err?.response?.data?.message || t.phoneSaveError || "Raqamni saqlashda xatolik")
                         } finally {
                           setIsSavingManualPhone(false)
                         }
                       }}
                       className="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
                     >
-                      {isSavingManualPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto" /> : "Saqlash va Davom etish"}
+                      {isSavingManualPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto" /> : (t.saveAndContinue || "Saqlash va Davom etish")}
                     </Button>
                   </div>
                 </div>
@@ -700,141 +709,160 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               <div className="space-y-3.5">
                 {orderType === "ONLINE_DELIVERY" && (
                   <>
-                    <div className="space-y-1.5">
-                    {/* SAVED LOCATIONS QUICK PICKER (ALWAYS VISIBLE) */}
-                    <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <Bookmark className="h-3.5 w-3.5 text-emerald-600" />
-                        {t.savedLocations}:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsLocationModalOpen(true)}
-                        className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
-                      >
-                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span>{t.pickNewOnMap}</span>
-                      </button>
-                    </label>
-
-                    {savedLocations.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {savedLocations.map((loc) => {
-                          const isSelected = selectedLocationId
-                            ? loc.id === selectedLocationId
-                            : deliveryAddress === loc.address
-                          return (
-                            <div
-                              key={loc.id}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => handleSelectQuickSavedLocation(loc)}
-                              className={`p-2.5 rounded-2xl border text-left flex flex-col justify-between gap-2 transition-all cursor-pointer select-none relative group ${
-                                isSelected
-                                  ? "border-2 border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/40 shadow-xs ring-2 ring-emerald-500/20"
-                                  : "border border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-800/40 hover:border-neutral-300 dark:hover:border-neutral-700 opacity-85 hover:opacity-100"
-                              }`}
-                            >
-                              {/* Top Header: Icon + Radio/Check Indicator + Delete Button */}
-                              <div className="flex items-center justify-between gap-1 w-full">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <div
-                                    className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                                      isSelected
-                                        ? "bg-emerald-600 text-white shadow-xs"
-                                        : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
-                                    }`}
-                                  >
-                                    {loc.label === "Uy" ? (
-                                      <Home className="h-3.5 w-3.5" />
-                                    ) : loc.label === "Ishxona" ? (
-                                      <Briefcase className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <MapPin className="h-3.5 w-3.5" />
-                                    )}
-                                  </div>
-
-                                  <div
-                                    className={`h-4.5 w-4.5 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
-                                      isSelected
-                                        ? "bg-emerald-600 text-white ring-2 ring-emerald-600/30"
-                                        : "border-2 border-neutral-300 dark:border-neutral-600 bg-transparent"
-                                    }`}
-                                  >
-                                    {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
-                                  </div>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    triggerHaptic("medium")
-                                    setLocationToDelete(loc)
-                                  }}
-                                  className="h-6 w-6 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-950/60 flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer"
-                                  title="Manzilni o'chirish"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
-
-                              {/* Label and Address */}
-                              <div className="min-w-0 pt-0.5">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span
-                                    className={`font-black text-xs truncate ${
-                                      isSelected
-                                        ? "text-emerald-900 dark:text-emerald-200"
-                                        : "text-neutral-900 dark:text-white"
-                                    }`}
-                                  >
-                                    {loc.label}
-                                  </span>
-                                  {isSelected && (
-                                    <span className="text-[9px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.2 rounded-full">
-                                      Tanlangan
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate mt-0.5">
-                                  {loc.address}
-                                </p>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => setIsLocationModalOpen(true)}
-                        className="p-4 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/40 dark:bg-emerald-950/20 text-center space-y-1.5 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/60 transition-all"
-                      >
-                        <div className="h-10 w-10 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 flex items-center justify-center">
-                          <MapPin className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-xs text-neutral-900 dark:text-white">
-                            Hozircha saqlangan manzil yo'q
-                          </p>
-                          <p className="text-[10px] text-neutral-500 mt-0.5">
-                            Buyurtma berish uchun avval joylashuv yarating
-                          </p>
+                    {!hasValidDeliveryLocation && (
+                      <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-700/60 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-amber-900 dark:text-amber-200 truncate">
+                              {t.locationNotSelected || "Manzil tanlanmagan (Majburiy)"}
+                            </p>
+                            <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                              {t.locationRequiredDesc || "Buyurtma uchun aniq GPS lokatsiya shart"}
+                            </p>
+                          </div>
                         </div>
                         <Button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setIsLocationModalOpen(true)
-                          }}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs h-8 px-3.5 shadow-sm mt-1 cursor-pointer inline-flex items-center gap-1.5"
+                          onClick={() => setIsLocationModalOpen(true)}
+                          className="h-8 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black flex-shrink-0 cursor-pointer shadow-xs"
                         >
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span>+ Yangi joylashuv yaratish</span>
+                          {t.chooseBtn || "Tanlash"}
                         </Button>
                       </div>
                     )}
-                  </div>
+
+                    <div className="space-y-1.5">
+                      {/* SAVED LOCATIONS QUICK PICKER (ALWAYS VISIBLE) */}
+                      <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Bookmark className="h-3.5 w-3.5 text-emerald-600" />
+                          {t.savedLocations}:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsLocationModalOpen(true)}
+                          className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
+                        >
+                          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span>{t.pickNewOnMap}</span>
+                        </button>
+                      </label>
+
+                      {savedLocations.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {savedLocations.map((loc) => {
+                            const isSelected = selectedLocationId
+                              ? loc.id === selectedLocationId
+                              : deliveryAddress === loc.address
+                            return (
+                              <div
+                                key={loc.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => handleSelectQuickSavedLocation(loc)}
+                                className={`p-2.5 rounded-2xl border text-left flex flex-col justify-between gap-2 transition-all cursor-pointer select-none relative group ${isSelected
+                                    ? "border-2 border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/40 shadow-xs ring-2 ring-emerald-500/20"
+                                    : "border border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-800/40 hover:border-neutral-300 dark:hover:border-neutral-700 opacity-85 hover:opacity-100"
+                                  }`}
+                              >
+                                {/* Top Header: Icon + Radio/Check Indicator + Delete Button */}
+                                <div className="flex items-center justify-between gap-1 w-full">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <div
+                                      className={`h-7 w-7 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isSelected
+                                          ? "bg-emerald-600 text-white shadow-xs"
+                                          : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
+                                        }`}
+                                    >
+                                      {loc.label === "Uy" ? (
+                                        <Home className="h-3.5 w-3.5" />
+                                      ) : loc.label === "Ishxona" ? (
+                                        <Briefcase className="h-3.5 w-3.5" />
+                                      ) : (
+                                        <MapPin className="h-3.5 w-3.5" />
+                                      )}
+                                    </div>
+
+                                    <div
+                                      className={`h-4.5 w-4.5 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${isSelected
+                                          ? "bg-emerald-600 text-white ring-2 ring-emerald-600/30"
+                                          : "border-2 border-neutral-300 dark:border-neutral-600 bg-transparent"
+                                        }`}
+                                    >
+                                      {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      triggerHaptic("medium")
+                                      setLocationToDelete(loc)
+                                    }}
+                                    className="h-6 w-6 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-950/60 flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer"
+                                    title={t.delete || "Manzilni o'chirish"}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+
+                                {/* Label and Address */}
+                                <div className="min-w-0 pt-0.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                      className={`font-black text-xs truncate ${isSelected
+                                          ? "text-emerald-900 dark:text-emerald-200"
+                                          : "text-neutral-900 dark:text-white"
+                                        }`}
+                                    >
+                                      {loc.label}
+                                    </span>
+                                    {isSelected && (
+                                      <span className="text-[9px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.2 rounded-full">
+                                        {t.selectedBadge || "Tanlangan"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate mt-0.5">
+                                    {loc.address}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => setIsLocationModalOpen(true)}
+                          className="p-4 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/40 dark:bg-emerald-950/20 text-center space-y-1.5 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/60 transition-all"
+                        >
+                          <div className="h-10 w-10 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 flex items-center justify-center">
+                            <MapPin className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-xs text-neutral-900 dark:text-white">
+                              {t.noSavedLocations || "Hozircha saqlangan manzil yo'q"}
+                            </p>
+                            <p className="text-[10px] text-neutral-500 mt-0.5">
+                              {t.createLocationHint || "Buyurtma berish uchun avval joylashuv yarating"}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setIsLocationModalOpen(true)
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs h-8 px-3.5 shadow-sm mt-1 cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            <MapPin className="h-3.5 w-3.5" />
+                            <span>{t.pickNewOnMap}</span>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Optional address details: Building / Floor / Apartment */}
                     <div className="space-y-2.5 pt-1">
@@ -880,30 +908,27 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                         triggerHaptic("light")
                         setIsDoorToDoor(!isDoorToDoor)
                       }}
-                      className={`p-3 rounded-2xl border transition-all cursor-pointer select-none ${
-                        isDoorToDoor
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer select-none ${isDoorToDoor
                           ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-1 ring-emerald-600 shadow-xs"
                           : "border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-800/40 hover:border-neutral-300"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-start gap-2.5 min-w-0 flex-1">
                           <div
-                            className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                              isDoorToDoor
+                            className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isDoorToDoor
                                 ? "bg-emerald-600 text-white shadow-xs"
                                 : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
-                            }`}
+                              }`}
                           >
                             <DoorClosed className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <span
-                              className={`font-black text-xs block ${
-                                isDoorToDoor
+                              className={`font-black text-xs block ${isDoorToDoor
                                   ? "text-emerald-950 dark:text-emerald-200"
                                   : "text-neutral-900 dark:text-white"
-                              }`}
+                                }`}
                             >
                               {t.doorToDoorTitle || "Eshikdan eshikgacha yetkazish"}
                             </span>
@@ -915,11 +940,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
 
                         {/* Checkbox indicator */}
                         <div
-                          className={`h-5 w-5 rounded-lg flex items-center justify-center transition-all flex-shrink-0 mt-0.5 ${
-                            isDoorToDoor
+                          className={`h-5 w-5 rounded-lg flex items-center justify-center transition-all flex-shrink-0 mt-0.5 ${isDoorToDoor
                               ? "bg-emerald-600 text-white shadow-xs"
                               : "border-2 border-neutral-300 dark:border-neutral-600 bg-transparent"
-                          }`}
+                            }`}
                         >
                           {isDoorToDoor && <Check className="h-3 w-3 stroke-[3]" />}
                         </div>
@@ -947,11 +971,11 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
           {/* Payment Method Selector */}
           <div className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 space-y-2.5 shadow-xs">
             <label className="text-xs font-black text-neutral-900 dark:text-white flex items-center justify-between">
-              <span>To'lov usuli:</span>
+              <span>{t.paymentMethod || "To'lov usuli"}:</span>
               {user && (
                 <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                   <Wallet className="h-3.5 w-3.5" />
-                  Balans: {Number(user.balance || 0).toLocaleString()} {t.currency}
+                  {t.balance || "Balans"}: {Number(user.balance || 0).toLocaleString()} {t.currency}
                 </span>
               )}
             </label>
@@ -965,29 +989,27 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   triggerHaptic("light")
                   setSelectedPaymentMethod("BALANCE")
                 }}
-                className={`p-3 rounded-2xl border text-left transition-all flex items-start gap-2.5 ${
-                  selectedPaymentMethod === "BALANCE"
+                className={`p-3 rounded-2xl border text-left transition-all flex items-start gap-2.5 ${selectedPaymentMethod === "BALANCE"
                     ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-600"
                     : Number(user?.balance || 0) < totalAmount
-                    ? "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 opacity-50 cursor-not-allowed"
-                    : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300"
-                }`}
+                      ? "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 opacity-50 cursor-not-allowed"
+                      : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300"
+                  }`}
               >
                 <div
-                  className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    selectedPaymentMethod === "BALANCE" ? "bg-emerald-600 text-white" : "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300"
-                  }`}
+                  className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 ${selectedPaymentMethod === "BALANCE" ? "bg-emerald-600 text-white" : "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300"
+                    }`}
                 >
                   <Wallet className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="font-black text-xs block text-neutral-900 dark:text-white">
-                    Hisobimdan to'lash
+                    {t.payFromBalance || "Hisobimdan to'lash"}
                   </span>
                   <span className="text-[10px] text-neutral-400 block">
                     {Number(user?.balance || 0) >= totalAmount
-                      ? "Balans yetarli — to'g'ridan-to'g'ri yechiladi"
-                      : "Balansda mablag' yetarli emas"}
+                      ? (t.payFromBalanceDesc || "Balans yetarli — to'g'ridan-to'g'ri yechiladi")
+                      : (t.insufficientBalance || "Balansda mablag' yetarli emas")}
                   </span>
                 </div>
               </button>
@@ -999,34 +1021,33 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   triggerHaptic("light")
                   setSelectedPaymentMethod("CARD_TRANSFER")
                 }}
-                className={`p-3 rounded-2xl border text-left transition-all flex items-start gap-2.5 ${
-                  selectedPaymentMethod === "CARD_TRANSFER"
+                className={`p-3 rounded-2xl border text-left transition-all flex items-start gap-2.5 ${selectedPaymentMethod === "CARD_TRANSFER"
                     ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-600"
                     : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300"
-                }`}
+                  }`}
               >
                 <div
-                  className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    selectedPaymentMethod === "CARD_TRANSFER" ? "bg-emerald-600 text-white" : "bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300"
-                  }`}
+                  className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 ${selectedPaymentMethod === "CARD_TRANSFER" ? "bg-emerald-600 text-white" : "bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300"
+                    }`}
                 >
                   <CreditCard className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="font-black text-xs block text-neutral-900 dark:text-white">
-                    Karta orqali to'lov
+                    {t.payWithCard || "Karta orqali to'lov"}
                   </span>
                   <span className="text-[10px] text-neutral-400 block">
-                    Kartaga o'tkazib chek yuklanadi
+                    {t.payWithCardDesc || "Kartaga o'tkazib chek yuklanadi"}
                   </span>
                 </div>
               </button>
             </div>
 
             {selectedPaymentMethod === "BALANCE" && (
-              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
-                💡 <b>Balans to'lovi:</b> Chek yuklash talab qilinmaydi. Operator buyurtmangizni tasdiqlashi bilan hisobingizdan <b>{totalAmount.toLocaleString()} {t.currency}</b> yechiladi.
-              </div>
+              <div
+                className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: t.balancePaymentNote || "💡 <b>Balans to'lovi:</b> Chek yuklash talab qilinmaydi." }}
+              />
             )}
           </div>
 
@@ -1046,7 +1067,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   {t.packagingFee || "Qadoqlash narxi"}:
                 </span>
                 <span className={`font-bold ${packagingFee > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-neutral-500"}`}>
-                  {packagingFee > 0 ? `+${packagingFee.toLocaleString()} ${t.currency || "so'm"}` : `0 ${t.currency || "so'm"} (Bepul)`}
+                  {packagingFee > 0 ? `+${packagingFee.toLocaleString()} ${t.currency || "so'm"}` : `0 ${t.currency || "so'm"} (${t.free || "Bepul"})`}
                 </span>
               </div>
 
@@ -1054,7 +1075,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-400 font-medium text-xs">
                   <span className="flex items-center gap-1.5">
                     <Car className="h-3.5 w-3.5 text-neutral-500" />
-                    Yetkazib berish:
+                    {t.deliveryYandex || "Yetkazib berish"}:
                   </span>
                   <span className="font-bold text-rose-600 dark:text-rose-400">
                     {t.paidToTaxi || "Alohida kuryerga to'lanadi"}
@@ -1090,10 +1111,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 {isSubmitting
                   ? t.loading
                   : orderType === "ONLINE_DELIVERY" && (!deliveryAddress.trim() || savedLocations.length === 0)
-                  ? "Joylashuvni tanlang"
-                  : selectedPaymentMethod === "BALANCE"
-                  ? "Buyurtmani Tasdiqlash"
-                  : t.proceedToPayment}
+                    ? (t.selectLocationMandatory || "Joylashuvni tanlang")
+                    : selectedPaymentMethod === "BALANCE"
+                      ? (t.confirmOrder || "Buyurtmani Tasdiqlash")
+                      : t.proceedToPayment}
               </Button>
             </div>
           </div>
@@ -1115,7 +1136,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             </p>
             {createdOrder.type === "ONLINE_DELIVERY" && (
               <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium pt-1">
-                🚗 Yetkazish alohida to'lanadi
+                🚗 {t.paidToTaxi || "Alohida kuryerga to'lanadi"}
               </p>
             )}
           </div>
@@ -1202,7 +1223,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
           {/* Payment & Order Summary Card */}
           <div className="p-4 rounded-3xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-neutral-700 dark:text-neutral-300 space-y-1.5 max-w-sm mx-auto shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-neutral-500">Buyurtma raqami:</span>
+              <span className="font-bold text-neutral-500">{t.orderNumberLabel || "Buyurtma raqami"}:</span>
               <Badge className="bg-emerald-600 text-white font-bold">
                 #{createdOrder.orderNumber}
               </Badge>
@@ -1211,16 +1232,16 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               <div className="pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300">
                 <p className="font-black flex items-center justify-center gap-1">
                   <Wallet className="h-3.5 w-3.5" />
-                  Shaxsiy balans orqali to'lov ({Number(createdOrder.totalAmount || totalAmount).toLocaleString()} {t.currency})
+                  {t.balancePaymentDone || "Shaxsiy balans orqali to'lov"} ({Number(createdOrder.totalAmount || totalAmount).toLocaleString()} {t.currency})
                 </p>
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
-                  Operator tasdiqlashi bilan hisobingizdan yechiladi va taom tayyorlanadi.
+                  {t.balancePaymentDoneDesc || "Operator tasdiqlashi bilan hisobingizdan yechiladi va taom tayyorlanadi."}
                 </p>
               </div>
             ) : (
               <div className="pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/60 text-neutral-600 dark:text-neutral-400">
-                <p className="font-semibold">To'lov cheki qabul qilindi.</p>
-                <p className="text-[11px] text-neutral-400">Operator tekshirgach buyurtma tayyorlashga o'tadi.</p>
+                <p className="font-semibold">{t.receiptAccepted || "To'lov cheki qabul qilindi."}</p>
+                <p className="text-[11px] text-neutral-400">{t.receiptAcceptedDesc || "Operator tekshirgach buyurtma tayyorlashga o'tadi."}</p>
               </div>
             )}
           </div>
@@ -1327,10 +1348,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-neutral-900 dark:text-white">
-                    Manzilni o'chirish
+                    {t.deleteLocationTitle || "Manzilni o'chirish"}
                   </h3>
                   <p className="text-xs text-neutral-500">
-                    Haqiqatan ham bu manzilni o'chirmoqchimisiz?
+                    {t.deleteLocationConfirm || "Haqiqatan ham bu manzilni o'chirmoqchimisiz?"}
                   </p>
                 </div>
               </div>
@@ -1351,7 +1372,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                   onClick={() => setLocationToDelete(null)}
                   className="rounded-2xl border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold text-xs h-11"
                 >
-                  Bekor qilish
+                  {t.cancel || "Bekor qilish"}
                 </Button>
                 <Button
                   type="button"
@@ -1369,12 +1390,12 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                         setCoords({ lat: 0, lng: 0 })
                       }
                     }
-                    toast.success("Manzil o'chirildi")
+                    toast.success(t.locationDeleted || "Manzil o'chirildi")
                     setLocationToDelete(null)
                   }}
                   className="rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs h-11 shadow-md shadow-red-500/20 cursor-pointer"
                 >
-                  Ha, o'chirish
+                  {t.confirmDelete || "Ha, o'chirish"}
                 </Button>
               </div>
             </motion.div>

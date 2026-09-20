@@ -36,6 +36,11 @@ apiClient.interceptors.request.use(
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`
     }
+    // For FormData, let the browser/XHR set multipart/form-data with boundary
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers["Content-Type"]
+      config.timeout = 30000 // 30s timeout for file uploads
+    }
     return config
   },
   (error) => Promise.reject(error)

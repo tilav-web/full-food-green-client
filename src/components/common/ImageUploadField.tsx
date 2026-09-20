@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react"
 import { Upload, X, Loader2 } from "lucide-react"
 import { apiClient } from "@/api/axios"
+import { compressImage } from "@/lib/imageCompression"
 
 interface ImageUploadFieldProps {
   value?: string
@@ -19,17 +20,16 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const rawFile = e.target.files?.[0]
+    if (!rawFile) return
 
     try {
       setIsUploading(true)
+      const file = await compressImage(rawFile, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 })
       const formData = new FormData()
       formData.append("file", file)
 
-      const res = await apiClient.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      const res = await apiClient.post("/uploads", formData)
 
       onChange(res.data.url)
     } catch (err) {

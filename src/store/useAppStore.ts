@@ -181,7 +181,14 @@ export const useAppStore = create<AppState>()(
             ...location,
             id: `loc_${Date.now()}`,
           }
-          set((state) => ({ savedLocations: [...state.savedLocations, newLoc] }))
+          set((state) => ({
+            savedLocations: [
+              newLoc,
+              ...state.savedLocations.filter(
+                (l) => l.id !== newLoc.id && l.address !== newLoc.address
+              ),
+            ],
+          }))
           return newLoc
         },
 
@@ -203,8 +210,21 @@ export const useAppStore = create<AppState>()(
         }),
         onRehydrateStorage: () => (state) => {
           if (state && Array.isArray(state.savedLocations)) {
+            const REST_LAT = 38.83825
+            const REST_LNG = 65.792222
             state.savedLocations = state.savedLocations.filter(
-              (l) => l.id !== "loc_home" && l.id !== "loc_work"
+              (l) =>
+                l &&
+                l.lat &&
+                l.lng &&
+                l.lat !== 0 &&
+                l.lng !== 0 &&
+                l.id !== "loc_home" &&
+                l.id !== "loc_work" &&
+                !(
+                  Math.abs(l.lat - REST_LAT) < 0.0002 &&
+                  Math.abs(l.lng - REST_LNG) < 0.0002
+                )
             )
           }
         },
