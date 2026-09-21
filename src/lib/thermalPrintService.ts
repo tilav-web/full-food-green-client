@@ -1,5 +1,6 @@
 import QRCode from "qrcode"
 import type { Order } from "@/types"
+import { apiClient } from "@/api/axios"
 import { BISTRO_LOGO_80MM, BISTRO_LOGO_58MM } from "./receipt.logo"
 
 export interface PrinterSettings {
@@ -539,7 +540,19 @@ export async function quickPrintOrder(
     console.warn("QR code generation error:", e)
   }
 
-  // Primary: Try direct silent print via local Windows agent
+  // Primary: Try direct cloud print via Server Gateway (Same exact high-quality raster logo as Telegram)
+  if (order?.id && !String(order.id).startsWith("test-")) {
+    try {
+      const res = await apiClient.post(`/orders/${order.id}/print`, { openDrawer: shouldOpenDrawer })
+      if (res.data?.success) {
+        return true
+      }
+    } catch (e) {
+      console.warn("Cloud print via server failed, attempting local agent fallback", e)
+    }
+  }
+
+  // Secondary: Try direct silent print via local Windows agent
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 3000)

@@ -789,7 +789,7 @@ export const CashierView: React.FC = () => {
         unitPrice: i.product.price,
       }))
 
-      const createdOrderRes = await apiClient.post("/orders", {
+      await apiClient.post("/orders", {
         userId: posSelectedCustomer?.id,
         customerName: posCustomerName,
         customerPhone: posSelectedCustomer?.phone || "+998 00 000 00 00",
@@ -797,14 +797,6 @@ export const CashierView: React.FC = () => {
         paymentMethod: posPaymentMethod,
         items,
       })
-
-      const createdOrder = createdOrderRes?.data
-      const orderToPrint = createdOrder
-        ? {
-            ...createdOrder,
-            items: createdOrder.items && createdOrder.items.length > 0 ? createdOrder.items : items,
-          }
-        : null
 
       triggerHaptic("success")
       setPosCart([])
@@ -814,12 +806,8 @@ export const CashierView: React.FC = () => {
       setPosPaymentMethod("CASH")
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
       queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
-      toast.success("POS Buyurtma muvaffaqiyatli saqlandi!")
-
-      // Kassir hech narsani bosishi shart emas: Zaldan yangi buyurtma yaratilganda chek avtomatik chiqadi
-      if (printerSettings.autoPrintPosOrder && orderToPrint) {
-        handlePrintOrder(orderToPrint)
-      }
+      toast.success("POS Buyurtma muvaffaqiyatli saqlandi! Chek Xprinterga yuborildi.")
+      // Server (backend) DINE_IN buyurtma yaratilganda avtomatik ravishda uni Printer Agent orqali chop etishga yuboradi.
     } catch (err: any) {
       console.error(err)
       toast.error("Xatolik yuz berdi: " + (err.response?.data?.message || err.message))
