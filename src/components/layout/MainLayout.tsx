@@ -61,7 +61,11 @@ export const MainLayout: React.FC = () => {
     (!user?.phone || user.phone.trim().length === 0)
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 font-sans transition-colors duration-200">
+    <div
+      className={`min-h-screen flex flex-col bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 font-sans transition-colors duration-200 ${
+        isWidePage ? "lg:h-screen lg:max-h-screen lg:overflow-hidden" : ""
+      }`}
+    >
       {/* Main Navbar */}
       <Navbar />
 
@@ -70,10 +74,10 @@ export const MainLayout: React.FC = () => {
 
       {/* Dynamic Page Content container: wide max-w-[1750px] for POS/Admin, max-w-4xl for Telegram Mini App */}
       <main
-        className={`flex-1 mx-auto w-full pb-28 ${
+        className={`flex-1 mx-auto w-full ${
           isWidePage
-            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2.5"
-            : "max-w-4xl px-3 sm:px-6 lg:px-8 py-4"
+            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2 pb-20 lg:pb-[76px] lg:overflow-hidden flex flex-col min-h-0"
+            : "max-w-4xl px-3 sm:px-6 lg:px-8 py-4 pb-28"
         }`}
       >
         <Outlet />
@@ -82,9 +86,11 @@ export const MainLayout: React.FC = () => {
       {/* Persistent Bottom Navigation Bar for all pages across all devices */}
       {!isFullScreenStaff && <BottomNav />}
 
-      <footer className="hidden md:block border-t border-neutral-200 dark:border-neutral-800 py-6 text-center text-xs text-neutral-400 mb-16">
-        <p>&copy; {new Date().getFullYear()} FullFood — Mazali va Sifatli Taomlar Restorani.</p>
-      </footer>
+      {!isFullScreenStaff && !isWidePage && (
+        <footer className="hidden md:block border-t border-neutral-200 dark:border-neutral-800 py-6 text-center text-xs text-neutral-400 mb-16">
+          <p>&copy; {new Date().getFullYear()} FullFood — Mazali va Sifatli Taomlar Restorani.</p>
+        </footer>
+      )}
     </div>
   )
 }

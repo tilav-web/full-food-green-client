@@ -922,9 +922,9 @@ export const CashierView: React.FC = () => {
   }, [filteredOrders, currentPage])
 
   return (
-    <div className="space-y-4 sm:space-y-5 pb-16 lg:pb-0">
+    <div className={`space-y-3 sm:space-y-4 ${activeTab === "POS" ? "h-full flex flex-col min-h-0 overflow-hidden pb-0" : "pb-16 lg:pb-0"}`}>
       {/* Top Banner & Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white shadow-md">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white shadow-md">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-2xl bg-white/10 flex items-center justify-center">
             <Receipt className="h-6 w-6 text-emerald-300" />
@@ -1039,7 +1039,7 @@ export const CashierView: React.FC = () => {
 
       {/* AUDIO PERMISSION PROMPT BANNER */}
       {soundBlocked && (
-        <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 text-white flex flex-wrap items-center justify-between gap-3 shadow-lg shadow-amber-500/20 border border-amber-400">
+        <div className="shrink-0 p-3 sm:p-4 rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 text-white flex flex-wrap items-center justify-between gap-3 shadow-lg shadow-amber-500/20 border border-amber-400">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
               <VolumeX className="h-5 w-5 text-white" />
@@ -1557,11 +1557,11 @@ export const CashierView: React.FC = () => {
 
       {/* TAB 2: IN-STORE POS CASHIER WITH VISUAL FOOD CARDS & CATEGORY FILTERS */}
       {activeTab === "POS" && (
-        <div className="flex flex-col lg:flex-row items-stretch gap-3 sm:gap-4 xl:gap-5 relative lg:h-[calc(100vh-215px)] lg:overflow-hidden pb-20 lg:pb-0">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch gap-3 sm:gap-4 xl:gap-5 relative overflow-hidden pb-0">
           {/* ========================================================================= */}
           {/* 1. LEFT COLUMN: CATEGORIES COLUMN (TOP TO BOTTOM) */}
           {/* ========================================================================= */}
-          <div className="w-full lg:w-44 xl:w-48 shrink-0 flex flex-col space-y-2 lg:h-full">
+          <div className="w-full lg:w-44 xl:w-48 shrink-0 flex flex-col space-y-2 h-full max-h-full overflow-hidden">
             <div className="flex items-center justify-between px-1 shrink-0">
               <span className="text-xs font-black text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5 text-emerald-600" />
@@ -1576,12 +1576,12 @@ export const CashierView: React.FC = () => {
             {isCategoriesLoading ? (
               <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto pb-1 scrollbar-none flex-1 min-h-0">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <Skeleton key={i} className="w-[84px] h-[84px] lg:w-full lg:h-22 shrink-0 rounded-2xl" />
+                  <Skeleton key={i} className="w-24 h-24 lg:w-full lg:h-[108px] shrink-0 rounded-2xl" />
                 ))}
               </div>
             ) : (
               <div
-                className="flex lg:flex-col gap-2 sm:gap-2.5 overflow-x-auto lg:overflow-y-auto py-1 px-0.5 scrollbar-thin scrollbar-thumb-emerald-500/20 hover:scrollbar-thumb-emerald-500/40 snap-x flex-1 min-h-0 overscroll-contain"
+                className="flex lg:flex-col gap-2 sm:gap-2.5 overflow-x-auto lg:overflow-y-auto py-1 px-1.5 scrollbar-thin scrollbar-thumb-emerald-500/25 hover:scrollbar-thumb-emerald-500/45 snap-x flex-1 min-h-0 overscroll-contain"
                 style={{ overscrollBehavior: "contain" }}
               >
                 {orderedCategories.map((c, index) => {
@@ -1624,12 +1624,12 @@ export const CashierView: React.FC = () => {
                         onDragStart={(e) => handleCategoryDragStart(e, index)}
                         onDragEnd={handleCategoryDragEnd}
                         onClick={() => setPosSelectedCategory(c.id)}
-                        className={`w-[84px] h-[84px] lg:w-full lg:h-22 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group ${
-                          isDragging ? "opacity-25 scale-95 border-2 border-dashed border-emerald-400" : ""
-                        } ${
-                          isSelected
-                            ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
-                            : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
+                        className={`w-24 h-24 lg:w-full lg:h-[108px] shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group border-2 ${
+                          isDragging
+                            ? "opacity-25 scale-95 border-dashed border-emerald-400"
+                            : isSelected
+                            ? "border-emerald-500 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/30"
+                            : "border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-400/80 opacity-95 hover:opacity-100"
                         }`}
                       >
                         {/* 3D Icon Background */}
@@ -1640,18 +1640,26 @@ export const CashierView: React.FC = () => {
                           onError={(e) => {
                             ;(e.currentTarget as HTMLImageElement).src = getImageUrl(c.imageUrl)
                           }}
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-108 transition-transform duration-300 pointer-events-none select-none"
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
                         />
 
                         {/* Soft Gradient Overlay for text readability */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none select-none" />
+                        <div className={`absolute inset-0 transition-colors pointer-events-none select-none ${
+                          isSelected
+                            ? "bg-gradient-to-t from-black/90 via-black/30 to-emerald-950/20"
+                            : "bg-gradient-to-t from-black/90 via-black/35 to-transparent"
+                        }`} />
 
                         {/* Top Row: Drag Handle & Count Badge */}
                         <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
                           <div className="opacity-60 group-hover:opacity-100 transition-opacity drop-shadow-sm">
                             <GripVertical className="h-3.5 w-3.5 text-white" />
                           </div>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white font-black shadow-xs">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black shadow-xs ${
+                            isSelected
+                              ? "bg-emerald-600 text-white"
+                              : "bg-black/65 backdrop-blur-md text-white"
+                          }`}>
                             {count} ta
                           </span>
                         </div>
@@ -1683,7 +1691,7 @@ export const CashierView: React.FC = () => {
           {/* ========================================================================= */}
           {/* 2. CENTER COLUMN: MAIN PRODUCTS GRID */}
           {/* ========================================================================= */}
-          <div className="flex-1 w-full min-w-0 flex flex-col lg:h-full space-y-2.5">
+          <div className="flex-1 w-full min-w-0 flex flex-col lg:h-full lg:max-h-full space-y-2.5 overflow-hidden">
             {/* Header + Quick Search & Grid Column Switcher */}
             <div className="shrink-0 space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -2056,10 +2064,35 @@ export const CashierView: React.FC = () => {
           {/* ========================================================================= */}
           {/* 3. RIGHT COLUMN: POS CART SIDEBAR */}
           {/* ========================================================================= */}
-          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] shrink-0 flex flex-col lg:h-full">
-            <div className="flex flex-col lg:h-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm">
+          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] shrink-0 flex flex-col h-full max-h-full gap-2.5 overflow-hidden">
+            {/* Top Standalone Action Button: Buyurtmani Saqlash (Full width of the card) */}
+            <Button
+              type="button"
+              onClick={handlePosOrder}
+              disabled={posCart.length === 0 || isSubmittingPos}
+              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer shrink-0 ${
+                posCart.length > 0 && !isSubmittingPos
+                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
+                  : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed shadow-none"
+              }`}
+            >
+              {isSubmittingPos ? (
+                <Loader2 className="h-4.5 w-4.5 animate-spin" />
+              ) : (
+                <Check className="h-4.5 w-4.5 stroke-[3]" />
+              )}
+              <span>{isSubmittingPos ? "Saqlanmoqda..." : (t.posSaveOrder || "Buyurtmani Saqlash")}</span>
+              {posCart.length > 0 && (
+                <span className="ml-1.5 px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-black">
+                  {posTotal.toLocaleString()} so'm
+                </span>
+              )}
+            </Button>
+
+            {/* Cart Card */}
+            <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm overflow-hidden">
               {/* Header with Dish Counter & Clear Cart */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between shrink-0 mb-2.5">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                     <ShoppingBag className="h-4 w-4" />
@@ -2090,7 +2123,7 @@ export const CashierView: React.FC = () => {
               </div>
 
               {/* Customer Selection & Table Info */}
-              <div className="shrink-0 space-y-2 p-3 mb-1.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700">
+              <div className="shrink-0 space-y-2 p-3 mb-2 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
                     <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
@@ -2196,8 +2229,8 @@ export const CashierView: React.FC = () => {
                 )}
               </div>
 
-              {/* Cart items list */}
-              <div className="space-y-2 flex-1 min-h-[90px] max-h-[38vh] lg:max-h-none overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/20 hover:scrollbar-thumb-emerald-500/40 overscroll-contain">
+              {/* Cart items list (Scrollable area) */}
+              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/20 hover:scrollbar-thumb-emerald-500/40 overscroll-contain">
                 {posCart.length === 0 ? (
                   <div className="text-center py-8 space-y-2 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800">
                     <Package className="h-8 w-8 mx-auto text-neutral-300 dark:text-neutral-700" />
@@ -2272,7 +2305,7 @@ export const CashierView: React.FC = () => {
               </div>
 
               {/* Checkout & Payment Area */}
-              <div className="space-y-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="space-y-2.5 pt-3 border-t border-neutral-100 dark:border-neutral-800 shrink-0 mt-auto">
                 <div className="flex items-center justify-between text-sm font-black">
                   <span>{t.totalPayment || "Jami to'lov"}:</span>
                   <span className="text-emerald-600 dark:text-emerald-400 text-lg font-black">{posTotal.toLocaleString()} so'm</span>
@@ -2283,7 +2316,7 @@ export const CashierView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setPosPaymentMethod("CASH")}
-                    className={`py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all ${
+                    className={`py-2 px-2 rounded-2xl text-xs font-bold border transition-all ${
                       posPaymentMethod === "CASH"
                         ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
                         : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
@@ -2294,7 +2327,7 @@ export const CashierView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setPosPaymentMethod("TERMINAL")}
-                    className={`py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all ${
+                    className={`py-2 px-2 rounded-2xl text-xs font-bold border transition-all ${
                       posPaymentMethod === "TERMINAL"
                         ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
                         : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
@@ -2307,7 +2340,7 @@ export const CashierView: React.FC = () => {
                       type="button"
                       disabled={Number(posSelectedCustomer.balance || 0) < posTotal}
                       onClick={() => setPosPaymentMethod("BALANCE")}
-                      className={`py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center justify-center ${
+                      className={`py-2 px-2 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center justify-center ${
                         posPaymentMethod === "BALANCE"
                           ? "border-emerald-600 bg-emerald-600 text-white shadow-xs"
                           : Number(posSelectedCustomer.balance || 0) >= posTotal
@@ -2321,25 +2354,6 @@ export const CashierView: React.FC = () => {
                     </button>
                   )}
                 </div>
-
-                {/* Primary POS Save Order Button inside Cart Card */}
-                <Button
-                  type="button"
-                  onClick={handlePosOrder}
-                  disabled={posCart.length === 0 || isSubmittingPos}
-                  className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer ${
-                    posCart.length > 0 && !isSubmittingPos
-                      ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
-                      : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed shadow-none"
-                  }`}
-                >
-                  {isSubmittingPos ? (
-                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                  ) : (
-                    <Check className="h-4.5 w-4.5 stroke-[3]" />
-                  )}
-                  <span>{isSubmittingPos ? "Saqlanmoqda..." : (t.posSaveOrder || "Buyurtmani Saqlash")}</span>
-                </Button>
               </div>
             </div>
           </div>
