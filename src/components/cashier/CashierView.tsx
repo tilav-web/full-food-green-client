@@ -732,6 +732,7 @@ export const CashierView: React.FC = () => {
   const [kirimSupplier, setKirimSupplier] = React.useState("Parhez Somsa Seh")
   const [kirimNote, setKirimNote] = React.useState("Ertalabki yangi kirim")
   const [isSubmittingKirim, setIsSubmittingKirim] = React.useState(false)
+  const [isSubmittingPos, setIsSubmittingPos] = React.useState(false)
 
   // Review Receipt Mutation
   const reviewReceiptMutation = useMutation({
@@ -794,8 +795,9 @@ export const CashierView: React.FC = () => {
 
   // POS Order submission
   const handlePosOrder = async () => {
-    if (posCart.length === 0) return
+    if (posCart.length === 0 || isSubmittingPos) return
     try {
+      setIsSubmittingPos(true)
       const items = posCart.map((i) => ({
         productId: i.product.id,
         name: i.product.name,
@@ -826,6 +828,8 @@ export const CashierView: React.FC = () => {
     } catch (err: any) {
       console.error(err)
       toast.error("Xatolik yuz berdi: " + (err.response?.data?.message || err.message))
+    } finally {
+      setIsSubmittingPos(false)
     }
   }
 
@@ -918,7 +922,7 @@ export const CashierView: React.FC = () => {
   }, [filteredOrders, currentPage])
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-4 sm:space-y-5 pb-16 lg:pb-0">
       {/* Top Banner & Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white shadow-md">
         <div className="flex items-center gap-3">
@@ -1553,12 +1557,12 @@ export const CashierView: React.FC = () => {
 
       {/* TAB 2: IN-STORE POS CASHIER WITH VISUAL FOOD CARDS & CATEGORY FILTERS */}
       {activeTab === "POS" && (
-        <div className="flex flex-col lg:flex-row items-start gap-3 sm:gap-4 xl:gap-5 relative pb-28">
+        <div className="flex flex-col lg:flex-row items-stretch gap-3 sm:gap-4 xl:gap-5 relative lg:h-[calc(100vh-215px)] lg:overflow-hidden pb-20 lg:pb-0">
           {/* ========================================================================= */}
           {/* 1. LEFT COLUMN: CATEGORIES COLUMN (TOP TO BOTTOM) */}
           {/* ========================================================================= */}
-          <div className="w-full lg:w-44 xl:w-48 shrink-0 space-y-2">
-            <div className="flex items-center justify-between px-1">
+          <div className="w-full lg:w-44 xl:w-48 shrink-0 flex flex-col space-y-2 lg:h-full">
+            <div className="flex items-center justify-between px-1 shrink-0">
               <span className="text-xs font-black text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5 text-emerald-600" />
                 Kategoriyalar
@@ -1568,15 +1572,18 @@ export const CashierView: React.FC = () => {
               </span>
             </div>
 
-            {/* Category Cards: Horizontal scroll on mobile, Vertical column on tablet/desktop */}
+            {/* Category Cards: Horizontal scroll on mobile, Dedicated independent scroll on tablet/desktop */}
             {isCategoriesLoading ? (
-              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto pb-1 scrollbar-none">
+              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto pb-1 scrollbar-none flex-1 min-h-0">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <Skeleton key={i} className="w-[84px] h-[84px] lg:w-full lg:h-22 shrink-0 rounded-2xl" />
                 ))}
               </div>
             ) : (
-              <div className="flex lg:flex-col gap-2 sm:gap-2.5 overflow-x-auto lg:overflow-y-auto py-1 px-0.5 scrollbar-none snap-x lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-140px)]">
+              <div
+                className="flex lg:flex-col gap-2 sm:gap-2.5 overflow-x-auto lg:overflow-y-auto py-1 px-0.5 scrollbar-thin scrollbar-thumb-emerald-500/20 hover:scrollbar-thumb-emerald-500/40 snap-x flex-1 min-h-0 overscroll-contain"
+                style={{ overscrollBehavior: "contain" }}
+              >
                 {orderedCategories.map((c, index) => {
                   const count = products.filter((p) => p.categoryId === c.id).length
                   const isSelected = posSelectedCategory === c.id
@@ -1676,9 +1683,10 @@ export const CashierView: React.FC = () => {
           {/* ========================================================================= */}
           {/* 2. CENTER COLUMN: MAIN PRODUCTS GRID */}
           {/* ========================================================================= */}
-          <div className="flex-1 w-full min-w-0 space-y-4">
+          <div className="flex-1 w-full min-w-0 flex flex-col lg:h-full space-y-2.5">
             {/* Header + Quick Search & Grid Column Switcher */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="shrink-0 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-black text-sm text-neutral-900 dark:text-white flex items-center gap-2">
                   <UtensilsCrossed className="h-4 w-4 text-emerald-600" />
@@ -1807,11 +1815,15 @@ export const CashierView: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
 
-
-
-            {/* Products Grid */}
-            {isProductsLoading ? (
+            {/* Products Grid Area with Independent Scroll */}
+            <div
+              className="flex-1 min-h-0 lg:overflow-y-auto overscroll-contain pr-1 scrollbar-thin scrollbar-thumb-emerald-500/20 hover:scrollbar-thumb-emerald-500/40"
+              style={{ overscrollBehavior: "contain" }}
+            >
+              {/* Products Grid */}
+              {isProductsLoading ? (
               <div
                 className="grid gap-2"
                 style={{
@@ -2038,11 +2050,14 @@ export const CashierView: React.FC = () => {
                 })}
               </div>
             )}
+            </div>
           </div>
 
-          {/* POS Cart Sidebar: Sticky on Desktop/Tablet right next to the menu! */}
-          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] lg:sticky lg:top-[72px] z-20 flex-shrink-0 space-y-4">
-            <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 space-y-3.5 shadow-sm">
+          {/* ========================================================================= */}
+          {/* 3. RIGHT COLUMN: POS CART SIDEBAR */}
+          {/* ========================================================================= */}
+          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] shrink-0 flex flex-col lg:h-full">
+            <div className="flex flex-col lg:h-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm">
               {/* Header with Dish Counter & Clear Cart */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2075,7 +2090,7 @@ export const CashierView: React.FC = () => {
               </div>
 
               {/* Customer Selection & Table Info */}
-              <div className="space-y-2 p-3 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700">
+              <div className="shrink-0 space-y-2 p-3 mb-1.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
                     <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
@@ -2182,7 +2197,7 @@ export const CashierView: React.FC = () => {
               </div>
 
               {/* Cart items list */}
-              <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+              <div className="space-y-2 flex-1 min-h-[90px] max-h-[38vh] lg:max-h-none overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-500/20 hover:scrollbar-thumb-emerald-500/40 overscroll-contain">
                 {posCart.length === 0 ? (
                   <div className="text-center py-8 space-y-2 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800">
                     <Package className="h-8 w-8 mx-auto text-neutral-300 dark:text-neutral-700" />
@@ -2306,15 +2321,34 @@ export const CashierView: React.FC = () => {
                     </button>
                   )}
                 </div>
+
+                {/* Primary POS Save Order Button inside Cart Card */}
+                <Button
+                  type="button"
+                  onClick={handlePosOrder}
+                  disabled={posCart.length === 0 || isSubmittingPos}
+                  className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer ${
+                    posCart.length > 0 && !isSubmittingPos
+                      ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
+                      : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed shadow-none"
+                  }`}
+                >
+                  {isSubmittingPos ? (
+                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                  ) : (
+                    <Check className="h-4.5 w-4.5 stroke-[3]" />
+                  )}
+                  <span>{isSubmittingPos ? "Saqlanmoqda..." : (t.posSaveOrder || "Buyurtmani Saqlash")}</span>
+                </Button>
               </div>
             </div>
           </div>
 
           {/* ========================================================================= */}
-          {/* 4. PERMANENT FLOATING ACTION BAR: BUYURTMANI SAQLASH (ALWAYS VISIBLE WHEN ACTIVE) */}
+          {/* 4. MOBILE FLOATING ACTION BAR (HIDDEN ON DESKTOP TO PREVENT FOOTER COLLISION) */}
           {/* ========================================================================= */}
           {posCart.length > 0 && (
-            <div className="fixed bottom-14 sm:bottom-16 left-3 right-3 sm:left-auto sm:right-6 sm:w-[390px] xl:w-[420px] z-40 bg-neutral-900/95 dark:bg-black/95 text-white p-3 sm:p-3.5 rounded-3xl border border-emerald-500/60 shadow-2xl shadow-emerald-950/50 backdrop-blur-xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300 ring-2 ring-emerald-500/25">
+            <div className="fixed bottom-20 left-3 right-3 z-40 lg:hidden bg-neutral-900/95 dark:bg-black/95 text-white p-3 sm:p-3.5 rounded-3xl border border-emerald-500/60 shadow-2xl shadow-emerald-950/50 backdrop-blur-xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300 ring-2 ring-emerald-500/25">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="h-10 w-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black text-sm shadow-md shrink-0">
                   {posCart.reduce((s, i) => s + i.quantity, 0)}
@@ -2336,10 +2370,15 @@ export const CashierView: React.FC = () => {
 
               <Button
                 onClick={handlePosOrder}
+                disabled={isSubmittingPos}
                 className="bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 border-none cursor-pointer"
               >
-                <Check className="h-4 w-4 stroke-[3]" />
-                <span>{t.posSaveOrder || "Buyurtmani Saqlash"}</span>
+                {isSubmittingPos ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 stroke-[3]" />
+                )}
+                <span>{isSubmittingPos ? "Saqlanmoqda..." : (t.posSaveOrder || "Buyurtmani Saqlash")}</span>
               </Button>
             </div>
           )}
