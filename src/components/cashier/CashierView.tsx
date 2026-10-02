@@ -29,6 +29,7 @@ import {
   Trash2,
   Printer,
   Ban,
+  Layers,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -533,7 +534,7 @@ export const CashierView: React.FC = () => {
   // Ordered POS Categories with Drag and Drop Reordering
   const [orderedCategories, setOrderedCategories] = React.useState<Category[]>([])
   const [draggedCatIndex, setDraggedCatIndex] = React.useState<number | null>(null)
-  const [dropInsertPosition, setDropInsertPosition] = React.useState<{ index: number; side: "left" | "right" } | null>(null)
+  const [dropInsertPosition, setDropInsertPosition] = React.useState<{ index: number; side: "left" | "right" | "top" | "bottom" } | null>(null)
 
   useEffect(() => {
     if (categories.length > 0) {
@@ -555,8 +556,15 @@ export const CashierView: React.FC = () => {
     e.preventDefault()
     e.dataTransfer.dropEffect = "move"
     const rect = e.currentTarget.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const side = mouseX < rect.width / 2 ? "left" : "right"
+    const isVertical = window.innerWidth >= 1024
+    let side: "left" | "right" | "top" | "bottom" = "left"
+    if (isVertical) {
+      const mouseY = e.clientY - rect.top
+      side = mouseY < rect.height / 2 ? "top" : "bottom"
+    } else {
+      const mouseX = e.clientX - rect.left
+      side = mouseX < rect.width / 2 ? "left" : "right"
+    }
     if (
       !dropInsertPosition ||
       dropInsertPosition.index !== index ||
@@ -581,16 +589,23 @@ export const CashierView: React.FC = () => {
     }
 
     // Determine target side from indicator position or mouse position
-    let side: "left" | "right" = "left"
+    let side: "left" | "right" | "top" | "bottom" = "left"
     if (dropInsertPosition && dropInsertPosition.index === targetIndex) {
       side = dropInsertPosition.side
     } else {
       const rect = e.currentTarget.getBoundingClientRect()
-      const mouseX = e.clientX - rect.left
-      side = mouseX < rect.width / 2 ? "left" : "right"
+      const isVertical = window.innerWidth >= 1024
+      if (isVertical) {
+        const mouseY = e.clientY - rect.top
+        side = mouseY < rect.height / 2 ? "top" : "bottom"
+      } else {
+        const mouseX = e.clientX - rect.left
+        side = mouseX < rect.width / 2 ? "left" : "right"
+      }
     }
 
-    const targetSlot = side === "left" ? targetIndex : targetIndex + 1
+    const isBefore = side === "left" || side === "top"
+    const targetSlot = isBefore ? targetIndex : targetIndex + 1
     const fromIndex = draggedCatIndex
 
     if (fromIndex === targetSlot || fromIndex === targetSlot - 1) {
@@ -1538,8 +1553,129 @@ export const CashierView: React.FC = () => {
 
       {/* TAB 2: IN-STORE POS CASHIER WITH VISUAL FOOD CARDS & CATEGORY FILTERS */}
       {activeTab === "POS" && (
-        <div className="flex flex-col lg:flex-row items-start gap-4 xl:gap-5 relative">
-          {/* Main Products Grid Column */}
+        <div className="flex flex-col lg:flex-row items-start gap-3 sm:gap-4 xl:gap-5 relative pb-28">
+          {/* ========================================================================= */}
+          {/* 1. LEFT COLUMN: CATEGORIES COLUMN (TOP TO BOTTOM) */}
+          {/* ========================================================================= */}
+          <div className="w-full lg:w-44 xl:w-48 shrink-0 space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-black text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-emerald-600" />
+                Kategoriyalar
+              </span>
+              <span className="text-[10px] text-neutral-400 font-bold">
+                {orderedCategories.length} ta
+              </span>
+            </div>
+
+            {/* Category Cards: Horizontal scroll on mobile, Vertical column on tablet/desktop */}
+            {isCategoriesLoading ? (
+              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto pb-1 scrollbar-none">
+                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  <Skeleton key={i} className="w-[84px] h-[84px] lg:w-full lg:h-22 shrink-0 rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex lg:flex-col gap-2 sm:gap-2.5 overflow-x-auto lg:overflow-y-auto py-1 px-0.5 scrollbar-none snap-x lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-140px)]">
+                {orderedCategories.map((c, index) => {
+                  const count = products.filter((p) => p.categoryId === c.id).length
+                  const isSelected = posSelectedCategory === c.id
+                  const isDragging = draggedCatIndex === index
+                  const showLeftIndicator =
+                    dropInsertPosition?.index === index &&
+                    (dropInsertPosition.side === "left" || dropInsertPosition.side === "top") &&
+                    draggedCatIndex !== null &&
+                    draggedCatIndex !== index &&
+                    draggedCatIndex !== index - 1
+                  const showRightIndicator =
+                    dropInsertPosition?.index === index &&
+                    (dropInsertPosition.side === "right" || dropInsertPosition.side === "bottom") &&
+                    draggedCatIndex !== null &&
+                    draggedCatIndex !== index &&
+                    draggedCatIndex !== index + 1
+
+                  return (
+                    <div
+                      key={c.id}
+                      onDragOver={(e) => handleCategoryDragOver(e, index)}
+                      onDrop={(e) => handleCategoryDrop(e, index)}
+                      className="relative shrink-0 flex items-center lg:block"
+                    >
+                      {/* Insertion Line Before */}
+                      {showLeftIndicator && (
+                        <div className="absolute -left-2 lg:left-0 lg:-top-1.5 top-0 bottom-0 lg:bottom-auto lg:right-0 z-30 flex items-center justify-center pointer-events-none">
+                          <div className="w-1.5 lg:w-full h-full lg:h-1.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex lg:flex-row flex-col justify-between items-center p-0.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        draggable
+                        onDragStart={(e) => handleCategoryDragStart(e, index)}
+                        onDragEnd={handleCategoryDragEnd}
+                        onClick={() => setPosSelectedCategory(c.id)}
+                        className={`w-[84px] h-[84px] lg:w-full lg:h-22 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group ${
+                          isDragging ? "opacity-25 scale-95 border-2 border-dashed border-emerald-400" : ""
+                        } ${
+                          isSelected
+                            ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
+                            : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
+                        }`}
+                      >
+                        {/* 3D Icon Background */}
+                        <img
+                          src={getCategoryIconSrc(c)}
+                          alt={c.name}
+                          draggable={false}
+                          onError={(e) => {
+                            ;(e.currentTarget as HTMLImageElement).src = getImageUrl(c.imageUrl)
+                          }}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-108 transition-transform duration-300 pointer-events-none select-none"
+                        />
+
+                        {/* Soft Gradient Overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none select-none" />
+
+                        {/* Top Row: Drag Handle & Count Badge */}
+                        <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
+                          <div className="opacity-60 group-hover:opacity-100 transition-opacity drop-shadow-sm">
+                            <GripVertical className="h-3.5 w-3.5 text-white" />
+                          </div>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white font-black shadow-xs">
+                            {count} ta
+                          </span>
+                        </div>
+
+                        {/* Bottom Label: Category Name */}
+                        <div className="relative z-10 pointer-events-none select-none">
+                          <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] truncate">
+                            {c.name}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Insertion Line After */}
+                      {showRightIndicator && (
+                        <div className="absolute -right-2 lg:right-0 lg:-bottom-1.5 top-0 bottom-0 lg:top-auto lg:left-0 z-30 flex items-center justify-center pointer-events-none">
+                          <div className="w-1.5 lg:w-full h-full lg:h-1.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex lg:flex-row flex-col justify-between items-center p-0.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* 2. CENTER COLUMN: MAIN PRODUCTS GRID */}
+          {/* ========================================================================= */}
           <div className="flex-1 w-full min-w-0 space-y-4">
             {/* Header + Quick Search & Grid Column Switcher */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1672,111 +1808,7 @@ export const CashierView: React.FC = () => {
               </div>
             </div>
 
-            {/* Category Filter Square Cards with Photos - Fixed/Sticky on scroll below navbar */}
-            <div className="sticky top-[56px] sm:top-[64px] z-30 bg-neutral-50/95 dark:bg-neutral-950/95 backdrop-blur-md py-1.5 px-1 -mx-1 rounded-2xl border-b border-neutral-200/60 dark:border-neutral-800/60 shadow-xs">
-              {isCategoriesLoading ? (
-                <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-none">
-                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                    <Skeleton key={i} className="w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl" />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-1 px-1 scrollbar-none snap-x">
-                  {orderedCategories.map((c, index) => {
-                    const count = products.filter((p) => p.categoryId === c.id).length
-                    const isSelected = posSelectedCategory === c.id
-                    const isDragging = draggedCatIndex === index
-                    const showLeftIndicator =
-                      dropInsertPosition?.index === index &&
-                      dropInsertPosition.side === "left" &&
-                      draggedCatIndex !== null &&
-                      draggedCatIndex !== index &&
-                      draggedCatIndex !== index - 1
-                    const showRightIndicator =
-                      dropInsertPosition?.index === index &&
-                      dropInsertPosition.side === "right" &&
-                      draggedCatIndex !== null &&
-                      draggedCatIndex !== index &&
-                      draggedCatIndex !== index + 1
 
-                    return (
-                      <div
-                        key={c.id}
-                        onDragOver={(e) => handleCategoryDragOver(e, index)}
-                        onDrop={(e) => handleCategoryDrop(e, index)}
-                        className="relative shrink-0 flex items-center"
-                      >
-                        {/* Insertion Line Before (Left) */}
-                        {showLeftIndicator && (
-                          <div className="absolute -left-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
-                            <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
-                            </div>
-                          </div>
-                        )}
-
-                        <button
-                          type="button"
-                          draggable
-                          onDragStart={(e) => handleCategoryDragStart(e, index)}
-                          onDragEnd={handleCategoryDragEnd}
-                          onClick={() => setPosSelectedCategory(c.id)}
-                          className={`w-[78px] h-[78px] sm:w-24 sm:h-24 md:w-26 md:h-26 shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2 sm:p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group my-1 ${
-                            isDragging ? "opacity-25 scale-95 border-2 border-dashed border-emerald-400" : ""
-                          } ${
-                            isSelected
-                              ? "ring-3 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-950 shadow-lg shadow-emerald-600/30 scale-[1.02]"
-                              : "border border-neutral-200/80 dark:border-neutral-800 hover:border-emerald-500 opacity-95 hover:opacity-100"
-                          }`}
-                        >
-                          {/* 3D Icon Background */}
-                          <img
-                            src={getCategoryIconSrc(c)}
-                            alt={c.name}
-                            draggable={false}
-                            onError={(e) => {
-                              ;(e.currentTarget as HTMLImageElement).src = getImageUrl(c.imageUrl)
-                            }}
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-108 transition-transform duration-300 pointer-events-none select-none"
-                          />
-
-                          {/* Soft Gradient Overlay for text readability */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none select-none" />
-
-                          {/* Top Row: Drag Handle & Count Badge */}
-                          <div className="relative z-10 flex items-center justify-between w-full pointer-events-none select-none">
-                            <div className="opacity-60 group-hover:opacity-100 transition-opacity drop-shadow-sm">
-                              <GripVertical className="h-3.5 w-3.5 text-white" />
-                            </div>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white font-black shadow-xs">
-                              {count} ta
-                            </span>
-                          </div>
-
-                          {/* Bottom Label: Category Name */}
-                          <div className="relative z-10 pointer-events-none select-none">
-                            <span className="text-xs sm:text-sm font-black text-white block leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] truncate">
-                              {c.name}
-                            </span>
-                          </div>
-                        </button>
-
-                        {/* Insertion Line After (Right) */}
-                        {showRightIndicator && (
-                          <div className="absolute -right-2 top-0 bottom-0 z-30 flex items-center justify-center pointer-events-none">
-                            <div className="w-1.5 h-full rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/80 animate-pulse flex flex-col justify-between items-center py-0.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mt-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 -mb-1 shadow-sm ring-2 ring-white dark:ring-neutral-900" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
 
             {/* Products Grid */}
             {isProductsLoading ? (
@@ -2274,30 +2306,29 @@ export const CashierView: React.FC = () => {
                     </button>
                   )}
                 </div>
-
-                <Button
-                  onClick={handlePosOrder}
-                  disabled={posCart.length === 0}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black py-3.5 shadow-lg shadow-emerald-600/20 active:scale-98"
-                >
-                  {t.posSaveOrder || "Buyurtmani Saqlash"} ({posTotal.toLocaleString()} so'm)
-                </Button>
               </div>
             </div>
           </div>
 
-          {/* Floating Checkout Bar for Mobile/Tablet positioned safely above the bottom nav */}
+          {/* ========================================================================= */}
+          {/* 4. PERMANENT FLOATING ACTION BAR: BUYURTMANI SAQLASH (ALWAYS VISIBLE WHEN ACTIVE) */}
+          {/* ========================================================================= */}
           {posCart.length > 0 && (
-            <div className="fixed bottom-[72px] sm:bottom-[76px] left-3 right-3 sm:left-6 sm:right-6 max-w-xl sm:mx-auto lg:hidden z-30 bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white p-3 rounded-2xl shadow-xl shadow-emerald-950/25 border border-emerald-500/40 backdrop-blur-md flex items-center justify-between animate-in slide-in-from-bottom duration-300">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-white/20 text-white flex items-center justify-center font-black text-xs shadow-xs backdrop-blur-xs border border-white/25">
+            <div className="fixed bottom-14 sm:bottom-16 left-3 right-3 sm:left-auto sm:right-6 sm:w-[390px] xl:w-[420px] z-40 bg-neutral-900/95 dark:bg-black/95 text-white p-3 sm:p-3.5 rounded-3xl border border-emerald-500/60 shadow-2xl shadow-emerald-950/50 backdrop-blur-xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300 ring-2 ring-emerald-500/25">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black text-sm shadow-md shrink-0">
                   {posCart.reduce((s, i) => s + i.quantity, 0)}
                 </div>
-                <div>
-                  <p className="text-xs text-emerald-100 font-bold leading-tight">
-                    {posCart.length} {t.dishesCountShort || "ta taom"}
-                  </p>
-                  <strong className="text-sm font-black text-white tracking-tight">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[11px] text-emerald-300 font-bold truncate">
+                      {posCart.length} xil taom
+                    </p>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-white/10 text-neutral-300 font-semibold uppercase">
+                      {posPaymentMethod === "TERMINAL" ? "💳 Terminal" : posPaymentMethod === "BALANCE" ? "👛 Balans" : "💵 Naqd"}
+                    </span>
+                  </div>
+                  <strong className="text-sm sm:text-base font-black text-white tracking-tight block truncate">
                     {posTotal.toLocaleString()} so'm
                   </strong>
                 </div>
@@ -2305,9 +2336,10 @@ export const CashierView: React.FC = () => {
 
               <Button
                 onClick={handlePosOrder}
-                className="bg-white hover:bg-emerald-50 text-emerald-900 font-black text-xs px-4 py-2.5 rounded-xl shadow-md active:scale-95 transition-all border-none"
+                className="bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 border-none cursor-pointer"
               >
-                {t.posSaveOrder || "Buyurtmani Saqlash"}
+                <Check className="h-4 w-4 stroke-[3]" />
+                <span>{t.posSaveOrder || "Buyurtmani Saqlash"}</span>
               </Button>
             </div>
           )}

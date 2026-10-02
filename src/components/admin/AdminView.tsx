@@ -564,7 +564,7 @@ export const AdminView: React.FC = () => {
 
       if (showQuickCreateCat && savedCatId) {
         setNewProductCategory(savedCatId)
-        setCatSearch(name.trim())
+        setCatSearch("")
         setShowCatDropdown(false)
       }
 
@@ -629,7 +629,7 @@ export const AdminView: React.FC = () => {
       })
       await refetchUnits()
       setNewProductUnit(res.data.name)
-      setUnitSearch(res.data.name)
+      setUnitSearch("")
       setShowQuickCreateUnit(false)
       setShowUnitDropdown(false)
       setQuickUnitName("")
@@ -687,8 +687,10 @@ export const AdminView: React.FC = () => {
     setNewProductDescription("")
     setNewProductCategory("")
     setCatSearch("")
+    setShowCatDropdown(false)
     setNewProductUnit("")
     setUnitSearch("")
+    setShowUnitDropdown(false)
     setNewProductPrice(15000)
     setNewProductCostPrice("")
     setNewProductOldPrice("")
@@ -706,10 +708,11 @@ export const AdminView: React.FC = () => {
     setNewProductName(p.name)
     setNewProductDescription(p.description || "")
     setNewProductCategory(p.categoryId || "")
-    const cat = categories.find((c) => c.id === p.categoryId)
-    setCatSearch(cat ? cat.name : "")
+    setCatSearch("")
+    setShowCatDropdown(false)
     setNewProductUnit(p.unitName || "")
-    setUnitSearch(p.unitName || "")
+    setUnitSearch("")
+    setShowUnitDropdown(false)
     setNewProductPrice(p.price)
     setNewProductCostPrice(p.costPrice !== undefined && p.costPrice !== null ? p.costPrice : "")
     setNewProductOldPrice(p.oldPrice || "")
@@ -3113,42 +3116,67 @@ export const AdminView: React.FC = () => {
 
                   <div className="relative">
                     <div
-                      onClick={() => setShowCatDropdown(!showCatDropdown)}
+                      onClick={() => {
+                        setShowCatDropdown(!showCatDropdown)
+                        setCatSearch("")
+                      }}
                       className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
                     >
-                      <span>{catSearch || "Kategoriyani qidirish va tanlash..."}</span>
+                      <span className={categories.find((c) => c.id === newProductCategory) ? "text-neutral-900 dark:text-white font-semibold" : "text-neutral-400"}>
+                        {categories.find((c) => c.id === newProductCategory)?.name || "Kategoriyani tanlash..."}
+                      </span>
                       <Search className="h-4 w-4 text-neutral-400" />
                     </div>
 
                     {showCatDropdown && (
-                      <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto p-1.5 space-y-1">
-                        <input
-                          type="text"
-                          placeholder="Qidirish..."
-                          value={catSearch}
-                          onChange={(e) => setCatSearch(e.target.value)}
-                          className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-1 outline-none"
-                          autoFocus
-                        />
-                        {filteredCategories.map((c) => (
-                          <div
-                            key={c.id}
-                            onClick={() => {
-                              setNewProductCategory(c.id)
-                              setCatSearch(c.name)
-                              setShowCatDropdown(false)
-                            }}
-                            className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer ${
-                              newProductCategory === c.id
-                                ? "bg-emerald-50 text-emerald-700 font-bold"
-                                : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                            }`}
-                          >
-                            <span>{c.name}</span>
-                            {newProductCategory === c.id && <Check className="h-3.5 w-3.5" />}
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setShowCatDropdown(false)} />
+                        <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-52 overflow-y-auto p-1.5 space-y-1">
+                          <div className="relative mb-1">
+                            <input
+                              type="text"
+                              placeholder="Qidirish..."
+                              value={catSearch}
+                              onChange={(e) => setCatSearch(e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 pr-7 rounded-lg border border-neutral-200 dark:border-neutral-800 outline-none bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
+                              autoFocus
+                            />
+                            {catSearch && (
+                              <button
+                                type="button"
+                                onClick={() => setCatSearch("")}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                          {filteredCategories.length === 0 ? (
+                            <div className="p-2.5 text-center text-xs text-neutral-400">
+                              Kategoriya topilmadi
+                            </div>
+                          ) : (
+                            filteredCategories.map((c) => (
+                              <div
+                                key={c.id}
+                                onClick={() => {
+                                  setNewProductCategory(c.id)
+                                  setCatSearch("")
+                                  setShowCatDropdown(false)
+                                }}
+                                className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                                  newProductCategory === c.id
+                                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold"
+                                    : "hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200"
+                                }`}
+                              >
+                                <span>{c.name}</span>
+                                {newProductCategory === c.id && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -3168,44 +3196,69 @@ export const AdminView: React.FC = () => {
 
                   <div className="relative">
                     <div
-                      onClick={() => setShowUnitDropdown(!showUnitDropdown)}
+                      onClick={() => {
+                        setShowUnitDropdown(!showUnitDropdown)
+                        setUnitSearch("")
+                      }}
                       className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
                     >
-                      <span>{unitSearch || "Birlikni qidirish va tanlash..."}</span>
+                      <span className={newProductUnit ? "text-neutral-900 dark:text-white font-semibold" : "text-neutral-400"}>
+                        {newProductUnit || "Birlikni tanlash..."}
+                      </span>
                       <Scale className="h-4 w-4 text-neutral-400" />
                     </div>
 
                     {showUnitDropdown && (
-                      <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto p-1.5 space-y-1">
-                        <input
-                          type="text"
-                          placeholder="Qidirish..."
-                          value={unitSearch}
-                          onChange={(e) => setUnitSearch(e.target.value)}
-                          className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-1 outline-none"
-                          autoFocus
-                        />
-                        {filteredUnits.map((u) => (
-                          <div
-                            key={u.id}
-                            onClick={() => {
-                              setNewProductUnit(u.name)
-                              setUnitSearch(u.name)
-                              setShowUnitDropdown(false)
-                            }}
-                            className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer ${
-                              newProductUnit === u.name
-                                ? "bg-emerald-50 text-emerald-700 font-bold"
-                                : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                            }`}
-                          >
-                            <span>
-                              {u.name} ({u.shortName})
-                            </span>
-                            {newProductUnit === u.name && <Check className="h-3.5 w-3.5" />}
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setShowUnitDropdown(false)} />
+                        <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-52 overflow-y-auto p-1.5 space-y-1">
+                          <div className="relative mb-1">
+                            <input
+                              type="text"
+                              placeholder="Qidirish..."
+                              value={unitSearch}
+                              onChange={(e) => setUnitSearch(e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 pr-7 rounded-lg border border-neutral-200 dark:border-neutral-800 outline-none bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
+                              autoFocus
+                            />
+                            {unitSearch && (
+                              <button
+                                type="button"
+                                onClick={() => setUnitSearch("")}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                          {filteredUnits.length === 0 ? (
+                            <div className="p-2.5 text-center text-xs text-neutral-400">
+                              Birlik topilmadi
+                            </div>
+                          ) : (
+                            filteredUnits.map((u) => (
+                              <div
+                                key={u.id}
+                                onClick={() => {
+                                  setNewProductUnit(u.name)
+                                  setUnitSearch("")
+                                  setShowUnitDropdown(false)
+                                }}
+                                className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                                  newProductUnit === u.name
+                                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold"
+                                    : "hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200"
+                                }`}
+                              >
+                                <span>
+                                  {u.name} ({u.shortName})
+                                </span>
+                                {newProductUnit === u.name && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
