@@ -49,6 +49,17 @@ export const MainLayout: React.FC = () => {
     location.pathname.startsWith("/pos") ||
     location.pathname.startsWith("/admin")
 
+  useEffect(() => {
+    if (isWidePage) {
+      document.documentElement.classList.add("overflow-hidden")
+      document.body.classList.add("overflow-hidden")
+      return () => {
+        document.documentElement.classList.remove("overflow-hidden")
+        document.body.classList.remove("overflow-hidden")
+      }
+    }
+  }, [isWidePage])
+
   const isFullScreenStaff = location.pathname.startsWith("/login")
 
   const isExcludedPage =
@@ -63,7 +74,7 @@ export const MainLayout: React.FC = () => {
   return (
     <div
       className={`min-h-screen flex flex-col bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 font-sans transition-colors duration-200 ${
-        isWidePage ? "lg:h-screen lg:max-h-screen lg:overflow-hidden" : ""
+        isWidePage ? "h-screen max-h-screen overflow-hidden" : ""
       }`}
     >
       {/* Main Navbar */}
@@ -76,7 +87,7 @@ export const MainLayout: React.FC = () => {
       <main
         className={`flex-1 mx-auto w-full ${
           isWidePage
-            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2 pb-20 lg:pb-[76px] lg:overflow-hidden flex flex-col min-h-0"
+            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2 pb-20 lg:pb-[76px] overflow-hidden flex flex-col min-h-0"
             : "max-w-4xl px-3 sm:px-6 lg:px-8 py-4 pb-28"
         }`}
       >

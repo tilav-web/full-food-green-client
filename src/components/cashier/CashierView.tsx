@@ -1576,7 +1576,7 @@ export const CashierView: React.FC = () => {
             {isCategoriesLoading ? (
               <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto pb-1 scrollbar-none flex-1 min-h-0">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <Skeleton key={i} className="w-24 h-24 lg:w-full lg:h-[108px] shrink-0 rounded-2xl" />
+                  <Skeleton key={i} className="w-24 h-24 lg:w-full lg:h-[114px] shrink-0 rounded-2xl" />
                 ))}
               </div>
             ) : (
@@ -1624,7 +1624,7 @@ export const CashierView: React.FC = () => {
                         onDragStart={(e) => handleCategoryDragStart(e, index)}
                         onDragEnd={handleCategoryDragEnd}
                         onClick={() => setPosSelectedCategory(c.id)}
-                        className={`w-24 h-24 lg:w-full lg:h-[108px] shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group border-2 ${
+                        className={`w-24 h-24 lg:w-full lg:h-[114px] shrink-0 rounded-2xl relative overflow-hidden flex flex-col justify-between p-2.5 text-left transition-all active:scale-95 select-none cursor-grab active:cursor-grabbing snap-start group border-2 ${
                           isDragging
                             ? "opacity-25 scale-95 border-dashed border-emerald-400"
                             : isSelected
@@ -2065,29 +2065,31 @@ export const CashierView: React.FC = () => {
           {/* 3. RIGHT COLUMN: POS CART SIDEBAR */}
           {/* ========================================================================= */}
           <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] shrink-0 flex flex-col h-full max-h-full gap-2.5 overflow-hidden">
-            {/* Top Standalone Action Button: Buyurtmani Saqlash (Full width of the card) */}
-            <Button
-              type="button"
-              onClick={handlePosOrder}
-              disabled={posCart.length === 0 || isSubmittingPos}
-              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer shrink-0 ${
-                posCart.length > 0 && !isSubmittingPos
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
-                  : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed shadow-none"
-              }`}
-            >
-              {isSubmittingPos ? (
-                <Loader2 className="h-4.5 w-4.5 animate-spin" />
-              ) : (
-                <Check className="h-4.5 w-4.5 stroke-[3]" />
-              )}
-              <span>{isSubmittingPos ? "Saqlanmoqda..." : (t.posSaveOrder || "Buyurtmani Saqlash")}</span>
-              {posCart.length > 0 && (
-                <span className="ml-1.5 px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-black">
-                  {posTotal.toLocaleString()} so'm
-                </span>
-              )}
-            </Button>
+            {/* Top Standalone Action Card: Buyurtmani Saqlash */}
+            <div className="shrink-0 p-2.5 sm:p-3 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={handlePosOrder}
+                disabled={posCart.length === 0 || isSubmittingPos}
+                className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer ${
+                  posCart.length > 0 && !isSubmittingPos
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
+                    : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed shadow-none"
+                }`}
+              >
+                {isSubmittingPos ? (
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                ) : (
+                  <Check className="h-4.5 w-4.5 stroke-[3]" />
+                )}
+                <span>{isSubmittingPos ? "Saqlanmoqda..." : (t.posSaveOrder || "Buyurtmani Saqlash")}</span>
+                {posCart.length > 0 && (
+                  <span className="ml-1.5 px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-black">
+                    {posTotal.toLocaleString()} so'm
+                  </span>
+                )}
+              </Button>
+            </div>
 
             {/* Cart Card */}
             <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm overflow-hidden">
