@@ -922,7 +922,7 @@ export const CashierView: React.FC = () => {
   }, [filteredOrders, currentPage])
 
   return (
-    <div className={`space-y-3 sm:space-y-4 ${activeTab === "POS" ? "h-full flex flex-col min-h-0 overflow-hidden pb-0" : "pb-16 lg:pb-0"}`}>
+    <div className={`space-y-3 sm:space-y-4 ${activeTab === "POS" ? "lg:h-full flex flex-col lg:min-h-0 lg:overflow-hidden pb-0" : "pb-16 lg:pb-0"}`}>
       {/* Top Banner & Tabs */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white shadow-md">
         <div className="flex items-center gap-3">
@@ -1557,11 +1557,11 @@ export const CashierView: React.FC = () => {
 
       {/* TAB 2: IN-STORE POS CASHIER WITH VISUAL FOOD CARDS & CATEGORY FILTERS */}
       {activeTab === "POS" && (
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch gap-3 sm:gap-4 xl:gap-5 relative overflow-hidden pb-0">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch gap-3 sm:gap-4 xl:gap-5 relative lg:overflow-hidden pb-0">
           {/* ========================================================================= */}
           {/* 1. LEFT COLUMN: CATEGORIES COLUMN (TOP TO BOTTOM) */}
           {/* ========================================================================= */}
-          <div className="w-full lg:w-44 xl:w-48 shrink-0 flex flex-col space-y-2 h-full max-h-full overflow-hidden">
+          <div className="w-full lg:w-44 xl:w-48 shrink-0 flex flex-col space-y-2 lg:h-full lg:max-h-full lg:overflow-hidden">
             <div className="flex items-center justify-between px-1 shrink-0">
               <span className="text-xs font-black text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5 text-emerald-600" />
@@ -1691,7 +1691,7 @@ export const CashierView: React.FC = () => {
           {/* ========================================================================= */}
           {/* 2. CENTER COLUMN: MAIN PRODUCTS GRID */}
           {/* ========================================================================= */}
-          <div className="flex-1 w-full min-w-0 flex flex-col lg:h-full lg:max-h-full space-y-2.5 overflow-hidden">
+          <div className="flex-1 w-full min-w-0 flex flex-col lg:h-full lg:max-h-full space-y-2.5 lg:overflow-hidden">
             {/* Header + Quick Search & Grid Column Switcher */}
             <div className="shrink-0 space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -2064,7 +2064,7 @@ export const CashierView: React.FC = () => {
           {/* ========================================================================= */}
           {/* 3. RIGHT COLUMN: POS CART SIDEBAR */}
           {/* ========================================================================= */}
-          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] shrink-0 flex flex-col h-full max-h-full gap-2.5 overflow-hidden">
+          <div className="w-full lg:w-[350px] xl:w-[390px] 2xl:w-[420px] shrink-0 flex flex-col lg:h-full lg:max-h-full gap-2.5 lg:overflow-hidden">
             {/* Top Standalone Action Card: Buyurtmani Saqlash */}
             <div className="shrink-0 p-2.5 sm:p-3 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex flex-col gap-2">
               <Button

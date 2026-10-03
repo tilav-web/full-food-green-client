@@ -49,16 +49,36 @@ export const MainLayout: React.FC = () => {
     location.pathname.startsWith("/pos") ||
     location.pathname.startsWith("/admin")
 
+  // Only the desktop Zal POS view is a locked single-screen workstation
+  const searchParams = new URLSearchParams(location.search)
+  const cashierTab = searchParams.get("tab") || "ORDERS"
+  const isPosWorkstation =
+    (location.pathname.startsWith("/cashier") && cashierTab === "POS") ||
+    location.pathname.startsWith("/pos")
+
   useEffect(() => {
-    if (isWidePage) {
-      document.documentElement.classList.add("overflow-hidden")
-      document.body.classList.add("overflow-hidden")
+    if (isPosWorkstation) {
+      const handleResize = () => {
+        if (window.innerWidth >= 1024) {
+          document.documentElement.classList.add("overflow-hidden")
+          document.body.classList.add("overflow-hidden")
+        } else {
+          document.documentElement.classList.remove("overflow-hidden")
+          document.body.classList.remove("overflow-hidden")
+        }
+      }
+      handleResize()
+      window.addEventListener("resize", handleResize)
       return () => {
+        window.removeEventListener("resize", handleResize)
         document.documentElement.classList.remove("overflow-hidden")
         document.body.classList.remove("overflow-hidden")
       }
+    } else {
+      document.documentElement.classList.remove("overflow-hidden")
+      document.body.classList.remove("overflow-hidden")
     }
-  }, [isWidePage])
+  }, [isPosWorkstation])
 
   const isFullScreenStaff = location.pathname.startsWith("/login")
 
@@ -74,7 +94,7 @@ export const MainLayout: React.FC = () => {
   return (
     <div
       className={`min-h-screen flex flex-col bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 font-sans transition-colors duration-200 ${
-        isWidePage ? "h-screen max-h-screen overflow-hidden" : ""
+        isPosWorkstation ? "lg:h-screen lg:max-h-screen lg:overflow-hidden" : ""
       }`}
     >
       {/* Main Navbar */}
@@ -86,8 +106,10 @@ export const MainLayout: React.FC = () => {
       {/* Dynamic Page Content container: wide max-w-[1750px] for POS/Admin, max-w-4xl for Telegram Mini App */}
       <main
         className={`flex-1 mx-auto w-full ${
-          isWidePage
-            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2 pb-20 lg:pb-[76px] overflow-hidden flex flex-col min-h-0"
+          isPosWorkstation
+            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-2 pb-20 lg:pb-[76px] lg:overflow-hidden flex flex-col min-h-0"
+            : isWidePage
+            ? "max-w-[1750px] px-2 sm:px-4 lg:px-6 py-3 pb-28 min-h-0"
             : "max-w-4xl px-3 sm:px-6 lg:px-8 py-4 pb-28"
         }`}
       >
@@ -97,7 +119,7 @@ export const MainLayout: React.FC = () => {
       {/* Persistent Bottom Navigation Bar for all pages across all devices */}
       {!isFullScreenStaff && <BottomNav />}
 
-      {!isFullScreenStaff && !isWidePage && (
+      {!isFullScreenStaff && !isPosWorkstation && (
         <footer className="hidden md:block border-t border-neutral-200 dark:border-neutral-800 py-6 text-center text-xs text-neutral-400 mb-16">
           <p>&copy; {new Date().getFullYear()} FullFood — Mazali va Sifatli Taomlar Restorani.</p>
         </footer>
