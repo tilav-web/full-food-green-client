@@ -10,7 +10,6 @@ import {
   Plus,
   Utensils,
   Search,
-  Check,
   Trash2,
   Package,
   Layers,
@@ -167,7 +166,7 @@ export const AdminView: React.FC = () => {
   })
 
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["adminCategories"],
+    queryKey: ["categories"],
     queryFn: async () => (await apiClient.get("/products/categories")).data,
   })
 
@@ -375,15 +374,11 @@ export const AdminView: React.FC = () => {
   const [newProductDescription, setNewProductDescription] = useState("")
   const [newProductIsActive, setNewProductIsActive] = useState(true)
 
-  // Search-Select Popovers & Fast Creation State
-  const [catSearch, setCatSearch] = useState("")
-  const [showCatDropdown, setShowCatDropdown] = useState(false)
+  // Search-Select Fast Creation State
   const [showQuickCreateCat, setShowQuickCreateCat] = useState(false)
   const [quickCatName, setQuickCatName] = useState("")
   const [quickCatImageUrl, setQuickCatImageUrl] = useState("")
 
-  const [unitSearch, setUnitSearch] = useState("")
-  const [showUnitDropdown, setShowUnitDropdown] = useState(false)
   const [showQuickCreateUnit, setShowQuickCreateUnit] = useState(false)
   const [quickUnitName, setQuickUnitName] = useState("")
   const [quickUnitShort, setQuickUnitShort] = useState("")
@@ -397,6 +392,28 @@ export const AdminView: React.FC = () => {
   const sortedCategories = React.useMemo(() => {
     return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
   }, [categories])
+
+  // Products Tab Filter & Search State
+  const [productCategoryFilter, setProductCategoryFilter] = useState<string>("ALL")
+  const [productSearchQuery, setProductSearchQuery] = useState<string>("")
+
+  const filteredProducts = React.useMemo(() => {
+    return products.filter((p) => {
+      const matchesCat =
+        productCategoryFilter === "ALL" ||
+        p.categoryId === productCategoryFilter ||
+        p.category?.id === productCategoryFilter ||
+        (categories.find((c) => c.id === productCategoryFilter)?.name === p.category?.name)
+
+      const q = productSearchQuery.trim().toLowerCase()
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.description || "").toLowerCase().includes(q)
+
+      return matchesCat && matchesSearch
+    })
+  }, [products, productCategoryFilter, productSearchQuery, categories])
 
   // Handle Reorder Categories
   const handleReorderCategories = async (newOrderedList: Category[]) => {
@@ -564,8 +581,6 @@ export const AdminView: React.FC = () => {
 
       if (showQuickCreateCat && savedCatId) {
         setNewProductCategory(savedCatId)
-        setCatSearch("")
-        setShowCatDropdown(false)
       }
 
       setShowQuickCreateCat(false)
@@ -629,9 +644,7 @@ export const AdminView: React.FC = () => {
       })
       await refetchUnits()
       setNewProductUnit(res.data.name)
-      setUnitSearch("")
       setShowQuickCreateUnit(false)
-      setShowUnitDropdown(false)
       setQuickUnitName("")
       setQuickUnitShort("")
       toast.success("Yangi birlik qo'shildi")
@@ -686,11 +699,7 @@ export const AdminView: React.FC = () => {
     setNewProductName("")
     setNewProductDescription("")
     setNewProductCategory("")
-    setCatSearch("")
-    setShowCatDropdown(false)
     setNewProductUnit("")
-    setUnitSearch("")
-    setShowUnitDropdown(false)
     setNewProductPrice(15000)
     setNewProductCostPrice("")
     setNewProductOldPrice("")
@@ -707,12 +716,13 @@ export const AdminView: React.FC = () => {
     setEditingProductId(p.id)
     setNewProductName(p.name)
     setNewProductDescription(p.description || "")
-    setNewProductCategory(p.categoryId || "")
-    setCatSearch("")
-    setShowCatDropdown(false)
-    setNewProductUnit(p.unitName || "")
-    setUnitSearch("")
-    setShowUnitDropdown(false)
+    const resolvedCatId =
+      p.categoryId ||
+      p.category?.id ||
+      categories.find((c) => c.name === p.category?.name)?.id ||
+      ""
+    setNewProductCategory(resolvedCatId)
+    setNewProductUnit(p.unitName || p.unit?.name || "pors")
     setNewProductPrice(p.price)
     setNewProductCostPrice(p.costPrice !== undefined && p.costPrice !== null ? p.costPrice : "")
     setNewProductOldPrice(p.oldPrice || "")
@@ -1120,15 +1130,6 @@ export const AdminView: React.FC = () => {
     }
   }
 
-  // Filtered categories and units for search-select
-  const filteredCategories = categories.filter((c) =>
-    c.name.toLowerCase().includes(catSearch.toLowerCase())
-  )
-
-  const filteredUnits = units.filter((u) =>
-    u.name.toLowerCase().includes(unitSearch.toLowerCase())
-  )
-
   // 5 Core Admin Mobile Bottom Navigation Tabs
   const bottomNavItems = [
     { id: "PRODUCTS" as const, label: "Taomlar", icon: UtensilsCrossed },
@@ -1167,10 +1168,10 @@ export const AdminView: React.FC = () => {
       {/* PAGE 1: DEDICATED PRODUCTS PAGE (TAOMLAR) */}
       {/* ========================================================================= */}
       {currentPage === "PRODUCTS" && (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-500">
-              Jami {products.length} ta taom
+              Jami {products.length} ta taom {filteredProducts.length !== products.length && `(Natija: ${filteredProducts.length} ta)`}
             </span>
             <Button
               size="sm"
@@ -1184,8 +1185,96 @@ export const AdminView: React.FC = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {products.map((p) => {
+          {/* Quick Search & Category Filter Bar */}
+          <div className="space-y-2">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+              <input
+                type="text"
+                value={productSearchQuery}
+                onChange={(e) => setProductSearchQuery(e.target.value)}
+                placeholder="Taom nomini qidirish..."
+                className="w-full pl-9 pr-8 py-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-medium text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+              />
+              {productSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setProductSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setProductCategoryFilter("ALL")}
+                className={`px-3 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                  productCategoryFilter === "ALL"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 border border-neutral-200 dark:border-neutral-800"
+                }`}
+              >
+                <span>Barchasi</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  productCategoryFilter === "ALL" ? "bg-white/20 text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                }`}>
+                  {products.length}
+                </span>
+              </button>
+              {sortedCategories.map((cat) => {
+                const count = products.filter(
+                  (p) => p.categoryId === cat.id || p.category?.id === cat.id || p.category?.name === cat.name
+                ).length
+                const isActive = productCategoryFilter === cat.id
+
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setProductCategoryFilter(cat.id)}
+                    className={`px-3 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isActive
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 border border-neutral-200 dark:border-neutral-800"
+                    }`}
+                  >
+                    <span>{cat.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      isActive ? "bg-white/20 text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500"
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {filteredProducts.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800 p-8 text-center space-y-2 bg-white dark:bg-neutral-900">
+              <Package className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto" />
+              <p className="text-xs font-bold text-neutral-500">
+                Ushbu kategoriya yoki qidiruv bo'yicha taom topilmadi
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setProductCategoryFilter("ALL")
+                  setProductSearchQuery("")
+                }}
+                className="text-xs text-emerald-600 font-bold underline cursor-pointer"
+              >
+                Filtrni tozalash
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {filteredProducts.map((p) => {
               const hasDiscount = p.oldPrice && p.oldPrice > p.price
 
               return (
@@ -1297,6 +1386,7 @@ export const AdminView: React.FC = () => {
               )
             })}
           </div>
+          )}
         </div>
       )}
 
@@ -3101,165 +3191,99 @@ export const AdminView: React.FC = () => {
                   />
                 </div>
 
-                {/* SEARCH-SELECT FOR CATEGORY */}
-                <div className="relative space-y-1">
-                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
-                    <span>Kategoriya: *</span>
+                {/* CATEGORY SELECTOR */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                      Kategoriya: *
+                    </label>
                     <button
                       type="button"
                       onClick={() => setShowQuickCreateCat(true)}
-                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
+                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5 cursor-pointer"
                     >
                       <Plus className="h-3 w-3" /> Yangi Kategoriya
                     </button>
-                  </label>
+                  </div>
 
-                  <div className="relative">
-                    <div
-                      onClick={() => {
-                        setShowCatDropdown(!showCatDropdown)
-                        setCatSearch("")
-                      }}
-                      className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
-                    >
-                      <span className={categories.find((c) => c.id === newProductCategory) ? "text-neutral-900 dark:text-white font-semibold" : "text-neutral-400"}>
-                        {categories.find((c) => c.id === newProductCategory)?.name || "Kategoriyani tanlash..."}
-                      </span>
-                      <Search className="h-4 w-4 text-neutral-400" />
-                    </div>
+                  <select
+                    value={newProductCategory}
+                    onChange={(e) => setNewProductCategory(e.target.value)}
+                    required
+                    className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+                  >
+                    <option value="" disabled>-- Kategoriyani tanlang --</option>
+                    {sortedCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
 
-                    {showCatDropdown && (
-                      <>
-                        <div className="fixed inset-0 z-20" onClick={() => setShowCatDropdown(false)} />
-                        <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-52 overflow-y-auto p-1.5 space-y-1">
-                          <div className="relative mb-1">
-                            <input
-                              type="text"
-                              placeholder="Qidirish..."
-                              value={catSearch}
-                              onChange={(e) => setCatSearch(e.target.value)}
-                              className="w-full text-xs px-2.5 py-1.5 pr-7 rounded-lg border border-neutral-200 dark:border-neutral-800 outline-none bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
-                              autoFocus
-                            />
-                            {catSearch && (
-                              <button
-                                type="button"
-                                onClick={() => setCatSearch("")}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                          {filteredCategories.length === 0 ? (
-                            <div className="p-2.5 text-center text-xs text-neutral-400">
-                              Kategoriya topilmadi
-                            </div>
-                          ) : (
-                            filteredCategories.map((c) => (
-                              <div
-                                key={c.id}
-                                onClick={() => {
-                                  setNewProductCategory(c.id)
-                                  setCatSearch("")
-                                  setShowCatDropdown(false)
-                                }}
-                                className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors ${
-                                  newProductCategory === c.id
-                                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold"
-                                    : "hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200"
-                                }`}
-                              >
-                                <span>{c.name}</span>
-                                {newProductCategory === c.id && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </>
-                    )}
+                  {/* Quick-select chips below */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
+                    {sortedCategories.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setNewProductCategory(c.id)}
+                        className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          newProductCategory === c.id
+                            ? "bg-emerald-600 text-white shadow-xs"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* SEARCH-SELECT FOR UNIT */}
-                <div className="relative space-y-1">
-                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
-                    <span>O'lchov Birligi (Unit): *</span>
+                {/* UNIT SELECTOR */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                      O'lchov Birligi (Unit): *
+                    </label>
                     <button
                       type="button"
                       onClick={() => setShowQuickCreateUnit(true)}
-                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
+                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5 cursor-pointer"
                     >
                       <Plus className="h-3 w-3" /> Yangi Birlik
                     </button>
-                  </label>
+                  </div>
 
-                  <div className="relative">
-                    <div
-                      onClick={() => {
-                        setShowUnitDropdown(!showUnitDropdown)
-                        setUnitSearch("")
-                      }}
-                      className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-between cursor-pointer"
-                    >
-                      <span className={newProductUnit ? "text-neutral-900 dark:text-white font-semibold" : "text-neutral-400"}>
-                        {newProductUnit || "Birlikni tanlash..."}
-                      </span>
-                      <Scale className="h-4 w-4 text-neutral-400" />
-                    </div>
+                  <select
+                    value={newProductUnit}
+                    onChange={(e) => setNewProductUnit(e.target.value)}
+                    required
+                    className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+                  >
+                    <option value="" disabled>-- Birlikni tanlang --</option>
+                    {units.map((u) => (
+                      <option key={u.id} value={u.name}>
+                        {u.name} {u.shortName ? `(${u.shortName})` : ""}
+                      </option>
+                    ))}
+                  </select>
 
-                    {showUnitDropdown && (
-                      <>
-                        <div className="fixed inset-0 z-20" onClick={() => setShowUnitDropdown(false)} />
-                        <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl max-h-52 overflow-y-auto p-1.5 space-y-1">
-                          <div className="relative mb-1">
-                            <input
-                              type="text"
-                              placeholder="Qidirish..."
-                              value={unitSearch}
-                              onChange={(e) => setUnitSearch(e.target.value)}
-                              className="w-full text-xs px-2.5 py-1.5 pr-7 rounded-lg border border-neutral-200 dark:border-neutral-800 outline-none bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
-                              autoFocus
-                            />
-                            {unitSearch && (
-                              <button
-                                type="button"
-                                onClick={() => setUnitSearch("")}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                          {filteredUnits.length === 0 ? (
-                            <div className="p-2.5 text-center text-xs text-neutral-400">
-                              Birlik topilmadi
-                            </div>
-                          ) : (
-                            filteredUnits.map((u) => (
-                              <div
-                                key={u.id}
-                                onClick={() => {
-                                  setNewProductUnit(u.name)
-                                  setUnitSearch("")
-                                  setShowUnitDropdown(false)
-                                }}
-                                className={`p-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors ${
-                                  newProductUnit === u.name
-                                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold"
-                                    : "hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200"
-                                }`}
-                              >
-                                <span>
-                                  {u.name} ({u.shortName})
-                                </span>
-                                {newProductUnit === u.name && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </>
-                    )}
+                  {/* Quick-select unit chips below */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
+                    {["pors", "ta", "dona", "kg", "litr"].map((uName) => (
+                      <button
+                        key={uName}
+                        type="button"
+                        onClick={() => setNewProductUnit(uName)}
+                        className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          newProductUnit === uName
+                            ? "bg-emerald-600 text-white shadow-xs"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                        }`}
+                      >
+                        {uName}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
