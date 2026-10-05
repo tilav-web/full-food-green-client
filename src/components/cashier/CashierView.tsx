@@ -15,7 +15,6 @@ import {
   Volume2,
   VolumeX,
   Search,
-  UtensilsCrossed,
   ExternalLink,
   FileText,
   Check,
@@ -925,85 +924,78 @@ export const CashierView: React.FC = () => {
   }, [filteredOrders, currentPage])
 
   return (
-    <div className={`space-y-3 sm:space-y-4 ${activeTab === "POS" ? "lg:h-full flex flex-col lg:min-h-0 lg:overflow-hidden pb-0" : "pb-16 lg:pb-0"}`}>
-      {/* Top Banner & Tabs */}
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-2xl bg-white/10 flex items-center justify-center">
-            <Receipt className="h-6 w-6 text-emerald-300" />
+    <div className={`space-y-2 ${activeTab === "POS" ? "lg:h-full flex flex-col lg:min-h-0 lg:overflow-hidden pb-0" : "pb-16 lg:pb-0"}`}>
+      {/* Top Banner & Tabs: Ultra-compact, single-line workstation header */}
+      <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white shadow-xs">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+            <Receipt className="h-4 w-4 text-emerald-300" />
           </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-black tracking-tight">Kassir Ishchi Stoli</h2>
-            <p className="text-xs text-emerald-200">
-              Online buyurtmalar, Zal POS va Kundalik kirim nazorati
-            </p>
-          </div>
+          <h2 className="text-xs sm:text-sm font-black tracking-tight whitespace-nowrap">Kassa POS</h2>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Printer status pill */}
           <button
             type="button"
             onClick={() => setPrinterSettingsOpen(true)}
             title={`${printerStatus.printerName} (${printerStatus.statusText}) - Sozlamalar va sinov cheki`}
-            className={`px-3 py-1.5 sm:py-2 rounded-2xl border flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 ${
+            className={`px-2.5 py-1 rounded-xl border flex items-center gap-1.5 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 ${
               printerStatus.connected
                 ? "bg-emerald-950/80 border-emerald-500/70 text-emerald-300 hover:bg-emerald-900 shadow-emerald-950/30"
                 : "bg-rose-950/80 border-rose-500/70 text-rose-300 hover:bg-rose-900 shadow-rose-950/30"
             }`}
           >
             <div className="relative flex items-center justify-center">
-              <Printer className={`h-4 w-4 ${printerStatus.connected ? "text-emerald-300" : "text-rose-300"}`} />
+              <Printer className={`h-3.5 w-3.5 ${printerStatus.connected ? "text-emerald-300" : "text-rose-300"}`} />
               <span
-                className={`absolute -top-1 -right-1 flex h-2 w-2 rounded-full ${
+                className={`absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5 rounded-full ${
                   printerStatus.connected ? "bg-emerald-400" : "bg-rose-500"
                 }`}
-              >
-                {printerStatus.connected && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                )}
-              </span>
+              />
             </div>
-            <div className="flex flex-col text-left leading-tight">
-              <span className="font-black text-[11px] sm:text-xs flex items-center gap-1">
-                <span>Xprinter:</span>
-                <span className={printerStatus.connected ? "text-emerald-200" : "text-rose-200"}>
-                  {printerStatus.connected ? "Ulangan" : "Ulanmagan"}
-                </span>
+            <span className="text-[11px] font-bold">
+              Xprinter:{" "}
+              <span className={printerStatus.connected ? "text-emerald-200" : "text-rose-200 font-black"}>
+                {printerStatus.connected ? "Ulangan" : "Ulanmagan"}
               </span>
-              <span className="text-[9px] sm:text-[9.5px] opacity-80 font-medium">
-                {printerStatus.connected ? "Tayyor • Avtomatik chek" : "Kabel / Quvvatni tekshiring"}
-              </span>
-            </div>
+            </span>
           </button>
 
+          {/* Audio toggle button */}
           <button
             type="button"
             onClick={enableSound}
-            title={audioReady ? "Ovoz faol (Test qilish uchun bosing)" : "Ovozni yoqish"}
-            className={`px-3 py-2 rounded-2xl border flex items-center gap-1.5 text-xs font-black transition-all ${
-              audioReady
+            title={audioReady && !soundBlocked ? "Ovoz faol (Test qilish uchun bosing)" : "Ovozni yoqish"}
+            className={`px-2.5 py-1 rounded-xl border flex items-center gap-1.5 text-xs font-black transition-all ${
+              audioReady && !soundBlocked
                 ? "bg-emerald-950/70 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900"
                 : "bg-amber-500 text-white border-amber-400 animate-pulse shadow-md"
             }`}
           >
-            {audioReady ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            <span>{audioReady ? "Ovoz Faol" : "Ovozni Yoqish"}</span>
+            {audioReady && !soundBlocked ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+            <span className="text-[11px]">{audioReady && !soundBlocked ? "Ovoz Faol" : "Ovozni Yoqish"}</span>
           </button>
 
-          <div className="flex items-center gap-1.5 p-1 bg-emerald-950/60 rounded-2xl border border-emerald-700/50">
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-1 p-0.5 bg-emerald-950/60 rounded-xl border border-emerald-700/50">
             <button
               onClick={() => setActiveTab("ORDERS")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition-all ${
                 activeTab === "ORDERS"
                   ? "bg-white text-emerald-950 shadow-md"
                   : "text-emerald-200 hover:text-white"
               }`}
             >
-              Buyurtmalar ({pendingReviewOrders.length > 0 && <span className="text-amber-400 font-black">{pendingReviewOrders.length} ta chek</span>})
+              Buyurtmalar {pendingReviewOrders.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-400 text-neutral-950 font-black">
+                  {pendingReviewOrders.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("POS")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition-all ${
                 activeTab === "POS"
                   ? "bg-white text-emerald-950 shadow-md"
                   : "text-emerald-200 hover:text-white"
@@ -1013,7 +1005,7 @@ export const CashierView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab("KIRIM")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition-all ${
                 activeTab === "KIRIM"
                   ? "bg-white text-emerald-950 shadow-md"
                   : "text-emerald-200 hover:text-white"
@@ -1023,7 +1015,7 @@ export const CashierView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab("STOPLIST")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
                 activeTab === "STOPLIST"
                   ? "bg-white text-emerald-950 shadow-md"
                   : "text-emerald-200 hover:text-white"
@@ -1039,30 +1031,6 @@ export const CashierView: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* AUDIO PERMISSION PROMPT BANNER */}
-      {soundBlocked && (
-        <div className="shrink-0 p-3 sm:p-4 rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 text-white flex flex-wrap items-center justify-between gap-3 shadow-lg shadow-amber-500/20 border border-amber-400">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <VolumeX className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h4 className="font-black text-sm">Ovozli bildirishnomaga ruxsat bering</h4>
-              <p className="text-xs text-white/90">
-                Yangi buyurtmalar va to'lov cheklari kelganda qo'ng'iroq ovozi yangrashi uchun ruxsat bering.
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={enableSound}
-            className="bg-white text-amber-950 hover:bg-neutral-100 font-black text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-md active:scale-95"
-          >
-            <Volume2 className="h-4 w-4 text-amber-600" />
-            <span>Ovozni Yoqish (Test qilish)</span>
-          </Button>
-        </div>
-      )}
 
       {/* TAB 1: ONLINE ORDERS & DISPATCH */}
       {activeTab === "ORDERS" && (
@@ -1695,34 +1663,14 @@ export const CashierView: React.FC = () => {
           {/* 2. CENTER COLUMN: MAIN PRODUCTS GRID */}
           {/* ========================================================================= */}
           <div className="flex-1 w-full min-w-0 flex flex-col lg:h-full lg:max-h-full space-y-2.5 lg:overflow-hidden">
-            {/* Header + Quick Search & Grid Column Switcher */}
-            <div className="shrink-0 space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="font-black text-sm text-neutral-900 dark:text-white flex items-center gap-2">
-                  <UtensilsCrossed className="h-4 w-4 text-emerald-600" />
-                  Taomlar Menusi (Tezkor POS)
-                </h3>
-                <p className="text-[11px] text-neutral-400 flex items-center gap-1.5 flex-wrap">
-                  <span>{filteredPosProducts.length} ta taom</span>
-                  {posSortBy === "SALES" && (
-                    <>
-                      <span>•</span>
-                      <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
-                        <Flame className="h-3 w-3 fill-amber-500 text-amber-500" />
-                        Eng ko'p sotilganlar birinchi
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+            {/* Compact POS Controls Toolbar (Single slim row, zero wasted height) */}
+            <div className="shrink-0 flex items-center justify-between gap-2 flex-wrap pb-0.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {/* Grid Column Switcher (6, 7, 8 qator) */}
-                <div className="flex items-center bg-white dark:bg-neutral-900 p-1 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-xs">
-                  <div className="flex items-center gap-1 pl-2 pr-1.5 text-neutral-400">
-                    <LayoutGrid className="h-3.5 w-3.5" />
-                    <span className="text-[10px] font-black uppercase tracking-wider hidden md:inline-block">
+                <div className="flex items-center bg-white dark:bg-neutral-900 p-0.5 rounded-xl border border-neutral-200/90 dark:border-neutral-800 shadow-2xs">
+                  <div className="flex items-center gap-1 pl-1.5 pr-1 text-neutral-400">
+                    <LayoutGrid className="h-3 w-3" />
+                    <span className="text-[9px] font-black uppercase tracking-wider hidden md:inline-block">
                       {t.posColsWord || "Qator"}:
                     </span>
                   </div>
@@ -1731,12 +1679,12 @@ export const CashierView: React.FC = () => {
                       key={cols}
                       type="button"
                       onClick={() => handleSetPosGridCols(cols)}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
+                      className={`px-2 py-0.5 rounded-lg text-xs font-black transition-all ${
                         posGridCols === cols
                           ? "bg-emerald-600 text-white shadow-xs"
-                          : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                          : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                       }`}
-                      title={`${cols} qator qilib ko'rsatish`}
+                      title={`${cols} qator`}
                     >
                       {cols}
                     </button>
@@ -1744,42 +1692,41 @@ export const CashierView: React.FC = () => {
                 </div>
 
                 {/* Sort Mode Buttons */}
-                <div className="flex items-center bg-white dark:bg-neutral-900 p-1 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-xs shrink-0">
+                <div className="flex items-center bg-white dark:bg-neutral-900 p-0.5 rounded-xl border border-neutral-200/90 dark:border-neutral-800 shadow-2xs shrink-0">
                   <button
                     type="button"
                     onClick={() => setPosSortBy("SALES")}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 transition-all ${
+                    className={`px-2 py-0.5 rounded-lg text-xs font-black flex items-center gap-1 transition-all ${
                       posSortBy === "SALES"
                         ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs"
                         : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                     }`}
-                    title="Eng ko'p sotilayotgan taomlar boshida chiqadi"
+                    title="Top taomlar birinchi"
                   >
-                    <Flame className="h-3.5 w-3.5 fill-current" />
-                    <span>Top sotuv</span>
+                    <Flame className="h-3 w-3 fill-current" />
+                    <span>Top</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPosSortBy((prev) => (prev === "PRICE_ASC" ? "PRICE_DESC" : "PRICE_ASC"))}
-                    className={`px-2 py-1 rounded-xl text-xs font-black flex items-center gap-0.5 transition-all ${
+                    className={`px-2 py-0.5 rounded-lg text-xs font-black flex items-center gap-0.5 transition-all ${
                       posSortBy === "PRICE_ASC" || posSortBy === "PRICE_DESC"
                         ? "bg-emerald-600 text-white shadow-xs"
                         : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                     }`}
-                    title="Narxi bo'yicha saralash"
+                    title="Narxi bo'yicha"
                   >
-                    <span>Narx</span>
-                    <span className="text-[10px] font-mono">{posSortBy === "PRICE_DESC" ? "↓" : "↑"}</span>
+                    <span>Narx {posSortBy === "PRICE_DESC" ? "↓" : "↑"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPosSortBy("NAME")}
-                    className={`px-2 py-1 rounded-xl text-xs font-black transition-all ${
+                    className={`px-2 py-0.5 rounded-lg text-xs font-black transition-all ${
                       posSortBy === "NAME"
                         ? "bg-emerald-600 text-white shadow-xs"
                         : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                     }`}
-                    title="Alifbo tartibida (A-Z)"
+                    title="Alifbo (A-Z)"
                   >
                     A-Z
                   </button>
@@ -1789,44 +1736,43 @@ export const CashierView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setActiveTab("STOPLIST")}
-                  className={`px-3 py-1.5 rounded-2xl text-xs font-black flex items-center gap-1.5 border shadow-xs transition-all active:scale-95 ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 border shadow-2xs transition-all active:scale-95 ${
                     inactiveProductsCount > 0
-                      ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-100"
-                      : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50"
+                      ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+                      : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800"
                   }`}
-                  title="Stop-List boshqaruvi"
+                  title="Stop-List"
                 >
-                  <Ban className="h-3.5 w-3.5 text-red-500" />
+                  <Ban className="h-3 w-3 text-red-500" />
                   <span className="hidden sm:inline">Stop-List</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  <span className={`px-1.5 py-0.1 rounded-full text-[9px] font-black ${
                     inactiveProductsCount > 0 ? "bg-red-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
                   }`}>
                     {inactiveProductsCount}
                   </span>
                 </button>
+              </div>
 
-                {/* Quick Search Input */}
-                <div className="relative w-full sm:w-56">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
-                  <input
-                    type="text"
-                    value={posSearchQuery}
-                    onChange={(e) => setPosSearchQuery(e.target.value)}
-                    placeholder={t.posSearchDish || "Taom nomini qidirish..."}
-                    className="w-full pl-9 pr-8 py-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-bold text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
-                  />
-                  {posSearchQuery && (
-                    <button
-                      onClick={() => setPosSearchQuery("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+              {/* Quick Search Input */}
+              <div className="relative w-44 sm:w-56">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+                <input
+                  type="text"
+                  value={posSearchQuery}
+                  onChange={(e) => setPosSearchQuery(e.target.value)}
+                  placeholder={t.posSearchDish || "Taom qidirish..."}
+                  className="w-full pl-8 pr-7 py-1 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs font-bold text-neutral-900 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs"
+                />
+                {posSearchQuery && (
+                  <button
+                    onClick={() => setPosSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </div>
             </div>
-          </div>
 
             {/* Products Grid Area with Independent Scroll */}
             <div
@@ -2154,21 +2100,17 @@ export const CashierView: React.FC = () => {
 
             {/* Cart Card */}
             <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-3.5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm overflow-hidden">
-              {/* Header with Dish Counter & Clear Cart */}
-              <div className="flex items-center justify-between shrink-0 mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                    <ShoppingBag className="h-3.5 w-3.5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-xs sm:text-sm text-neutral-900 dark:text-white leading-tight">
-                      {t.posCartTitle || "Zal Savatchasi"}
-                    </h3>
-                    <span className="text-[10px] text-neutral-400 font-semibold">
-                      {posCart.reduce((s, i) => s + i.quantity, 0)} {t.dishesCountShort || "ta taom"}
+              {/* Compact Cart Header (Ultra-slim, single line) */}
+              <div className="flex items-center justify-between shrink-0 mb-1.5 px-0.5">
+                <span className="text-xs font-black text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
+                  <ShoppingBag className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Savatcha</span>
+                  {posCart.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                      {posCart.reduce((s, i) => s + i.quantity, 0)}
                     </span>
-                  </div>
-                </div>
+                  )}
+                </span>
 
                 {posCart.length > 0 && (
                   <button
@@ -2177,9 +2119,9 @@ export const CashierView: React.FC = () => {
                       triggerHaptic("medium")
                       setPosCart([])
                     }}
-                    className="text-[11px] font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1 hover:underline px-1.5 py-0.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                    className="text-[11px] font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1 hover:underline px-1 py-0.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3 w-3" />
                     <span>Tozalash</span>
                   </button>
                 )}
