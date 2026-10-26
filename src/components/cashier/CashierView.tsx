@@ -485,18 +485,205 @@ export const CashierView: React.FC = () => {
     }
   }
 
-  // POS State (Walk-in customer order)
-  const [posCart, setPosCart] = React.useState<Array<{ product: Product; quantity: number }>>([])
-  const [posCustomerName, setPosCustomerName] = React.useState("Zal Mijoz")
+interface PosDraftOrder {
+  id: string
+  orderNumber: number
+  cart: Array<{ product: Product; quantity: number }>
+  customerName: string
+  selectedCustomer: User | null
+  paymentMethod: "CASH" | "TERMINAL" | "BALANCE"
+}
+
+  // POS Multi-Draft Orders State (Parallel orders without finishing previous one)
+  const [draftOrders, setDraftOrders] = React.useState<PosDraftOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem("fullfood_pos_draft_orders_v2")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch (_) {}
+    return [
+      {
+        id: "draft-1",
+        orderNumber: 1,
+        cart: [],
+        customerName: "Zal Mijoz",
+        selectedCustomer: null,
+        paymentMethod: "CASH",
+      },
+    ]
+  })
+
+  const [activeDraftId, setActiveDraftId] = React.useState<string>(() => {
+    try {
+      const savedId = localStorage.getItem("fullfood_pos_active_draft_id")
+      if (savedId) return savedId
+    } catch (_) {}
+    return "draft-1"
+  })
+
+  // Find initial active draft
+  const initialActiveDraft = draftOrders.find((d) => d.id === activeDraftId) || draftOrders[0]
+
+  // POS State (Walk-in customer order - bound to active draft)
+  const [posCart, setPosCart] = React.useState<Array<{ product: Product; quantity: number }>>(
+    initialActiveDraft ? initialActiveDraft.cart : []
+  )
+  const [posCustomerName, setPosCustomerName] = React.useState(
+    initialActiveDraft ? initialActiveDraft.customerName : "Zal Mijoz"
+  )
   const [isCustomerInputOpen, setIsCustomerInputOpen] = React.useState(false)
-  const [posPaymentMethod, setPosPaymentMethod] = React.useState<"CASH" | "TERMINAL" | "BALANCE">("CASH")
+  const [posPaymentMethod, setPosPaymentMethod] = React.useState<"CASH" | "TERMINAL" | "BALANCE">(
+    initialActiveDraft ? initialActiveDraft.paymentMethod : "CASH"
+  )
   const [posSelectedCategory, setPosSelectedCategory] = React.useState<string>("")
   const [posSearchQuery, setPosSearchQuery] = React.useState<string>("")
   const [posSortBy, setPosSortBy] = React.useState<"SALES" | "NAME" | "PRICE_ASC" | "PRICE_DESC">("SALES")
-  const [posSelectedCustomer, setPosSelectedCustomer] = React.useState<User | null>(null)
+  const [posSelectedCustomer, setPosSelectedCustomer] = React.useState<User | null>(
+    initialActiveDraft ? initialActiveDraft.selectedCustomer : null
+  )
   const [customerSearchQuery, setCustomerSearchQuery] = React.useState("")
   const [customerSearchResults, setCustomerSearchResults] = React.useState<User[]>([])
   const [isSearchingCustomer, setIsSearchingCustomer] = React.useState(false)
+
+  // Synchronize current active order's cart/customer/payment with draftOrders & localStorage
+  React.useEffect(() => {
+    setDraftOrders((prev) => {
+      const updated = prev.map((o) =>
+        o.id === activeDraftId
+          ? {
+              ...o,
+              cart: posCart,
+              customerName: posCustomerName,
+              selectedCustomer: posSelectedCustomer,
+              paymentMethod: posPaymentMethod,
+            }
+          : o
+      )
+      try {
+        localStorage.setItem("fullfood_pos_draft_orders_v2", JSON.stringify(updated))
+        localStorage.setItem("fullfood_pos_active_draft_id", activeDraftId)
+      } catch (_) {}
+      return updated
+    })
+  }, [posCart, posCustomerName, posSelectedCustomer, posPaymentMethod, activeDraftId])
+
+  // Switch to another draft order
+  const switchToDraftOrder = (targetId: string) => {
+    if (targetId === activeDraftId) return
+    const target = draftOrders.find((o) => o.id === targetId)
+    if (!target) return
+
+    // Immediately save current active state
+    setDraftOrders((prev) =>
+      prev.map((o) =>
+        o.id === activeDraftId
+          ? {
+              ...o,
+              cart: posCart,
+              customerName: posCustomerName,
+              selectedCustomer: posSelectedCustomer,
+              paymentMethod: posPaymentMethod,
+            }
+          : o
+      )
+    )
+
+    setActiveDraftId(targetId)
+    setPosCart(target.cart || [])
+    setPosCustomerName(target.customerName || "Zal Mijoz")
+    setPosSelectedCustomer(target.selectedCustomer || null)
+    setPosPaymentMethod(target.paymentMethod || "CASH")
+    setIsCustomerInputOpen(false)
+    setCustomerSearchQuery("")
+    setCustomerSearchResults([])
+    triggerHaptic("light")
+  }
+
+  // Add a new draft order (parallel customer order)
+  const addNewDraftOrder = () => {
+    const existingNumbers = new Set(draftOrders.map((o) => o.orderNumber))
+    let nextNum = 1
+    while (existingNumbers.has(nextNum)) {
+      nextNum++
+    }
+
+    const newDraftId = `draft-${Date.now()}`
+    const newOrder: PosDraftOrder = {
+      id: newDraftId,
+      orderNumber: nextNum,
+      cart: [],
+      customerName: "Zal Mijoz",
+      selectedCustomer: null,
+      paymentMethod: "CASH",
+    }
+
+    const updated = draftOrders.map((o) =>
+      o.id === activeDraftId
+        ? {
+            ...o,
+            cart: posCart,
+            customerName: posCustomerName,
+            selectedCustomer: posSelectedCustomer,
+            paymentMethod: posPaymentMethod,
+          }
+        : o
+    )
+
+    const finalDrafts = [...updated, newOrder]
+    setDraftOrders(finalDrafts)
+    setActiveDraftId(newDraftId)
+    setPosCart([])
+    setPosCustomerName("Zal Mijoz")
+    setPosSelectedCustomer(null)
+    setPosPaymentMethod("CASH")
+    setIsCustomerInputOpen(false)
+    setCustomerSearchQuery("")
+    setCustomerSearchResults([])
+
+    try {
+      localStorage.setItem("fullfood_pos_draft_orders_v2", JSON.stringify(finalDrafts))
+      localStorage.setItem("fullfood_pos_active_draft_id", newDraftId)
+    } catch (_) {}
+
+    toast.info(`${nextNum}-buyurtma ochildi`)
+    triggerHaptic("medium")
+  }
+
+  // Close or remove a draft order
+  const closeDraftOrder = (orderIdToClose: string) => {
+    if (draftOrders.length <= 1) {
+      setPosCart([])
+      setPosCustomerName("Zal Mijoz")
+      setPosSelectedCustomer(null)
+      setPosPaymentMethod("CASH")
+      toast.info("Buyurtma tozalandi")
+      return
+    }
+
+    const remaining = draftOrders.filter((o) => o.id !== orderIdToClose)
+    setDraftOrders(remaining)
+
+    if (activeDraftId === orderIdToClose) {
+      const nextOrder = remaining[0]
+      setActiveDraftId(nextOrder.id)
+      setPosCart(nextOrder.cart || [])
+      setPosCustomerName(nextOrder.customerName || "Zal Mijoz")
+      setPosSelectedCustomer(nextOrder.selectedCustomer || null)
+      setPosPaymentMethod(nextOrder.paymentMethod || "CASH")
+      try {
+        localStorage.setItem("fullfood_pos_active_draft_id", nextOrder.id)
+      } catch (_) {}
+    }
+
+    try {
+      localStorage.setItem("fullfood_pos_draft_orders_v2", JSON.stringify(remaining))
+    } catch (_) {}
+
+    toast.success("Buyurtma bekor qilindi")
+    triggerHaptic("light")
+  }
 
   const handleSearchCustomers = async (q: string) => {
     setCustomerSearchQuery(q)
@@ -817,11 +1004,42 @@ export const CashierView: React.FC = () => {
       })
 
       triggerHaptic("success")
-      setPosCart([])
-      setPosSelectedCustomer(null)
-      setPosCustomerName("Zal Mijoz")
+
+      if (draftOrders.length > 1) {
+        const remaining = draftOrders.filter((o) => o.id !== activeDraftId)
+        const nextOrder = remaining[0]
+        setDraftOrders(remaining)
+        setActiveDraftId(nextOrder.id)
+        setPosCart(nextOrder.cart || [])
+        setPosCustomerName(nextOrder.customerName || "Zal Mijoz")
+        setPosSelectedCustomer(nextOrder.selectedCustomer || null)
+        setPosPaymentMethod(nextOrder.paymentMethod || "CASH")
+        try {
+          localStorage.setItem("fullfood_pos_draft_orders_v2", JSON.stringify(remaining))
+          localStorage.setItem("fullfood_pos_active_draft_id", nextOrder.id)
+        } catch (_) {}
+      } else {
+        setPosCart([])
+        setPosSelectedCustomer(null)
+        setPosCustomerName("Zal Mijoz")
+        setPosPaymentMethod("CASH")
+        const resetDraft: PosDraftOrder = {
+          id: "draft-1",
+          orderNumber: 1,
+          cart: [],
+          customerName: "Zal Mijoz",
+          selectedCustomer: null,
+          paymentMethod: "CASH",
+        }
+        setDraftOrders([resetDraft])
+        setActiveDraftId("draft-1")
+        try {
+          localStorage.setItem("fullfood_pos_draft_orders_v2", JSON.stringify([resetDraft]))
+          localStorage.setItem("fullfood_pos_active_draft_id", "draft-1")
+        } catch (_) {}
+      }
+
       setCustomerSearchQuery("")
-      setPosPaymentMethod("CASH")
       setIsCustomerInputOpen(false)
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
       queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
@@ -2093,6 +2311,78 @@ export const CashierView: React.FC = () => {
                   >
                     <Wallet className="h-3 w-3" />
                     <span className="truncate">Balans ({Number(posSelectedCustomer.balance || 0).toLocaleString()} so'm)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Multi-Order Tabs Card (Shadcn Avatar Group Style) */}
+            <div className="shrink-0 p-2 sm:p-2.5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                {/* Avatar Group Stack */}
+                <div className="flex items-center -space-x-2 overflow-x-auto py-1 px-1 no-scrollbar">
+                  {draftOrders.map((order) => {
+                    const isActive = order.id === activeDraftId
+                    const currentItems = isActive ? posCart : order.cart
+                    const itemCount = currentItems.reduce((s, i) => s + i.quantity, 0)
+                    return (
+                      <button
+                        key={order.id}
+                        type="button"
+                        onClick={() => switchToDraftOrder(order.id)}
+                        title={`${order.orderNumber}-buyurtma${itemCount > 0 ? ` (${itemCount} ta taom)` : ""}`}
+                        className={`group relative flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer select-none ${
+                          isActive
+                            ? "h-9 w-9 bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-900 z-20 scale-105"
+                            : "h-8.5 w-8.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 ring-2 ring-white dark:ring-neutral-900 z-10 hover:z-20 hover:scale-105"
+                        }`}
+                      >
+                        <span className="text-xs font-black tracking-tight">{order.orderNumber}</span>
+                        {itemCount > 0 && (
+                          <span
+                            className={`absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-neutral-900 ${
+                              isActive
+                                ? "bg-amber-400 text-neutral-950 font-bold"
+                                : "bg-emerald-500 text-white"
+                            }`}
+                          >
+                            {itemCount}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+
+                  {/* '+' Add New Order Button */}
+                  <button
+                    type="button"
+                    onClick={addNewDraftOrder}
+                    title="Yangi buyurtma qo'shish"
+                    className="relative h-8.5 w-8.5 rounded-full border-2 border-dashed border-emerald-500/70 hover:border-emerald-600 bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black transition-all hover:scale-105 active:scale-95 shadow-xs shrink-0 cursor-pointer ring-2 ring-white dark:ring-neutral-900 z-10 hover:z-20 ml-0.5"
+                  >
+                    <Plus className="h-4 w-4 stroke-[3]" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Order Info & Cancel Action */}
+              <div className="flex items-center gap-1.5 shrink-0 pl-1">
+                <div className="text-right">
+                  <div className="text-[11px] font-black text-neutral-800 dark:text-neutral-200 leading-tight">
+                    {draftOrders.find((o) => o.id === activeDraftId)?.orderNumber || 1}-buyurtma
+                  </div>
+                  <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight">
+                    {posCart.length > 0 ? `${posTotal.toLocaleString()} so'm` : "Bo'sh"}
+                  </div>
+                </div>
+                {draftOrders.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => closeDraftOrder(activeDraftId)}
+                    title="Ushbu buyurtmani bekor qilish (yopish)"
+                    className="h-7 w-7 rounded-full flex items-center justify-center text-neutral-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5 stroke-[2.5]" />
                   </button>
                 )}
               </div>
