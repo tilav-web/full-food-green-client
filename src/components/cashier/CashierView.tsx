@@ -2316,11 +2316,11 @@ interface PosDraftOrder {
               </div>
             </div>
 
-            {/* Multi-Order Tabs Card (Shadcn Avatar Group Style) */}
-            <div className="shrink-0 p-2 sm:p-2.5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex items-center justify-between gap-2">
+            {/* Multi-Order Tabs Card (Clean rounded badges with gap) */}
+            <div className="shrink-0 p-2 sm:p-2.5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex items-center justify-between gap-2 overflow-hidden">
               <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-                {/* Avatar Group Stack */}
-                <div className="flex items-center -space-x-2 overflow-x-auto py-1 px-1 no-scrollbar">
+                {/* Order Badges List */}
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 px-0.5 no-scrollbar">
                   {draftOrders.map((order) => {
                     const isActive = order.id === activeDraftId
                     const currentItems = isActive ? posCart : order.cart
@@ -2331,18 +2331,18 @@ interface PosDraftOrder {
                         type="button"
                         onClick={() => switchToDraftOrder(order.id)}
                         title={`${order.orderNumber}-buyurtma${itemCount > 0 ? ` (${itemCount} ta taom)` : ""}`}
-                        className={`group relative flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer select-none ${
+                        className={`group relative flex items-center justify-center rounded-full transition-all duration-150 cursor-pointer select-none shrink-0 h-8 w-8 ${
                           isActive
-                            ? "h-9 w-9 bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-neutral-900 z-20 scale-105"
-                            : "h-8.5 w-8.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 ring-2 ring-white dark:ring-neutral-900 z-10 hover:z-20 hover:scale-105"
+                            ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/50 font-black"
+                            : "bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold border border-neutral-200/80 dark:border-neutral-700/80"
                         }`}
                       >
                         <span className="text-xs font-black tracking-tight">{order.orderNumber}</span>
                         {itemCount > 0 && (
                           <span
-                            className={`absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-neutral-900 ${
+                            className={`absolute -top-1 -right-1 h-3.5 min-w-3.5 px-1 rounded-full text-[9px] font-black flex items-center justify-center ring-1 ring-white dark:ring-neutral-900 ${
                               isActive
-                                ? "bg-amber-400 text-neutral-950 font-bold"
+                                ? "bg-amber-400 text-neutral-950 font-black"
                                 : "bg-emerald-500 text-white"
                             }`}
                           >
@@ -2358,34 +2358,24 @@ interface PosDraftOrder {
                     type="button"
                     onClick={addNewDraftOrder}
                     title="Yangi buyurtma qo'shish"
-                    className="relative h-8.5 w-8.5 rounded-full border-2 border-dashed border-emerald-500/70 hover:border-emerald-600 bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black transition-all hover:scale-105 active:scale-95 shadow-xs shrink-0 cursor-pointer ring-2 ring-white dark:ring-neutral-900 z-10 hover:z-20 ml-0.5"
+                    className="relative h-8 w-8 rounded-full border border-dashed border-emerald-500/70 hover:border-emerald-600 bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black transition-all active:scale-95 shadow-xs shrink-0 cursor-pointer"
                   >
                     <Plus className="h-4 w-4 stroke-[3]" />
                   </button>
                 </div>
               </div>
 
-              {/* Active Order Info & Cancel Action */}
-              <div className="flex items-center gap-1.5 shrink-0 pl-1">
-                <div className="text-right">
-                  <div className="text-[11px] font-black text-neutral-800 dark:text-neutral-200 leading-tight">
-                    {draftOrders.find((o) => o.id === activeDraftId)?.orderNumber || 1}-buyurtma
-                  </div>
-                  <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight">
-                    {posCart.length > 0 ? `${posTotal.toLocaleString()} so'm` : "Bo'sh"}
-                  </div>
-                </div>
-                {draftOrders.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => closeDraftOrder(activeDraftId)}
-                    title="Ushbu buyurtmani bekor qilish (yopish)"
-                    className="h-7 w-7 rounded-full flex items-center justify-center text-neutral-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                  >
-                    <X className="h-3.5 w-3.5 stroke-[2.5]" />
-                  </button>
-                )}
-              </div>
+              {/* Close / Remove Active Order Button Only */}
+              {draftOrders.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => closeDraftOrder(activeDraftId)}
+                  title="Ushbu buyurtmani yopish"
+                  className="h-7 w-7 rounded-full flex items-center justify-center text-neutral-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0 ml-auto"
+                >
+                  <X className="h-4 w-4 stroke-[2.5]" />
+                </button>
+              )}
             </div>
 
             {/* Cart Card */}
