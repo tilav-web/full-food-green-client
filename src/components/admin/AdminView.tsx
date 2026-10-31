@@ -2091,7 +2091,7 @@ export const AdminView: React.FC = () => {
                       : "Tanlangan Davr Tahlili"}
                   </span>
                   <span className="text-[10px] text-neutral-400 font-medium">
-                    {dashboard?.startDate ? new Date(dashboard.startDate).toLocaleDateString() : ""} {dashboard?.endDate ? `— ${new Date(dashboard.endDate).toLocaleDateString()}` : ""}
+                    {dashboard?.shiftLabel || (dashboard?.startDate ? `${new Date(dashboard.startDate).toLocaleDateString()} — ${new Date(dashboard.endDate).toLocaleDateString()}` : "")}
                   </span>
                 </div>
               </div>
