@@ -62,7 +62,16 @@ export const useAppStore = create<AppState>()(
         currentActiveOrder: null,
         savedLocations: [],
 
-        setUser: (user) => set({ user }),
+        setUser: (user) =>
+          set((state) => ({
+            user: user
+              ? {
+                  ...state.user,
+                  ...user,
+                  balance: user.balance !== undefined ? Number(user.balance) : (state.user?.balance ?? 0),
+                }
+              : null,
+          })),
 
         setAuth: (user, accessToken, refreshToken) => {
           if (accessToken) {
@@ -71,11 +80,17 @@ export const useAppStore = create<AppState>()(
           if (refreshToken) {
             localStorage.setItem("fullfood_refresh_token", refreshToken)
           }
-          set({
-            user,
-            accessToken: accessToken || get().accessToken,
-            refreshToken: refreshToken || get().refreshToken,
-          })
+          set((state) => ({
+            user: user
+              ? {
+                  ...state.user,
+                  ...user,
+                  balance: user.balance !== undefined ? Number(user.balance) : (state.user?.balance ?? 0),
+                }
+              : null,
+            accessToken: accessToken || state.accessToken,
+            refreshToken: refreshToken || state.refreshToken,
+          }))
         },
 
         updateUserBalance: (balance: number) => {

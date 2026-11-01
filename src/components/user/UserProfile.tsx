@@ -83,18 +83,24 @@ export const UserProfile: React.FC = () => {
   })
 
   // Fetch latest user details to sync balance
-  useQuery({
+  const { data: latestUserDetails } = useQuery({
     queryKey: ["userProfileLatest", user?.id],
     queryFn: async () => {
       if (!user?.id) return null
       const res = await apiClient.get(`/users/${user.id}`)
       if (res.data) {
-        setUser({ ...user, ...res.data })
+        setUser(res.data)
       }
       return res.data
     },
     enabled: !!user?.id,
+    refetchOnMount: "always",
+    staleTime: 5000,
   })
+
+  const currentDepositBalance = Number(
+    (latestUserDetails?.balance !== undefined ? latestUserDetails.balance : user?.balance) || 0
+  )
 
   // Handle Save Payment Card
   const handleSaveCardSettings = async (e?: React.FormEvent) => {
@@ -356,12 +362,12 @@ export const UserProfile: React.FC = () => {
                       Mening Balansim (Depozit)
                     </span>
                     <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                      {Number(user.balance || 0).toLocaleString()} <span className="text-xs font-normal text-emerald-100">so'm</span>
+                      {currentDepositBalance.toLocaleString()} <span className="text-xs font-normal text-emerald-100">so'm</span>
                     </h3>
                   </div>
                 </div>
                 <Badge className="bg-white/20 text-white border border-white/30 text-[10px] font-bold backdrop-blur-xs">
-                  {Number(user.balance || 0) > 0 ? "Mablag' bor" : "0 so'm"}
+                  {currentDepositBalance > 0 ? "Mablag' bor" : "0 so'm"}
                 </Badge>
               </div>
               <p className="text-[11px] text-emerald-100/90 mt-2.5 pt-2 border-t border-white/15">

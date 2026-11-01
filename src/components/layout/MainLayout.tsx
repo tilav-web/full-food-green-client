@@ -31,6 +31,7 @@ export const MainLayout: React.FC = () => {
           if (res.data) {
             setUser({
               ...res.data,
+              balance: res.data.balance !== undefined ? res.data.balance : user?.balance,
               isTelegramVerified: !!(res.data.phone && res.data.telegramId),
             })
           }
