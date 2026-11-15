@@ -332,6 +332,12 @@ export const CashierView: React.FC = () => {
     socket.emit("join_cashier")
 
     const handleNewOrder = (order: Order) => {
+      if (order?.id) {
+        queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) => {
+          const exists = old.some((o) => o.id === order.id)
+          return exists ? old.map((o) => (o.id === order.id ? { ...o, ...order } : o)) : [order, ...old]
+        })
+      }
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
       // Kassir o'zi zal uchun yaratgan buyurtmalar uchun tovush bu yerda emas (POS checkout'da)
       if (order?.type === "DINE_IN") {
@@ -339,17 +345,19 @@ export const CashierView: React.FC = () => {
       }
       triggerHaptic("heavy")
       playNotificationChime()
-      // Eslatma: Online buyurtmalar cheki to'g'ridan-to'g'ri Backend -> Printer Agenti (Socket.IO)
-      // orqali bir lahzada chop etiladi. Brauzer dublikat chek chiqarmaydi.
     }
 
     const handleOrderUpdated = (order: Order) => {
+      if (order?.id) {
+        queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+          old.map((o) => (o.id === order.id ? { ...o, ...order, items: order.items || o.items } : o))
+        )
+      }
       // If payment review receipt uploaded, chime
       if (order?.status === "PAYMENT_REVIEW") {
         triggerHaptic("heavy")
         playNotificationChime()
       }
-      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
     }
 
     const handleUserBalanceUpdated = (payload: { userId: string; balance: number }) => {
@@ -936,12 +944,39 @@ interface PosDraftOrder {
     mutationFn: async ({ orderId, approved }: { orderId: string; approved: boolean }) => {
       return apiClient.post(`/orders/${orderId}/review-receipt`, { approved })
     },
-    onSuccess: () => {
+    onMutate: async ({ orderId, approved }) => {
+      await queryClient.cancelQueries({ queryKey: ["cashierOrders"] })
+      const previousOrders = queryClient.getQueryData<Order[]>(["cashierOrders"])
+      queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+        old.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                status: (approved ? "PREPARING" : "CANCELLED") as OrderStatus,
+                paymentStatus: approved ? "PAID" : "REJECTED",
+              }
+            : o
+        )
+      )
+      return { previousOrders }
+    },
+    onSuccess: (res, { approved }) => {
       triggerHaptic("success")
-      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+      if (res?.data?.id) {
+        queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+          old.map((o) => (o.id === res.data.id ? { ...o, ...res.data, items: res.data.items || o.items } : o))
+        )
+      }
+      toast.success(approved ? "To'lov cheki tasdiqlandi! Buyurtma oshxonaga o'tkazildi." : "To'lov cheki rad etildi va buyurtma bekor qilindi.")
       const next = new URLSearchParams(searchParams)
       next.delete("receipt")
       setSearchParams(next)
+    },
+    onError: (err: any, _vars, context) => {
+      if (context?.previousOrders) {
+        queryClient.setQueryData(["cashierOrders"], context.previousOrders)
+      }
+      toast.error("Xatolik: " + (err.response?.data?.message || err.message))
     },
   })
 
@@ -950,12 +985,31 @@ interface PosDraftOrder {
     mutationFn: async (orderId: string) => {
       return apiClient.post(`/orders/${orderId}/confirm-balance-payment`, { performedBy: "Kassir" })
     },
-    onSuccess: () => {
+    onMutate: async (orderId) => {
+      await queryClient.cancelQueries({ queryKey: ["cashierOrders"] })
+      const previousOrders = queryClient.getQueryData<Order[]>(["cashierOrders"])
+      queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+        old.map((o) =>
+          o.id === orderId
+            ? { ...o, status: "PREPARING" as OrderStatus, paymentStatus: "PAID", isPaidFromBalance: true }
+            : o
+        )
+      )
+      return { previousOrders }
+    },
+    onSuccess: (res) => {
       triggerHaptic("success")
-      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+      if (res?.data?.id) {
+        queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+          old.map((o) => (o.id === res.data.id ? { ...o, ...res.data, items: res.data.items || o.items } : o))
+        )
+      }
       toast.success("Mijoz balansidan to'lov muvaffaqiyatli yechildi va buyurtma tasdiqlandi!")
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, context) => {
+      if (context?.previousOrders) {
+        queryClient.setQueryData(["cashierOrders"], context.previousOrders)
+      }
       toast.error("Xatolik: " + (err.response?.data?.message || err.message))
     },
   })
@@ -965,9 +1019,17 @@ interface PosDraftOrder {
     if (!yandexConfirmOrder) return
     try {
       setIsDispatchingYandex(true)
-      await apiClient.post(`/orders/${yandexConfirmOrder.id}/dispatch-yandex`)
+      const res = await apiClient.post(`/orders/${yandexConfirmOrder.id}/dispatch-yandex`)
       triggerHaptic("success")
-      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+      const updatedOrder = res.data?.order
+      if (updatedOrder?.id) {
+        queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+          old.map((o) => (o.id === updatedOrder.id ? { ...o, ...updatedOrder, items: updatedOrder.items || o.items } : o))
+        )
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+      }
+      toast.success("Yandex Taxi chaqirildi! Buyurtma holati: Yetkazilmoqda")
       const next = new URLSearchParams(searchParams)
       next.delete("yandex")
       setSearchParams(next)
@@ -979,14 +1041,47 @@ interface PosDraftOrder {
     }
   }
 
-  // Status update mutation
+  // Status update mutation (Instant 0ms Optimistic Update)
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
       return apiClient.patch(`/orders/${orderId}/status`, { status })
     },
-    onSuccess: () => {
+    onMutate: async ({ orderId, status }) => {
       triggerHaptic("light")
-      queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+      await queryClient.cancelQueries({ queryKey: ["cashierOrders"] })
+      const previousOrders = queryClient.getQueryData<Order[]>(["cashierOrders"])
+      queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+        old.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                status,
+                paymentStatus:
+                  status === "PREPARING" || status === "DELIVERING" || status === "COMPLETED"
+                    ? "PAID"
+                    : status === "CANCELLED"
+                    ? "REJECTED"
+                    : o.paymentStatus,
+              }
+            : o
+        )
+      )
+      return { previousOrders }
+    },
+    onSuccess: (res, { status }) => {
+      if (res?.data?.id) {
+        queryClient.setQueryData<Order[]>(["cashierOrders"], (old = []) =>
+          old.map((o) => (o.id === res.data.id ? { ...o, ...res.data, items: res.data.items || o.items } : o))
+        )
+      }
+      const statusLabel = STATUS_CONFIG[status]?.label || status
+      toast.success(`Buyurtma holati yangilandi: ${statusLabel}`)
+    },
+    onError: (err: any, _vars, context) => {
+      if (context?.previousOrders) {
+        queryClient.setQueryData(["cashierOrders"], context.previousOrders)
+      }
+      toast.error("Holatni o'zgartirishda xatolik: " + (err.response?.data?.message || err.message))
     },
   })
 
@@ -1119,9 +1214,11 @@ interface PosDraftOrder {
     if (orderFilter === "BOT") list = list.filter((o) => o.type !== "DINE_IN")
     else if (orderFilter === "ZAL") list = list.filter((o) => o.type === "DINE_IN")
     else if (orderFilter === "REVIEW") list = list.filter((o) => o.status === "PAYMENT_REVIEW")
+    else if (orderFilter === "PENDING_PAYMENT") list = list.filter((o) => o.status === "PENDING_PAYMENT")
     else if (orderFilter === "PREPARING") list = list.filter((o) => o.status === "PREPARING")
     else if (orderFilter === "DELIVERING") list = list.filter((o) => o.status === "DELIVERING")
     else if (orderFilter === "COMPLETED") list = list.filter((o) => o.status === "COMPLETED")
+    else if (orderFilter === "CANCELLED") list = list.filter((o) => o.status === "CANCELLED")
 
     // 2. Search query filter
     if (ordersSearchQuery.trim()) {
@@ -1135,13 +1232,27 @@ interface PosDraftOrder {
       )
     }
 
+    const recentCutoffMs = Date.now() - 24 * 60 * 60 * 1000
+
     // 3. Logical business priority sorting:
-    // PAYMENT_REVIEW -> PREPARING -> DELIVERING -> PENDING_PAYMENT -> COMPLETED -> CANCELLED
+    // Recent (last 24h) active orders come first by priority, so old historical orders don't bury today's live orders
     return list.sort((a, b) => {
-      const prioA = STATUS_PRIORITY[a.status] || 99
-      const prioB = STATUS_PRIORITY[b.status] || 99
-      if (prioA !== prioB) return prioA - prioB
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      const timeA = new Date(a.createdAt).getTime()
+      const timeB = new Date(b.createdAt).getTime()
+      const isRecentA = timeA >= recentCutoffMs
+      const isRecentB = timeB >= recentCutoffMs
+
+      if (isRecentA !== isRecentB) {
+        return isRecentA ? -1 : 1
+      }
+
+      if (isRecentA && isRecentB) {
+        const prioA = STATUS_PRIORITY[a.status] || 99
+        const prioB = STATUS_PRIORITY[b.status] || 99
+        if (prioA !== prioB) return prioA - prioB
+      }
+
+      return timeB - timeA
     })
   }, [orders, orderFilter, ordersSearchQuery])
 
@@ -1273,9 +1384,11 @@ interface PosDraftOrder {
                 { id: "BOT", label: "📱 Telegram / Onlayn", count: orders.filter((o) => o.type !== "DINE_IN").length },
                 { id: "ZAL", label: "🍽️ Zal (Kassa)", count: orders.filter((o) => o.type === "DINE_IN").length },
                 { id: "REVIEW", label: "Chek tekshirish", count: pendingReviewOrders.length, alert: true },
+                { id: "PENDING_PAYMENT", label: "To'lov kutilmoqda", count: orders.filter((o) => o.status === "PENDING_PAYMENT").length },
                 { id: "PREPARING", label: "Oshxonada", count: orders.filter((o) => o.status === "PREPARING").length },
                 { id: "DELIVERING", label: "Yetkazilmoqda", count: orders.filter((o) => o.status === "DELIVERING").length },
                 { id: "COMPLETED", label: "Yakunlangan", count: orders.filter((o) => o.status === "COMPLETED").length },
+                { id: "CANCELLED", label: "Bekor qilingan", count: orders.filter((o) => o.status === "CANCELLED").length },
               ].map((pill) => {
                 const isActive = orderFilter === pill.id
                 return (
@@ -1627,16 +1740,64 @@ interface PosDraftOrder {
                                 </div>
                               </div>
                             ) : isPendingReview ? (
-                              <Button
-                                onClick={() => {
-                                  const next = new URLSearchParams(searchParams)
-                                  next.set("receipt", order.id)
-                                  setSearchParams(next)
-                                }}
-                                className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black py-2.5 flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-98"
-                              >
-                                <Eye className="h-4 w-4" /> Chekni Tekshirish
-                              </Button>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <Button
+                                  onClick={() => {
+                                    const next = new URLSearchParams(searchParams)
+                                    next.set("receipt", order.id)
+                                    setSearchParams(next)
+                                  }}
+                                  className="col-span-2 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black py-2.5 flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-98"
+                                >
+                                  <Eye className="h-4 w-4" /> Chekni Tekshirish
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    reviewReceiptMutation.mutate({ orderId: order.id, approved: true })
+                                  }
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black h-8 gap-1"
+                                >
+                                  <Check className="h-3.5 w-3.5" /> Tasdiqlash
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    reviewReceiptMutation.mutate({ orderId: order.id, approved: false })
+                                  }
+                                  className="rounded-xl text-[11px] font-bold h-8 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                >
+                                  <X className="h-3.5 w-3.5" /> Rad etish
+                                </Button>
+                              </div>
+                            ) : order.status === "PENDING_PAYMENT" ? (
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <Button
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      orderId: order.id,
+                                      status: "PREPARING",
+                                    })
+                                  }
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black py-2 flex items-center justify-center gap-1 shadow-sm"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Oshxonaga</span>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      orderId: order.id,
+                                      status: "CANCELLED",
+                                    })
+                                  }
+                                  className="rounded-2xl text-xs font-bold py-2 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                >
+                                  <span>Bekor qilish</span>
+                                </Button>
+                              </div>
                             ) : order.status === "PREPARING" ? (
                               isPickup ? (
                                 <Button
@@ -1692,6 +1853,28 @@ interface PosDraftOrder {
                             ) : (
                               renderStatusBadge(order.status)
                             )}
+
+                            {/* Universal Status Switcher for Cashier & Admin */}
+                            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-neutral-100 dark:border-neutral-800/80">
+                              <span className="text-[10px] font-bold text-neutral-400">Holatni boshqarish:</span>
+                              <select
+                                value={order.status}
+                                onChange={(e) => {
+                                  const nextStatus = e.target.value as OrderStatus
+                                  if (nextStatus && nextStatus !== order.status) {
+                                    updateStatusMutation.mutate({ orderId: order.id, status: nextStatus })
+                                  }
+                                }}
+                                className="text-[11px] font-bold rounded-xl px-2.5 py-1 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                              >
+                                <option value="PENDING_PAYMENT">⏳ To'lov kutilmoqda</option>
+                                <option value="PAYMENT_REVIEW">🧾 Chek tekshirilmoqda</option>
+                                <option value="PREPARING">🍳 Oshxonada</option>
+                                <option value="DELIVERING">🚖 Yetkazilmoqda</option>
+                                <option value="COMPLETED">✅ Yakunlangan</option>
+                                <option value="CANCELLED">❌ Bekor qilingan</option>
+                              </select>
+                            </div>
                           </div>
                         </>
                       )
