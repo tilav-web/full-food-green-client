@@ -35,7 +35,7 @@ import { apiClient } from "@/api/axios"
 import { LocationPickerModal } from "./LocationPickerModal"
 import { getImageUrl } from "@/lib/utils"
 import { compressImage } from "@/lib/imageCompression"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 interface CartPageProps {
   onGoToMenu: () => void
@@ -44,6 +44,7 @@ interface CartPageProps {
 
 export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) => {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const {
     cart,
     removeFromCart,
@@ -52,6 +53,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
     user,
     setUser,
     setAuth,
+    updateUserBalance,
     setCurrentActiveOrder,
     savedLocations,
     removeSavedLocation,
@@ -147,6 +149,27 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [copiedCard, setCopiedCard] = useState(false)
+
+  // Always fetch latest user details so deposit balance is 100% up-to-date in Cart
+  const { data: latestUser } = useQuery({
+    queryKey: ["userProfileLatest", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null
+      const res = await apiClient.get(`/users/${user.id}`)
+      if (res.data) {
+        setUser(res.data)
+      }
+      return res.data
+    },
+    enabled: !!user?.id,
+    refetchOnMount: "always",
+    staleTime: 0,
+  })
+
+  const currentBalance = Number(
+    (latestUser?.balance !== undefined ? latestUser.balance : user?.balance) || 0
+  )
+
   const { data: settings } = useQuery<Record<string, string> | any[]>({
     queryKey: ["publicSettings"],
     queryFn: async () => (await apiClient.get("/settings")).data,
@@ -327,10 +350,21 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
       setCreatedOrder(res.data)
       setCurrentActiveOrder(res.data)
       clearCart()
-      toast.success("Buyurtmangiz muvaffaqiyatli qabul qilindi!")
+
       if (selectedPaymentMethod === "BALANCE") {
+        const nextBalance =
+          res.data?.updatedUserBalance !== undefined
+            ? Number(res.data.updatedUserBalance)
+            : Math.max(0, currentBalance - totalAmount)
+        updateUserBalance(nextBalance)
+        queryClient.invalidateQueries({ queryKey: ["userProfileLatest"] })
+        queryClient.invalidateQueries({ queryKey: ["userOrders"] })
+        queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
+        toast.success("To'lov balansingizdan muvaffaqiyatli yechildi va buyurtma oshxonaga yuborildi!")
         setStep("SUCCESS")
       } else {
+        queryClient.invalidateQueries({ queryKey: ["userOrders"] })
+        toast.success("Buyurtmangiz muvaffaqiyatli qabul qilindi!")
         setStep("PAYMENT")
       }
     } catch (err: any) {
@@ -390,7 +424,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
             {step === "CART" && `${cart.length} ${t.selectedDishesCount || "xil taom tanlangan"}`}
             {step === "LOCATION" && (t.locationStepDesc || "Taom yetkazilishi uchun manzilingizni tanlang")}
             {step === "PAYMENT" && (t.paymentDesc || "Karta to'lovi va chek yuklash")}
-            {step === "SUCCESS" && (t.checkingReceipt || "Operator chekingizni tekshirmoqda")}
+            {step === "SUCCESS" &&
+              (createdOrder?.paymentMethod === "BALANCE" || createdOrder?.isPaidFromBalance
+                ? "To'lov balansingizdan yechildi — oshxonada tayyorlanmoqda"
+                : t.checkingReceipt || "Operator chekingizni tekshirmoqda")}
           </p>
         </div>
 
@@ -975,7 +1012,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               {user && (
                 <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                   <Wallet className="h-3.5 w-3.5" />
-                  {t.balance || "Balans"}: {Number(user.balance || 0).toLocaleString()} {t.currency}
+                  {t.balance || "Balans"}: {currentBalance.toLocaleString()} {t.currency}
                 </span>
               )}
             </label>
@@ -984,14 +1021,14 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               {/* 1. Pay with Personal Balance */}
               <button
                 type="button"
-                disabled={Number(user?.balance || 0) < totalAmount}
+                disabled={currentBalance < totalAmount}
                 onClick={() => {
                   triggerHaptic("light")
                   setSelectedPaymentMethod("BALANCE")
                 }}
                 className={`p-3 rounded-2xl border text-left transition-all flex items-start gap-2.5 ${selectedPaymentMethod === "BALANCE"
                     ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-600"
-                    : Number(user?.balance || 0) < totalAmount
+                    : currentBalance < totalAmount
                       ? "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 opacity-50 cursor-not-allowed"
                       : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300"
                   }`}
@@ -1007,7 +1044,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                     {t.payFromBalance || "Hisobimdan to'lash"}
                   </span>
                   <span className="text-[10px] text-neutral-400 block">
-                    {Number(user?.balance || 0) >= totalAmount
+                    {currentBalance >= totalAmount
                       ? (t.payFromBalanceDesc || "Balans yetarli — to'g'ridan-to'g'ri yechiladi")
                       : (t.insufficientBalance || "Balansda mablag' yetarli emas")}
                   </span>
@@ -1104,13 +1141,13 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 disabled={
                   isSubmitting ||
                   !isUserVerified ||
-                  (orderType === "ONLINE_DELIVERY" && (!deliveryAddress.trim() || savedLocations.length === 0))
+                  !hasValidDeliveryLocation
                 }
                 className="w-2/3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 text-white rounded-2xl font-black text-xs shadow-lg shadow-emerald-600/20 active:scale-98"
               >
                 {isSubmitting
                   ? t.loading
-                  : orderType === "ONLINE_DELIVERY" && (!deliveryAddress.trim() || savedLocations.length === 0)
+                  : !hasValidDeliveryLocation
                     ? (t.selectLocationMandatory || "Joylashuvni tanlang")
                     : selectedPaymentMethod === "BALANCE"
                       ? (t.confirmOrder || "Buyurtmani Tasdiqlash")
@@ -1216,7 +1253,9 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
               {t.orderSuccessTitle}
             </h3>
             <p className="text-xs text-neutral-500 max-w-xs mx-auto">
-              {t.orderSuccessDesc}
+              {createdOrder.paymentMethod === "BALANCE" || createdOrder.isPaidFromBalance
+                ? (t.balancePaymentDoneDesc || "To'lov hisobingizdan yechildi va buyurtmangiz oshxonada tayyorlanmoqda!")
+                : t.orderSuccessDesc}
             </p>
           </div>
 
@@ -1228,14 +1267,17 @@ export const CartPage: React.FC<CartPageProps> = ({ onGoToMenu, onGoToOrders }) 
                 #{createdOrder.orderNumber}
               </Badge>
             </div>
-            {createdOrder.paymentMethod === "BALANCE" ? (
-              <div className="pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300">
-                <p className="font-black flex items-center justify-center gap-1">
+            {createdOrder.paymentMethod === "BALANCE" || createdOrder.isPaidFromBalance ? (
+              <div className="pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 space-y-1">
+                <p className="font-black flex items-center justify-center gap-1 text-emerald-700 dark:text-emerald-300">
                   <Wallet className="h-3.5 w-3.5" />
-                  {t.balancePaymentDone || "Shaxsiy balans orqali to'lov"} ({Number(createdOrder.totalAmount || totalAmount).toLocaleString()} {t.currency})
+                  ✅ {t.balancePaymentDone || "Shaxsiy balansdan to'landi"} (-{Number(createdOrder.totalAmount || totalAmount).toLocaleString()} {t.currency})
                 </p>
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
-                  {t.balancePaymentDoneDesc || "Operator tasdiqlashi bilan hisobingizdan yechiladi va taom tayyorlanadi."}
+                <p className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200">
+                  Qolgan balans: {Number(createdOrder.updatedUserBalance ?? currentBalance).toLocaleString()} {t.currency}
+                </p>
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                  👨‍🍳 Buyurtmangiz to'lov tasdiqlangan holda to'g'ridan-to'g'ri oshxonaga yuborildi!
                 </p>
               </div>
             ) : (

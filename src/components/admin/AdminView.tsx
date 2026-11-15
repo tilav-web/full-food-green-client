@@ -2118,7 +2118,7 @@ export const AdminView: React.FC = () => {
                   <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400">{t.currency || "so'm"}</span>
                 </div>
                 <span className="text-[10px] text-neutral-400 block font-medium">
-                  {dashboard?.completedOrdersCount || 0} ta to'langan buyurtma
+                  {dashboard?.paidOrdersCount ?? dashboard?.completedOrdersCount ?? 0} ta to'langan buyurtma
                 </span>
               </div>
 
@@ -2255,7 +2255,7 @@ export const AdminView: React.FC = () => {
                   {t.paymentMethodsDistribution || "To'lov Turlari Taqsimoti"}
                 </span>
                 <Badge variant="outline" className="text-[10px] font-bold">
-                  {dashboard?.paymentBreakdown?.cardPercentage || 0}% {t.cardWord || "Karta"} / {dashboard?.paymentBreakdown?.cashPercentage || 0}% {t.cashWord || "Naqd"}
+                  {dashboard?.paymentBreakdown?.cardPercentage || 0}% {t.cardWord || "Karta"} / {dashboard?.paymentBreakdown?.cashPercentage || 0}% {t.cashWord || "Naqd"} / {dashboard?.paymentBreakdown?.balancePercentage || 0}% Balans
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -2270,16 +2270,20 @@ export const AdminView: React.FC = () => {
                   style={{ width: `${dashboard?.paymentBreakdown?.cashPercentage || 0}%` }}
                   className="bg-amber-500 h-full transition-all duration-500"
                 />
+                <div
+                  style={{ width: `${dashboard?.paymentBreakdown?.balancePercentage || 0}%` }}
+                  className="bg-teal-500 h-full transition-all duration-500"
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="h-6 w-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px]">
                       <CreditCard className="h-3.5 w-3.5" />
                     </div>
                     <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200">
-                      {t.cardOnline || "Karta (Online)"}
+                      {t.cardOnline || "Karta / Terminal"}
                     </span>
                   </div>
                   <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">
@@ -2304,6 +2308,23 @@ export const AdminView: React.FC = () => {
                   </p>
                   <span className="text-[10px] text-neutral-400">
                     {dashboard?.paymentBreakdown?.cashCount || 0} {t.receiptsCount || "ta chek"}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-teal-50/50 dark:bg-teal-950/30 border border-teal-200/60 dark:border-teal-900/40">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-6 w-6 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[10px]">
+                      <Wallet className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="text-[11px] font-bold text-teal-900 dark:text-teal-200">
+                      Mijoz Balansi (Depozit)
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-teal-700 dark:text-teal-400">
+                    {(dashboard?.paymentBreakdown?.balanceRevenue || 0).toLocaleString()} {t.currency || "so'm"}
+                  </p>
+                  <span className="text-[10px] text-neutral-400">
+                    {dashboard?.paymentBreakdown?.balanceCount || 0} {t.receiptsCount || "ta chek"}
                   </span>
                 </div>
               </div>

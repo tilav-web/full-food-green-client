@@ -16,6 +16,7 @@ import {
   Loader2,
   AlertCircle,
   Printer,
+  Wallet,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -63,7 +64,9 @@ export const OrderTracker: React.FC = () => {
       // 3. Unauthenticated guest with no active orders in this session: return empty list
       return []
     },
-    refetchInterval: 15000,
+    refetchOnMount: "always",
+    staleTime: 0,
+    refetchInterval: 10000,
   })
 
   const orders = Array.isArray(rawOrders) ? rawOrders : []
@@ -220,7 +223,7 @@ export const OrderTracker: React.FC = () => {
                 <CardHeader className="p-4 sm:p-5 pb-3 bg-neutral-50/70 dark:bg-neutral-900/60 border-b border-neutral-100 dark:border-neutral-800">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-sm sm:text-base font-bold text-neutral-900 dark:text-white">
                           #{order.orderNumber}
                         </CardTitle>
@@ -236,6 +239,12 @@ export const OrderTracker: React.FC = () => {
                           <Printer className="h-3 w-3" />
                         </button>
                         {getStatusBadge(order.status)}
+                        {(order.paymentMethod === "BALANCE" || order.isPaidFromBalance) && (
+                          <Badge className="bg-emerald-600 text-white font-bold text-[10px] gap-1 flex items-center">
+                            <Wallet className="h-3 w-3" />
+                            <span>Balansdan to'langan ✓</span>
+                          </Badge>
+                        )}
                       </div>
                       <CardDescription className="text-xs mt-0.5">
                         {new Date(order.createdAt).toLocaleString()}
@@ -303,8 +312,30 @@ export const OrderTracker: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* BALANCE PAID CONFIRMATION BANNER */}
+                  {(order.paymentMethod === "BALANCE" || order.isPaidFromBalance) && (
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 dark:bg-emerald-950/40 dark:border-emerald-800/60 flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200 font-bold">
+                        <div className="h-7 w-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+                          <Wallet className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <span className="block font-black text-emerald-800 dark:text-emerald-300">
+                            To'lov shaxsiy balansdan amalga oshirildi ✓
+                          </span>
+                          <span className="text-[11px] font-medium text-emerald-700/80 dark:text-emerald-400/80">
+                            Hisobingizdan {Number(order.totalAmount || 0).toLocaleString()} {t.currency} yechildi
+                          </span>
+                        </div>
+                      </div>
+                      <Badge className="bg-emerald-600 text-white text-[10px] font-bold flex-shrink-0">
+                        To'langan
+                      </Badge>
+                    </div>
+                  )}
+
                   {/* PAYMENT & RECEIPT UPLOAD SECTION FOR PENDING PAYMENT */}
-                  {order.status === "PENDING_PAYMENT" && (
+                  {order.status === "PENDING_PAYMENT" && order.paymentMethod !== "BALANCE" && !order.isPaidFromBalance && (
                     <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 dark:bg-amber-950/30 dark:border-amber-700/40 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">

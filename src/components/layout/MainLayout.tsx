@@ -5,12 +5,15 @@ import { BottomNav } from "./BottomNav"
 import { useAppStore } from "@/store/useAppStore"
 import { useTelegram } from "@/hooks/useTelegram"
 import { apiClient } from "@/api/axios"
+import { socket } from "@/api/socket"
+import { useQueryClient } from "@tanstack/react-query"
 import { AuthRequiredModal } from "@/components/auth/AuthRequiredModal"
 
 export const MainLayout: React.FC = () => {
   const { isSyncing } = useTelegram()
-  const { theme, setUser, accessToken, logout, user } = useAppStore()
+  const { theme, setUser, updateUserBalance, accessToken, logout, user } = useAppStore()
   const location = useLocation()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (theme === "dark") {
@@ -43,6 +46,32 @@ export const MainLayout: React.FC = () => {
         })
     }
   }, [accessToken, setUser, logout])
+
+  // Real-time balance & order updates for logged-in user via WebSocket
+  useEffect(() => {
+    if (!user?.id) return
+    socket.emit("join_user", { userId: user.id })
+
+    const handleBalanceUpdated = (payload: { userId: string; balance: number }) => {
+      if (payload?.userId === user.id && payload.balance !== undefined) {
+        updateUserBalance(Number(payload.balance))
+        queryClient.invalidateQueries({ queryKey: ["userProfileLatest"] })
+      }
+    }
+
+    const handleOrderUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["userOrders"] })
+      queryClient.invalidateQueries({ queryKey: ["userProfileLatest"] })
+    }
+
+    socket.on("user_balance_updated", handleBalanceUpdated)
+    socket.on("order_updated", handleOrderUpdated)
+
+    return () => {
+      socket.off("user_balance_updated", handleBalanceUpdated)
+      socket.off("order_updated", handleOrderUpdated)
+    }
+  }, [user?.id, updateUserBalance, queryClient])
 
   // Detect wide workstation pages (Cashier POS, Admin Panel)
   const isWidePage =

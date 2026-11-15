@@ -352,12 +352,21 @@ export const CashierView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
     }
 
+    const handleUserBalanceUpdated = (payload: { userId: string; balance: number }) => {
+      queryClient.invalidateQueries({ queryKey: ["posCustomerSearch"] })
+      setPosSelectedCustomer((prev) =>
+        prev && prev.id === payload?.userId ? { ...prev, balance: payload.balance } : prev
+      )
+    }
+
     socket.on("new_order", handleNewOrder)
     socket.on("order_updated", handleOrderUpdated)
+    socket.on("user_balance_updated", handleUserBalanceUpdated)
 
     return () => {
       socket.off("new_order", handleNewOrder)
       socket.off("order_updated", handleOrderUpdated)
+      socket.off("user_balance_updated", handleUserBalanceUpdated)
     }
   }, [queryClient, triggerHaptic, printerSettings])
 
@@ -1043,6 +1052,8 @@ interface PosDraftOrder {
       setIsCustomerInputOpen(false)
       queryClient.invalidateQueries({ queryKey: ["cashierOrders"] })
       queryClient.invalidateQueries({ queryKey: ["cashierProducts"] })
+      queryClient.invalidateQueries({ queryKey: ["userProfileLatest"] })
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] })
       toast.success("POS Buyurtma muvaffaqiyatli saqlandi! Chek Xprinterga yuborildi.")
       // Server (backend) DINE_IN buyurtma yaratilganda avtomatik ravishda uni Printer Agent orqali chop etishga yuboradi.
     } catch (err: any) {
@@ -2262,14 +2273,14 @@ interface PosDraftOrder {
               </Button>
 
               {/* Payment Method Selector directly underneath Save Button */}
-              <div className="grid grid-cols-2 gap-1.5 bg-neutral-100/90 dark:bg-neutral-800/90 p-1 rounded-2xl">
+              <div className="grid grid-cols-3 gap-1.5 bg-neutral-100/90 dark:bg-neutral-800/90 p-1 rounded-2xl">
                 <button
                   type="button"
                   onClick={() => {
                     triggerHaptic("light")
                     setPosPaymentMethod("CASH")
                   }}
-                  className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${
                     posPaymentMethod === "CASH"
                       ? "bg-white dark:bg-neutral-900 text-emerald-700 dark:text-emerald-400 shadow-xs ring-1 ring-emerald-500/25"
                       : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
@@ -2284,7 +2295,7 @@ interface PosDraftOrder {
                     triggerHaptic("light")
                     setPosPaymentMethod("TERMINAL")
                   }}
-                  className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${
                     posPaymentMethod === "TERMINAL"
                       ? "bg-white dark:bg-neutral-900 text-emerald-700 dark:text-emerald-400 shadow-xs ring-1 ring-emerald-500/25"
                       : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
@@ -2293,26 +2304,37 @@ interface PosDraftOrder {
                   <span>💳</span>
                   <span>{t.terminalPayment || "Terminal"}</span>
                 </button>
-                {posSelectedCustomer && (
-                  <button
-                    type="button"
-                    disabled={Number(posSelectedCustomer.balance || 0) < posTotal}
-                    onClick={() => {
-                      triggerHaptic("light")
-                      setPosPaymentMethod("BALANCE")
-                    }}
-                    className={`col-span-2 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
-                      posPaymentMethod === "BALANCE"
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : Number(posSelectedCustomer.balance || 0) >= posTotal
-                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/20"
-                        : "text-neutral-400 opacity-50 cursor-not-allowed"
-                    }`}
-                  >
-                    <Wallet className="h-3 w-3" />
-                    <span className="truncate">Balans ({Number(posSelectedCustomer.balance || 0).toLocaleString()} so'm)</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light")
+                    if (!posSelectedCustomer) {
+                      setIsCustomerInputOpen(true)
+                      toast.info("Balansdan to'lash uchun avval mijozni qidirib tanlang")
+                      return
+                    }
+                    const bal = Number(posSelectedCustomer.balance || 0)
+                    if (bal < posTotal) {
+                      toast.warning(`Mijoz balansida mablag' yetarli emas (${bal.toLocaleString()} so'm)`)
+                      return
+                    }
+                    setPosPaymentMethod("BALANCE")
+                  }}
+                  className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${
+                    posPaymentMethod === "BALANCE"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : posSelectedCustomer && Number(posSelectedCustomer.balance || 0) >= posTotal
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/20"
+                      : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
+                  }`}
+                >
+                  <Wallet className="h-3 w-3 shrink-0" />
+                  <span className="truncate">
+                    {posSelectedCustomer
+                      ? `Balans (${Number(posSelectedCustomer.balance || 0).toLocaleString()})`
+                      : "Balans"}
+                  </span>
+                </button>
               </div>
             </div>
 

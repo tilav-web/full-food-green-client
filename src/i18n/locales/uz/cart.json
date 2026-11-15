@@ -105,7 +105,7 @@
   "insufficientBalance": "Balansda mablag' yetarli emas",
   "payWithCard": "Karta orqali to'lov",
   "payWithCardDesc": "Kartaga o'tkazib chek yuklanadi",
-  "balancePaymentNote": "💡 <b>Balans to'lovi:</b> Chek yuklash talab qilinmaydi. Operator tasdiqlashi bilan hisobingizdan yechiladi.",
+  "balancePaymentNote": "💡 <b>Balans to'lovi:</b> Chek yuklash talab qilinmaydi. Tasdiqlashingiz bilan summa balansingizdan yechiladi va buyurtma to'g'ridan-to'g'ri oshxonaga yuboriladi.",
   "confirmOrder": "Buyurtmani Tasdiqlash",
   "locationRequired": "Yetkazib berish manzilini tanlash majburiy!",
   "locationNotSelected": "Manzil tanlanmagan (Majburiy)",
@@ -128,8 +128,8 @@
   "phoneSaveError": "Raqamni saqlashda xatolik",
   "saveAndContinue": "Saqlash va Davom etish",
   "orderNumberLabel": "Buyurtma raqami",
-  "balancePaymentDone": "Shaxsiy balans orqali to'lov",
-  "balancePaymentDoneDesc": "Operator tasdiqlashi bilan hisobingizdan yechiladi va taom tayyorlanadi.",
+  "balancePaymentDone": "Shaxsiy balansdan to'landi",
+  "balancePaymentDoneDesc": "To'lov hisobingizdan yechildi va buyurtmangiz oshxonada tayyorlanmoqda!",
   "receiptAccepted": "To'lov cheki qabul qilindi",
   "receiptAcceptedDesc": "Operator tekshirgach buyurtma tayyorlashga o'tadi."
 }

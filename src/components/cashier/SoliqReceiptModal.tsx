@@ -261,7 +261,7 @@ export const SoliqReceiptModal: React.FC<SoliqReceiptModalProps> = ({
                     <div key={idx} className={is80mm ? "text-[10px]" : "text-[9px]"}>
                       <div className="font-bold text-black flex justify-between items-start">
                         <span className="flex-1 pr-1 break-words">
-                          ${idx + 1}. ${item.name}
+                          {idx + 1}. {item.name}
                         </span>
                         <span className="font-black whitespace-nowrap">
                           {lineTotal.toLocaleString()}
