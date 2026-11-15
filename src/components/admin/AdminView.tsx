@@ -2208,7 +2208,7 @@ export const AdminView: React.FC = () => {
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                {dashboard?.completedOrdersCount || 0}
+                {dashboard?.paidOrdersCount ?? dashboard?.completedOrdersCount ?? 0}
               </p>
               <span className="text-[9px] text-neutral-400 font-semibold block">
                 {t.successfulLabel || "Muvaffaqiyatli"}
